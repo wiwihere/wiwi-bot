@@ -12,13 +12,10 @@ Multiple runs on same day/week?
 
 - create empty database
 - credentials on database
-
-
 """
 
 import datetime
 import os
-import sys
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -26,15 +23,12 @@ from pathlib import Path
 
 import discord
 import numpy as np
-import pytz
 from dateutil.parser import parse
 from discord import SyncWebhook
 from django.db.models import Q
-from tzlocal import get_localzone
 
 if __name__ == "__main__":
     # -- temp TESTING --
-    sys.path.append("../../nbs")
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
@@ -42,90 +36,20 @@ if __name__ == "__main__":
 
 import requests
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from log_helpers import (
+    EMBED_COLOR,
+    RANK_EMOTES,
+    WIPE_EMOTES,
+    create_unix_time,
+    get_duration_str,
+    get_emboldened_wing,
+    get_fractal_day,
+    today_y_m_d,
+)
 
 from bot_settings import settings
 
 # %%
-
-
-def create_unix_time(t):
-    tz = pytz.timezone(str(get_localzone()))
-    t = t.astimezone(tz=tz)
-    return int(time.mktime(t.timetuple()))
-
-
-def get_duration_str(seconds: int):
-    """Get seconds with datetime.timedelta.seconds"""
-    mins, secs = divmod(seconds, 60)
-    return f"{mins}:{str(secs).zfill(2)}"
-
-
-def today_y_m_d():
-    now = datetime.datetime.now()
-    return now.year, now.month, now.day
-
-
-def get_fractal_day(y, m, d):
-    """Return if logs are fractals.
-    By default monday, thursday raids. rest is fractal.
-    """
-    dt = datetime.datetime(year=y, month=m, day=d)
-    wd = dt.weekday()
-
-    # Default raid days
-    if wd in [0, 3]:
-        return False
-    return True
-
-
-def get_emboldened_wing(log_date: datetime.datetime):
-    """Check if a wing had the possibility of emboldened buff
-    Embolded was at wing 6 4th week of 2024
-    """
-    start_year = 2022
-    start_week = 26
-    start_wing = 1
-
-    year = log_date.year
-    week = log_date.isocalendar()[1]
-
-    # Check if the input date is before the start date
-    if year < start_year or (year == start_year and week < start_week):
-        # The buff 'emboldened' did not start until the 26th week of 2021."
-        return False
-
-    # Calculate the total number of weeks passed since the start
-    total_weeks_passed = (year - start_year) * 52 + week - start_week
-
-    # Calculate the current wing
-    current_wing = (total_weeks_passed % 7) + start_wing
-    return current_wing
-
-
-WIPE_EMOTES = {
-    1: Emoji.objects.get(name="skull_1_8").discord_tag,  # Between 0 and 12.5%
-    2: Emoji.objects.get(name="skull_2_8").discord_tag,
-    3: Emoji.objects.get(name="skull_3_8").discord_tag,
-    4: Emoji.objects.get(name="skull_4_8").discord_tag,
-    5: Emoji.objects.get(name="skull_5_8").discord_tag,
-    6: Emoji.objects.get(name="skull_6_8").discord_tag,
-    7: Emoji.objects.get(name="skull_7_8").discord_tag,
-    8: Emoji.objects.get(name="skull_8_8").discord_tag,  # Full health
-}
-EMBED_COLOR = {
-    "raid": 7930903,
-    "strike": 6603422,
-    "fractal": 5512822,
-}
-RANK_EMOTES = {
-    0: f"{Emoji.objects.get(name='first').discord_tag}",
-    1: f"{Emoji.objects.get(name='second').discord_tag}",
-    2: f"{Emoji.objects.get(name='third').discord_tag}",
-    "above_average": f"{Emoji.objects.get(name='above average').discord_tag}",
-    "below_average": f"{Emoji.objects.get(name='below average').discord_tag}",
-    "average": f"{Emoji.objects.get(name='average').discord_tag}",
-    "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
-}
 
 
 @dataclass
@@ -160,7 +84,6 @@ class LogUploader:
         """log_file_view is a bit tricky. Initiate class from a DpsLog"""
         log_upload = cls(log_path=log.local_path)
         log_upload.log = log
-        # log_upload.log_file_view = log.local_path #TODO remove
         return log_upload
 
     @property
@@ -172,15 +95,16 @@ class LogUploader:
 
     @property
     def log_source_view(self):
+        """Only show two parent folders if log is from path."""
         if self.log_path:
-            # Dont show all parents.
             log_path = Path(self.log_path)
             parents = 2
             parents = min(len(log_path.parts) - 2, parents)  # avoids index-error
-            return str(log_path).split(log_path.parents[parents].as_posix(), maxsplit=1)[-1]
+            return log_path.as_posix().split(log_path.parents[parents].as_posix(), maxsplit=1)[-1]
         return self.log_source
 
-    def upload_log(self) -> DpsLog:
+    def upload_log(self):
+        """Upload log to dps.report"""
         base_url = "https://dps.report/uploadContent"
 
         data = {
@@ -374,7 +298,7 @@ class LogUploader:
 
 @dataclass
 class InstanceClearInteraction:
-    """Single instance clear, or wing."""
+    """Single instance clear; raidwing or fractal scale or strikes grouped per expansion."""
 
     iclear: InstanceClear
 
@@ -398,8 +322,6 @@ class InstanceClearInteraction:
         )
         if created:
             print(f"Created {iclear}")
-        # else:
-        #     print(f"Updating {iclear}")
 
         # All logs that are not yet part of the instance clear will be added.
         for log in set(logs).difference(set(iclear.dps_logs.all())):
@@ -445,7 +367,6 @@ class InstanceClearGroupInteraction:
         """Create an instance clear group from a specific date."""
         # All logs in a day
         logs_day = DpsLog.objects.filter(
-            # encounter__instance__name="Shattered Observatory",
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
@@ -502,6 +423,7 @@ class InstanceClearGroupInteraction:
         """
         if self.iclear_group.type == "raid":
             self.iclear_group.instance_clears.filter(instance__type="raid")
+
         elif self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
             if sum([j[0] for j in self.iclear_group.instance_clears.all().values_list("success")]) == len(
@@ -687,47 +609,7 @@ class InstanceClearGroupInteraction:
             descriptions[iclear.instance.type][iclear.name] = field_value
 
         if self.iclear_group.success:
-            # blank_emote = Emoji.objects.get(name="blank")
-            # colon_emote = Emoji.objects.get(name="colon")
-
-            # titles[iclear.instance.type]["win"] = "⠀__⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀__"
-            # titles[iclear.instance.type]["win"] = ""
-
-            # titles[iclear.instance.type]["win"] = f"⠀╔{'═'*6}╗"
-
-            # numword = {
-            #     "0": "zero",
-            #     "1": "one",
-            #     "2": "two",
-            #     "3": "three",
-            #     "4": "four",
-            #     "5": "five",
-            #     "6": "six",
-            #     "7": "seven",
-            #     "8": "eight",
-            #     "9": "nine",
-            #     ":": ":",
-            # }
-
             duration_str = get_duration_str(self.iclear_group.duration.seconds)
-            # dura_str = "".join([f":{numword[i]}:" for i in duration_str]).replace(":::::", "::exclamation::")
-            # dura_str = "".join([f":{numword[i]}:" for i in duration_str]).replace(
-            #     ":::::", f":{colon_emote.discord_tag}:"
-            # )
-
-            # descriptions[iclear.instance.type][
-            #     "win"
-            # ] = f"{blank_emote.discord_tag}:first_place:**{duration_str}**:first_place:"
-            # descriptions[iclear.instance.type][
-            #     "win"
-            # ] = f"{blank_emote.discord_tag}:first_place:**{duration_str}**:first_place:"
-            # # descriptions[iclear.instance.type]["win"] = ""
-            # descriptions[iclear.instance.type][
-            #     "win"
-            # ] += f"{blank_emote.discord_tag}:first_place:**{dura_str}**:first_place:"
-            # # descriptions[iclear.instance.type]["win"] = f"""⠀:first_place:**`{duration_str}`**:first_place:⠀⠀\n⠀╚{'═'*6}╝"""
-
-            # titles["fractal"]["main"] += f"⠀:first_place:⠀**{duration_str}**⠀:first_place:"
             descriptions["fractal"]["main"] = f"⠀:first_place: **{duration_str}** :first_place: \n".join(
                 descriptions["fractal"]["main"].split("\n", 1)
             )
