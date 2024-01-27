@@ -40,6 +40,7 @@ from log_helpers import (
     EMBED_COLOR,
     RANK_EMOTES,
     WIPE_EMOTES,
+    create_rank_str,
     create_unix_time,
     get_duration_str,
     get_emboldened_wing,
@@ -403,8 +404,8 @@ class InstanceClearGroupInteraction:
         return cls(iclear_group, fractal)
 
     @classmethod
-    def from_name(cls, name):
-        return cls(InstanceClearGroup.objects.get(name=name))
+    def from_name(cls, name, fractal):
+        return cls(InstanceClearGroup.objects.get(name=name), fractal)
 
     def create_discord_time(self, t: datetime.datetime):
         """time.mktime uses local time while the times in django are in utc.
@@ -422,14 +423,31 @@ class InstanceClearGroupInteraction:
         Duration is saved in the iclear_group.
         """
         if self.iclear_group.type == "raid":
-            self.iclear_group.instance_clears.filter(instance__type="raid")
+            # For raids we need to check multiple clears since they may not be done in one session.
+            week_start = self.iclear_group.start_time - datetime.timedelta(
+                days=self.iclear_group.start_time.weekday()
+            )  # days are correct, but not hours and mins.
+            week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
+
+            week_clears = InstanceClearGroup.objects.filter(type="raid").filter(
+                Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
+            )
+            successes = list(
+                chain(*[j.instance_clears.filter(instance__type="raid", success=True) for j in week_clears])
+            )
+
+            if len(successes) == len(Instance.objects.filter(type=self.iclear_group.type)):
+                print("Finished a whole instance group!")
+                self.iclear_group.success = True
+                self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
+                self.iclear_group.save()
 
         elif self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
             if sum([j[0] for j in self.iclear_group.instance_clears.all().values_list("success")]) == len(
                 Instance.objects.filter(type=self.iclear_group.type)
             ):
-                print("Finished a whole instance group!")
+                print("Finished all fracals!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum(
                     [i[0] for i in (self.iclear_group.instance_clears.all().values_list("duration"))],
@@ -469,8 +487,27 @@ class InstanceClearGroupInteraction:
 {self.create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
 \n{pug_str}\n
 """
+
+            title = self.iclear_group.pretty_time
+            # Add total instance group time if all bosses finished.
+
+            if self.iclear_group.success:
+                group = list(
+                    InstanceClearGroup.objects.filter(success=True, type=icgi.iclear_group.type)
+                    .filter(
+                        Q(start_time__gte=self.iclear_group.start_time - datetime.timedelta(days=9999))
+                        & Q(start_time__lte=self.iclear_group.start_time)
+                    )
+                    .order_by("duration")
+                )
+                rank_str = create_rank_str(indiv=self.iclear_group, group=group)
+
+                duration_str = get_duration_str(self.iclear_group.duration.seconds, colon=False)
+                # description = f"⠀⠀⠀⠀⠀:first_place: **{duration_str}** :first_place: \n".join(description.split("\n", 1))
+                title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+
             titles[instance_type] = {}
-            titles[instance_type]["main"] = self.iclear_group.pretty_time
+            titles[instance_type]["main"] = title
             descriptions[instance_type] = {}
             descriptions[instance_type]["main"] = description
 
@@ -490,24 +527,7 @@ class InstanceClearGroupInteraction:
                     )
                     .order_by("duration")
                 )
-                rank = iclear_success_all.index(iclear)
-            else:
-                rank = None
-
-            # Strikes as an instance dont have cleartimes.
-            # Ranks 1, 2 and 3.
-            if (rank in RANK_EMOTES) and (iclear.instance.type != "strike"):
-                rank_str = RANK_EMOTES[rank]
-            # Other ranks
-            else:
-                rank_str = RANK_EMOTES["average"]
-                if iclear.success:
-                    if iclear.duration.seconds < (np.mean([i.duration.seconds for i in iclear_success_all]) - 5):
-                        rank_str = RANK_EMOTES["above_average"]
-                    elif iclear.duration.seconds > (np.mean([i.duration.seconds for i in iclear_success_all]) + 5):
-                        rank_str = RANK_EMOTES["below_average"]
-            if iclear.emboldened:
-                rank_str = RANK_EMOTES["emboldened"]
+            rank_str = create_rank_str(indiv=iclear, group=iclear_success_all)
 
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
@@ -554,9 +574,9 @@ class InstanceClearGroupInteraction:
                     first_boss = False  # Only after a successful log the first_boss is cleared.
 
                 # Find rank of boss on leaderboard filter for logs of last year.
-                rank = -1
+                encounter_success_all = None
                 if log.success:
-                    encounter_success_all = (
+                    encounter_success_all = list(
                         log.encounter.dps_logs.filter(success=True, cm=log.cm)
                         .filter(
                             Q(start_time__gte=log.start_time - datetime.timedelta(days=9999))
@@ -564,19 +584,7 @@ class InstanceClearGroupInteraction:
                         )
                         .order_by("duration")
                     )
-                    rank = list(encounter_success_all).index(log)
-
-                if rank in RANK_EMOTES:  # Give it a 1,2,3rd place medal
-                    rank_str = RANK_EMOTES[rank]
-                else:  # Give it a grey medal.
-                    rank_str = RANK_EMOTES["average"]
-                    if log.success:
-                        if log.duration.seconds < (np.mean([i.duration.seconds for i in encounter_success_all]) - 5):
-                            rank_str = RANK_EMOTES["above_average"]
-                        elif log.duration.seconds > (np.mean([i.duration.seconds for i in encounter_success_all]) + 5):
-                            rank_str = RANK_EMOTES["below_average"]
-                if log.emboldened:
-                    rank_str = RANK_EMOTES["emboldened"]
+                rank_str = create_rank_str(indiv=log, group=encounter_success_all)
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
                 # Dont show wipes that are under 15 seconds.
@@ -608,14 +616,8 @@ class InstanceClearGroupInteraction:
             # Descriptions can be 4096 characters, so instead of a field we just edit the description.
             descriptions[iclear.instance.type][iclear.name] = field_value
 
-        if self.iclear_group.success:
-            duration_str = get_duration_str(self.iclear_group.duration.seconds)
-            descriptions["fractal"]["main"] = f"⠀:first_place: **{duration_str}** :first_place: \n".join(
-                descriptions["fractal"]["main"].split("\n", 1)
-            )
         self.titles = titles
         self.descriptions = descriptions
-        print(self.titles["fractal"].keys())
 
         return titles, descriptions
 
@@ -728,7 +730,7 @@ class InstanceClearGroupInteraction:
 ## %%
 #
 # y, m, d = today_y_m_d()
-y, m, d = 2024, 1, 26
+y, m, d = 2024, 1, 22
 # y, m, d = 2023, 12, 11
 
 fractal = get_fractal_day(y, m, d)
@@ -834,3 +836,9 @@ for name, discord_id in zip(names, discord_ids):
     Emoji.objects.update_or_create(name=name, discord_id=discord_id)
 
 # %%
+for icg in InstanceClearGroup.objects.filter(type="fractal"):
+    icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
+    titles, descriptions = icgi.create_message()
+    embeds = icgi.create_embeds(titles, descriptions)
+
+    icgi.create_or_update_discord_message(embeds=embeds)

@@ -97,7 +97,15 @@ class InstanceClearAdmin(admin.ModelAdmin):
 
 @admin.register(models.InstanceClearGroup)
 class InstanceClearGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "start_time", "discord_message_id")
+    list_display = (
+        "name",
+        "type",
+        "success",
+        "duration",
+        "start_time",
+        "discord_message_id",
+    )
+
     inlines = [InstanceClearInline]
 
 
