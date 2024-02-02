@@ -40,6 +40,7 @@ from log_helpers import (
     EMBED_COLOR,
     RANK_EMOTES,
     WIPE_EMOTES,
+    create_discord_time,
     create_rank_str,
     create_unix_time,
     find_log_by_date,
@@ -408,13 +409,6 @@ class InstanceClearGroupInteraction:
     def from_name(cls, name, fractal):
         return cls(InstanceClearGroup.objects.get(name=name), fractal)
 
-    def create_discord_time(self, t: datetime.datetime):
-        """time.mktime uses local time while the times in django are in utc.
-        So we need to convert and then make discord str of it
-        """
-        t = create_unix_time(t)
-        return f"<t:{t}:t>"
-
     @property
     def clears_by_date(self):
         return self.iclear_group.instance_clears.all().order_by("start_time")
@@ -484,8 +478,8 @@ class InstanceClearGroupInteraction:
             pug_str = ">".join(pug_split_str)
 
             # title description with start - end time and colored ducks for core/pugs
-            description = f"""{self.create_discord_time(self.all_logs[0].start_time)} - \
-{self.create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
+            description = f"""{create_discord_time(self.all_logs[0].start_time)} - \
+{create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
 \n{pug_str}\n
 """
 
@@ -771,15 +765,17 @@ try:
             icgi.create_or_update_discord_message(embeds=embeds)
             # break
 
+            if icgi is not None:
+                if icgi.iclear_group.success:
+                    if icgi.iclear_group.type == "fractal":
+                        break
+                    if icgi.iclear_group.type == "raid":
+                        pass
+                        # TODO add break statement
+
         # Stop when its not today, not expecting more logs anyway.
         if (y, m, d) != today_y_m_d():
             break
-
-        if icgi is not None:
-            if icgi.iclear_group.success:
-                if icgi.iclear_group.type == "fractal":
-                    break
-        # break
 
         time.sleep(30)
         run_count += 1

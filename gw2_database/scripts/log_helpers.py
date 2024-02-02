@@ -40,6 +40,13 @@ def create_unix_time(t):
     return int(time.mktime(t.timetuple()))
 
 
+def create_discord_time(t: datetime.datetime):
+    """time.mktime uses local time while the times in django are in utc.
+    So we need to convert and then make discord str of it
+    """
+    return f"<t:{create_unix_time(t)}:t>"
+
+
 def get_duration_str(seconds: int):
     """Get seconds with datetime.timedelta.seconds"""
     mins, secs = divmod(seconds, 60)
