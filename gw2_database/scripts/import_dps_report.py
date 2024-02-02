@@ -42,6 +42,7 @@ from log_helpers import (
     WIPE_EMOTES,
     create_rank_str,
     create_unix_time,
+    find_log_by_date,
     get_duration_str,
     get_emboldened_wing,
     get_fractal_day,
@@ -375,19 +376,19 @@ class InstanceClearGroupInteraction:
         if not fractal:
             logs_day = logs_day.exclude(encounter__instance__type="fractal")
             name = f"raids__{y}{str(m).zfill(2)}{str(d).zfill(2)}"
+            itype = "raid"
 
         else:
             logs_day = logs_day.filter(encounter__instance__type="fractal")
             name = f"fractals__{y}{str(m).zfill(2)}{str(d).zfill(2)}"
+            itype = "fractal"
 
         # if len(logs_day) == 0:
         #     raise Exception(f"No logs? fractals={fractal}")
 
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
 
-        iclear_group, created = InstanceClearGroup.objects.update_or_create(
-            name=name,
-        )
+        iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype)
 
         # Create individual instance clears
         for instance_name in instances_day:
@@ -442,7 +443,7 @@ class InstanceClearGroupInteraction:
                 self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
                 self.iclear_group.save()
 
-        elif self.iclear_group.type == "fractal":
+        if self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
             if sum([j[0] for j in self.iclear_group.instance_clears.all().values_list("success")]) == len(
                 Instance.objects.filter(type=self.iclear_group.type)
@@ -502,7 +503,7 @@ class InstanceClearGroupInteraction:
                 )
                 rank_str = create_rank_str(indiv=self.iclear_group, group=group)
 
-                duration_str = get_duration_str(self.iclear_group.duration.seconds, colon=False)
+                duration_str = get_duration_str(self.iclear_group.duration.seconds)
                 # description = f"⠀⠀⠀⠀⠀:first_place: **{duration_str}** :first_place: \n".join(description.split("\n", 1))
                 title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
@@ -518,6 +519,7 @@ class InstanceClearGroupInteraction:
             descriptions[iclear.instance.type][iclear.name] = ""  # field description
 
             # Find rank of full instance on leaderboard
+            iclear_success_all = None
             if iclear.success:
                 iclear_success_all = list(
                     iclear.instance.instance_clears.filter(success=True)
@@ -727,29 +729,31 @@ class InstanceClearGroupInteraction:
                 print("New discord message created")
 
 
-## %%
+# %%
 #
-# y, m, d = today_y_m_d()
-y, m, d = 2024, 1, 22
+
+
+y, m, d = today_y_m_d()
+# y, m, d = 2024, 1, 29
 # y, m, d = 2023, 12, 11
 
 fractal = get_fractal_day(y, m, d)
-
 # fractal = False
-shared_folder = False  # True when getting logs from onedrive
+
+log_dir1 = Path(settings.DPS_LOGS_DIR)
+log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
+log_dirs = [log_dir1, log_dir2]
 
 log_paths_done = []
 run_count = 0
-# if True:
+icgi = None
 try:
     while True:
         print(f"Run {run_count}")
 
         # Find logs in directory
-        log_dir = Path(settings.DPS_LOGS_DIR)
-        if shared_folder:
-            log_dir = Path(settings.ONEDRIVE_LOGS_DIR)
-        log_paths = sorted(log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc"), key=os.path.getmtime)
+        log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
+        log_paths = sorted(log_paths, key=os.path.getmtime)
 
         # Process each log
         for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
@@ -765,12 +769,17 @@ try:
             embeds = icgi.create_embeds(titles, descriptions)
 
             icgi.create_or_update_discord_message(embeds=embeds)
-            break
+            # break
 
         # Stop when its not today, not expecting more logs anyway.
         if (y, m, d) != today_y_m_d():
             break
-        break
+
+        if icgi is not None:
+            if icgi.iclear_group.success:
+                if icgi.iclear_group.type == "fractal":
+                    break
+        # break
 
         time.sleep(30)
         run_count += 1
@@ -783,7 +792,7 @@ except KeyboardInterrupt:
 
 
 y, m, d = today_y_m_d()
-y, m, d = 2024, 1, 21
+# y, m, d = 2024, 1, 21
 
 fractal = get_fractal_day(y, m, d)
 # fractal = False
@@ -836,7 +845,7 @@ for name, discord_id in zip(names, discord_ids):
     Emoji.objects.update_or_create(name=name, discord_id=discord_id)
 
 # %%
-for icg in InstanceClearGroup.objects.filter(type="fractal"):
+for icg in InstanceClearGroup.objects.filter(type="raid"):
     icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)

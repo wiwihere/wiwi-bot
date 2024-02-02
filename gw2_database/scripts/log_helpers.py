@@ -40,26 +40,25 @@ def create_unix_time(t):
     return int(time.mktime(t.timetuple()))
 
 
-def get_duration_str(seconds: int, colon=True):
-    """Get seconds with datetime.timedelta.seconds
-
-    Parameters
-    ----------
-    colon: bool
-        if True returns: 26:08
-        if False returns: 1h25m52s
-    """
+def get_duration_str(seconds: int):
+    """Get seconds with datetime.timedelta.seconds"""
     mins, secs = divmod(seconds, 60)
-    if colon:
+    if mins < 60:
         return f"{mins}:{str(secs).zfill(2)}"
     hours, mins = divmod(mins, 60)
-
     return f"{hours}:{mins}:{str(secs).zfill(2)}"
 
 
 def today_y_m_d():
     now = datetime.datetime.now()
     return now.year, now.month, now.day
+
+
+def find_log_by_date(log_dir, y, m, d):
+    """Find all log files on a specific date.
+    Returns generator
+    """
+    return log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc")
 
 
 def get_fractal_day(y, m, d):

@@ -5,7 +5,7 @@ It compares the runs with previous results and show how you did.
 
 
 For any questions or feature requests please feel free to slide into the discord server
-[Wiwi's Corner]().
+[Wiwi's Corner](https://discord.gg/rwhFSzTS).
 
 # Features
 The manager will create a discord message for a raiding or fractal session. It will post new logs every time there is
