@@ -10,7 +10,6 @@ TODO list
 Multiple runs on same day/week?
 - minimum core-count of 6 for leaderboards?
 
-- create empty database
 - credentials on database
 
 Admin pass on database
@@ -714,7 +713,7 @@ class InstanceClearGroupInteraction:
                 )
                 print("Updating discord message")
 
-            except discord.errors.NotFound:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 mess = webhook.send(wait=True, embeds=embeds_instance)
                 self.iclear_group.discord_message_id = mess.id
                 self.iclear_group.save()
@@ -787,7 +786,7 @@ except KeyboardInterrupt:
 
 
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 1, 21
+# y, m, d = 2024, 2, 2
 
 fractal = get_fractal_day(y, m, d)
 # fractal = False
@@ -796,7 +795,9 @@ fractal = get_fractal_day(y, m, d)
 self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, fractal=fractal)
 # self = icgi = InstanceClearGroupInteraction.from_name("dummy")
 
-embeds = icgi.create_message()
+titles, descriptions = icgi.create_message()
+embeds = icgi.create_embeds(titles, descriptions)
+
 print(embeds)
 
 icgi.create_or_update_discord_message(embeds=embeds)
@@ -806,12 +807,12 @@ icgi.create_or_update_discord_message(embeds=embeds)
 
 # y, m, d = 2023, 12, 18
 
-# log_dir = Path(settings.DPS_LOGS_DIR)
-# log_paths = list(log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc"))
+log_dir = Path(settings.DPS_LOGS_DIR)
+log_paths = list(log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc"))
 
-# for log_path in log_paths:
-#     self = log_upload = LogUploader.from_path(log_path)
-#     log_upload.run()
+for log_path in log_paths:
+    self = log_upload = LogUploader.from_path(log_path)
+    log_upload.run()
 
 # log_urls = [
 #     r"https://dps.report/dIVa-20231012-213625_void",
@@ -823,23 +824,7 @@ icgi.create_or_update_discord_message(embeds=embeds)
 #     log_upload.run()
 
 
-# %% TEMP update skull ids
-
-skull_str = """<:skull_8_8:1199740877782909009>
-<:skull_7_8:1199739773577875458>
-<:skull_6_8:1199739753248084119>
-<:skull_5_8:1199739676467150899>
-<:skull_4_8:1199739673224945745>
-<:skull_3_8:1199739671798890606>
-<:skull_2_8:1199739670641258526>
-<:skull_1_8:1199739666677641227>"""
-
-names = [i for i in skull_str.split(":")[1:] if i.startswith("s")]
-discord_ids = [int(i.split(">")[0]) for i in skull_str.split(":")[1:] if i.startswith("1")]
-for name, discord_id in zip(names, discord_ids):
-    Emoji.objects.update_or_create(name=name, discord_id=discord_id)
-
-# %%
+# %% Update all discord messages.
 for icg in InstanceClearGroup.objects.filter(type="raid"):
     icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
     titles, descriptions = icgi.create_message()
