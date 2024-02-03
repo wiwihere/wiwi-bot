@@ -12,6 +12,12 @@ Multiple runs on same day/week?
 
 - create empty database
 - credentials on database
+
+Leaderboards if no runs available for a wing it wont be able to calculate the average.
+Add feedback that leaderboards posted
+
+Admin pass on database
+
 """
 
 import datetime
@@ -199,7 +205,7 @@ class LogUploader:
             if r["encounter"]["boss"] == "Dark Ai":
                 r["encounter"]["bossId"] = -23254
 
-        if r["encounter"]["bossId"] == 25413:
+        if r["encounter"]["bossId"] in [25413, 25423]:
             # OLC normal mode has different bossId because its 3 bosses apparently.
             # We change it to the cm bossId
             r["encounter"]["bossId"] = 25414
@@ -769,6 +775,7 @@ try:
                 if icgi.iclear_group.success:
                     if icgi.iclear_group.type == "fractal":
                         break
+                        # TODO update leaderboards
                     if icgi.iclear_group.type == "raid":
                         pass
                         # TODO add break statement
