@@ -13,8 +13,6 @@ Multiple runs on same day/week?
 - create empty database
 - credentials on database
 
-Leaderboards if no runs available for a wing it wont be able to calculate the average.
-
 Admin pass on database
 
 """

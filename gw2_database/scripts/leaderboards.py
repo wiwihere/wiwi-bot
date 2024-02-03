@@ -33,7 +33,6 @@ class Thread:
     id: int
 
 
-url = settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD
 webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
 
 
@@ -85,16 +84,19 @@ for itype in [
         )
 
         description = ""
+
+        # Strikes dont have average clear time currently
         if itype != "strike":
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
                 duration_str = get_duration_str(instance_clear.duration.seconds)
                 description += f"{RANK_STR[idx]}`{duration_str}` "
 
-            # Add average clear times
-            avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
-            avg_duration_str = get_duration_str(avg_time)
-            description += f"{RANK_STR['average']}`{avg_duration_str}`\n\n"
+            if len(iclear_success_all) > 0:
+                # Add average clear times
+                avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
+                avg_duration_str = get_duration_str(avg_time)
+                description += f"{RANK_STR['average']}`{avg_duration_str}`\n\n"
 
         # ENCOUNTER LEADERBOARDS
         # ----------------------
@@ -167,7 +169,7 @@ for itype in [
                 )
                 print(f"Updating {instance.type}: {instance.name}")
 
-            except discord.errors.NotFound:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 print(f"Creating {instance.type}: {instance.name}")
                 mess = webhook.send(
                     wait=True,
