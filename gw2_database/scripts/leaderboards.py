@@ -60,9 +60,6 @@ def get_duration_str(seconds: int):
     return f"{mins}:{str(secs).zfill(2)}"
 
 
-# for itype in [
-#     "strike",
-# ]:
 for itype in [
     "raid",
     "strike",
@@ -73,17 +70,7 @@ for itype in [
         # for instance in [Instance.objects.filter(type=itype).order_by("nr")[5]]:
         # instance = Instance.objects.filter(name="Spirit Vale").first()
         discord_message_id = instance.discord_leaderboard_message_id
-
-        # Create a message if it doesnt exist yet
-        if discord_message_id is None:
-            mess = webhook.send(
-                wait=True,
-                embeds=[discord.Embed(description=f"{instance.name} leaderboard is in the making")],
-                thread=Thread(settings.LEADERBOARD_THREADS[instance.type]),
-            )
-
-            discord_message_id = instance.discord_leaderboard_message_id = mess.id
-            instance.save()
+        thread = Thread(settings.LEADERBOARD_THREADS[instance.type])
 
         # INSTANCE LEADERBOARDS
         # ----------------
@@ -170,19 +157,36 @@ for itype in [
             embed.timestamp = datetime.datetime.now()
             embed.set_footer(text="Leaderboard last updated")
 
-        webhook.edit_message(
-            message_id=discord_message_id,
-            embeds=[embed],
-            thread=Thread(settings.LEADERBOARD_THREADS[instance.type]),
-        )
-        # break
-        # # DELETE MESSAGES
-        # webhook.delete_message(discord_message_id,
-        #     thread=Thread(settings.LEADERBOARD_THREADS[instance.type]),
-        # )
-        # instance.discord_leaderboard_message_id = None
-        # instance.save()
+        # Try to update message. If message cant be found, create a new message instead.
+        for attempt in range(2):
+            try:
+                webhook.edit_message(
+                    message_id=discord_message_id,
+                    embeds=[embed],
+                    thread=thread,
+                )
+                print(f"Updating {instance.type}: {instance.name}")
 
-        # break
+            except discord.errors.NotFound:
+                print(f"Creating {instance.type}: {instance.name}")
+                mess = webhook.send(
+                    wait=True,
+                    embeds=[discord.Embed(description=f"{instance.name} leaderboard is in the making")],
+                    thread=thread,
+                )
+
+                discord_message_id = instance.discord_leaderboard_message_id = mess.id
+                instance.save()
+            else:  # stop when no exception raised
+                break
 
 # %%
+for attempt in range(2):
+    try:
+        print(zhd)
+    except:
+        print("except")
+        zhd = 1
+    else:
+        # perhaps reconnect, etc.
+        break

@@ -14,7 +14,6 @@ Multiple runs on same day/week?
 - credentials on database
 
 Leaderboards if no runs available for a wing it wont be able to calculate the average.
-Add feedback that leaderboards posted
 
 Admin pass on database
 
@@ -709,20 +708,15 @@ class InstanceClearGroupInteraction:
             if embeds_instance == []:
                 continue
 
-            if self.iclear_group.discord_message_id is not None:
-                try:
-                    webhook.edit_message(
-                        message_id=self.iclear_group.discord_message_id,
-                        embeds=embeds_instance,
-                    )
+            # Try to update message. If message cant be found, create a new message instead.
+            try:
+                webhook.edit_message(
+                    message_id=self.iclear_group.discord_message_id,
+                    embeds=embeds_instance,
+                )
+                print("Updating discord message")
 
-                    print("Discord message updated")
-                except Exception as e:  # NotFound error
-                    print("Error updating message")
-                    print(e)
-
-            # Otherwise create a new message.
-            else:
+            except discord.errors.NotFound:
                 mess = webhook.send(wait=True, embeds=embeds_instance)
                 self.iclear_group.discord_message_id = mess.id
                 self.iclear_group.save()

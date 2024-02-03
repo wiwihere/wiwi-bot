@@ -22,7 +22,8 @@ _+1:07_ Time between the end of the previous kill run and the start of the curre
 <img src="img/click_wipe.png" alt="click_wipe%" width=""/>\
 Clicking the skull icon will also open the log of that run. Does not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
-<img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.
+<img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
+<img src="gw2_database/img/badmedal.png" width="20"/>**35:25**<img src="gw2_database/img/badmedal.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.
 
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
@@ -60,7 +61,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     discord Server Setttings -> integrations -> Webhooks -> Copy Webhook URL
 3. Within the leaderboards channel create threads for: `raids`, `strikes` and `fractals`.
 - Get the thread id by right click -> copy link or  -> paste only the last 18 digit number in the .env.
-4. Setup the database. Copy `gw2_datase/db-raw.sqlite3` to `gw2_datase/db.sqlite3`.
+4. Setup the database. Copy `gw2_datase/db-empty.sqlite3` to `gw2_datase/db.sqlite3`.
     - Ability to update the databse after new releases is not yet implemented.
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
@@ -74,7 +75,7 @@ Everything can be customized. Easiest way to make edits to the database is by fi
 #### Add a core member:
 Add members to the players list to have them appear as a core member. 
 
-- Go to the Players page; http://127.0.0.1:8000/admin/gw2_logs/player/ and add a new player:
+- Go to the Players page; http://127.0.0.1:8000/admin/gw2_logs/player/ and add a new player:\
 <img src="img/add_player.png" width="500"/>
 
 
@@ -84,4 +85,3 @@ It will have to be added to the database:
 
 
 #TODO add image of error report with boss id
-![alt text](image.png)
