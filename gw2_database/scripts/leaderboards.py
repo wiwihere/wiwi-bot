@@ -2,8 +2,6 @@
 
 # %%
 import datetime
-import sys
-from dataclasses import dataclass
 
 import discord
 import numpy as np
@@ -12,48 +10,26 @@ from discord import SyncWebhook
 from django.db.models import Q
 
 if __name__ == "__main__":
-    # -- temp TESTING --
-    sys.path.append("../../nbs")
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-    # -- temp TESTING --
-
-from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, get_duration_str
 
 from bot_settings import settings
+from gw2_logs.models import Instance
+from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
-
-@dataclass
-class Thread:
-    """Discordpy seems to be rather picky about threads.
-    When sending a message it just needs a class with an id
-    to work. So here we are.
-    """
-
-    id: int
-
-
-webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
 
 # %%
+def create_leaderboard(itype: str):
+    webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
 
-
-for itype in [
-    "raid",
-    "strike",
-    "fractal",
-]:
     if settings.INCLUDE_NON_CORE_LOGS:
-        min_core_count = 0
+        min_core_count = 0  # select all logs when including non core
     else:
         min_core_count = settings.CORE_MINIMUM[itype]
 
     instances = Instance.objects.filter(type=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
-        # for instance in [Instance.objects.filter(type=itype).order_by("nr")[5]]:
-        # instance = Instance.objects.filter(name="Spirit Vale").first()
         discord_message_id = instance.discord_leaderboard_message_id
         thread = Thread(settings.LEADERBOARD_THREADS[instance.type])
 
@@ -95,7 +71,7 @@ for itype in [
 
         # ENCOUNTER LEADERBOARDS
         # ----------------------
-        # For each encounter in the instance, add a new field to the embed.
+        # For each encounter in the instance, add a new row to the embed.
         field_value = description
         for encounter in instance.encounters.all().order_by("nr"):
             for cm in [False, True]:
@@ -108,11 +84,6 @@ for itype in [
                 if not cont:
                     continue  # skip if not
 
-                nam = encounter.shortname
-                if nam is None:
-                    nam = encounter.name[:4]
-                field_name = f"{emote} {nam}"
-
                 # Find encounter times
                 encounter_success_all = (
                     encounter.dps_logs.filter(
@@ -122,7 +93,7 @@ for itype in [
                         core_player_count__gte=min_core_count,
                     )
                     .filter(
-                        Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+                        Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=9999))
                         & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
                     )
                     .order_by("duration")
@@ -148,7 +119,7 @@ for itype in [
                 field_value += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
 
         embed_title = f"{instance.name}"
-        if itype == "strike":
+        if itype == "strike":  # strike needs emoji because it doenst have instance average
             embed_title = f"{instance.emoji.discord_tag} {instance.name}"
 
         embed = discord.Embed(
@@ -169,7 +140,7 @@ for itype in [
                     embeds=[embed],
                     thread=thread,
                 )
-                print(f"Updating {instance.type}: {instance.name}")
+                print(f"Updating {instance.type}s leaderboard: {instance.name}")
 
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 print(f"Creating {instance.type}: {instance.name}")
@@ -184,4 +155,11 @@ for itype in [
             else:  # stop when no exception raised
                 break
 
-# %%
+
+if __name__ == "__main__":
+    for itype in [
+        "raid",
+        "strike",
+        "fractal",
+    ]:
+        create_leaderboard(itype=itype)

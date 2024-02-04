@@ -2,6 +2,7 @@
 """Helper functions and variables"""
 import datetime
 import time
+from dataclasses import dataclass
 
 import numpy as np
 import pytz
@@ -49,6 +50,16 @@ ITYPE_GROUPS = {
     "strike": "raid",
     "fractal": "fractal",
 }
+
+
+@dataclass
+class Thread:
+    """Discordpy seems to be rather picky about threads.
+    When sending a message it just needs a class with an id
+    to work. So here we are.
+    """
+
+    id: int
 
 
 def create_unix_time(t):
