@@ -2,16 +2,9 @@
 """
 TODO list
 - Change day end to reset time.
-- Fractals shouldnt be an input. It should decide on its own what to do.
 # after 30 mins of no logs, stop and update leaderboard.
 
-
 Multiple runs on same day/week?
-
-- credentials on database
-
-Admin pass on database
-
 """
 
 import datetime

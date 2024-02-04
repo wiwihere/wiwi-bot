@@ -53,6 +53,10 @@ A couple tokens and keys need to be set so the results can be posted to discord.
 1. Rename `bot_settings\.env-example` to `bot_settings\.env`.
     - .env\CONDA_DIR -> rename `C:\Users\Wiwi\miniforge3` to your own conda or mamba installation (step 2 in software)
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
+    - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
+    - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
+    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal_first_invalid.png" width="20"/>)
+
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 
     ![](img/discord_channels.PNG)\
