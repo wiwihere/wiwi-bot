@@ -16,18 +16,17 @@ from pathlib import Path
 
 import discord
 import numpy as np
+import requests
 from dateutil.parser import parse
 from discord import SyncWebhook
 from django.db.models import Q
 
 if __name__ == "__main__":
-    # -- temp TESTING --
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-    # -- temp TESTING --
 
-import requests
+from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
 from log_helpers import (
     EMBED_COLOR,
@@ -43,8 +42,6 @@ from log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
-
-from bot_settings import settings
 
 # %%
 
