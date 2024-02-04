@@ -43,12 +43,12 @@ from log_helpers import (
     RANK_EMOTES,
     WIPE_EMOTES,
     create_discord_time,
-    create_rank_str,
     create_unix_time,
     find_log_by_date,
     get_duration_str,
     get_emboldened_wing,
     get_fractal_day,
+    get_rank_emote,
     today_y_m_d,
 )
 
@@ -202,8 +202,7 @@ class LogUploader:
                 r["encounter"]["bossId"] = -23254
 
         if r["encounter"]["bossId"] in [25413, 25423]:
-            # OLC normal mode has different bossId because its 3 bosses apparently.
-            # We change it to the cm bossId
+            # OLC has different bossId's. We map all logs to one.
             r["encounter"]["bossId"] = 25414
 
         if r["encounter"]["boss"] == "Eye of Judgement":
@@ -340,6 +339,9 @@ class InstanceClearInteraction:
         last_log = iclear.dps_logs.all().order_by("start_time").last()
         iclear.duration = last_log.start_time + last_log.duration - iclear.start_time
 
+        if len(iclear.dps_logs.all()) > 0:
+            iclear.core_player_count = int(np.median([log.core_player_count for log in iclear.dps_logs.all()]))
+
         # Check if all encounters have been finished.
         encounter_count = max([i.nr for i in iclear.instance.encounters.all()])
 
@@ -437,6 +439,10 @@ class InstanceClearGroupInteraction:
                 print("Finished a whole instance group!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
+                self.iclear_group.core_player_count = int(
+                    np.median([i.core_player_count for i in self.iclear_group.instance_clears.all()])
+                )
+
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
@@ -449,6 +455,9 @@ class InstanceClearGroupInteraction:
                 self.iclear_group.duration = sum(
                     [i[0] for i in (self.iclear_group.instance_clears.all().values_list("duration"))],
                     datetime.timedelta(),
+                )
+                self.iclear_group.core_player_count = int(
+                    np.median([i.core_player_count for i in self.iclear_group.instance_clears.all()])
                 )
                 self.iclear_group.save()
 
@@ -497,7 +506,11 @@ class InstanceClearGroupInteraction:
                     )
                     .order_by("duration")
                 )
-                rank_str = create_rank_str(indiv=self.iclear_group, group=group)
+                rank_str = get_rank_emote(
+                    indiv=self.iclear_group,
+                    group=group,
+                    core_minimum=settings.CORE_MINIMUM[self.iclear_group.type],
+                )
 
                 duration_str = get_duration_str(self.iclear_group.duration.seconds)
                 # description = f"⠀⠀⠀⠀⠀:first_place: **{duration_str}** :first_place: \n".join(description.split("\n", 1))
@@ -525,7 +538,11 @@ class InstanceClearGroupInteraction:
                     )
                     .order_by("duration")
                 )
-            rank_str = create_rank_str(indiv=iclear, group=iclear_success_all)
+            rank_str = get_rank_emote(
+                indiv=iclear,
+                group=iclear_success_all,
+                core_minimum=settings.CORE_MINIMUM[iclear.instance.type],
+            )
 
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
@@ -582,7 +599,11 @@ class InstanceClearGroupInteraction:
                         )
                         .order_by("duration")
                     )
-                rank_str = create_rank_str(indiv=log, group=encounter_success_all)
+                rank_str = get_rank_emote(
+                    indiv=log,
+                    group=encounter_success_all,
+                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.type],
+                )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
                 # Dont show wipes that are under 15 seconds.
@@ -723,7 +744,6 @@ class InstanceClearGroupInteraction:
 # %%
 #
 
-
 y, m, d = today_y_m_d()
 # y, m, d = 2024, 1, 29
 # y, m, d = 2023, 12, 11
@@ -785,8 +805,8 @@ except KeyboardInterrupt:
 # %% Just update or create discord message, dont upload logs.
 
 
-y, m, d = today_y_m_d()
-# y, m, d = 2024, 2, 2
+# y, m, d = today_y_m_d()
+y, m, d = 2024, 2, 2
 
 fractal = get_fractal_day(y, m, d)
 # fractal = False
@@ -825,9 +845,16 @@ for log_path in log_paths:
 
 
 # %% Update all discord messages.
-for icg in InstanceClearGroup.objects.filter(type="raid"):
-    icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
+# for icg in InstanceClearGroup.objects.filter(type="raid"):
+for icg in InstanceClearGroup.objects.all():
+    ymd = icg.name.split("__")[-1]
+    y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
+    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, fractal=icg.type == "fractal")
+
+    # icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
 
-    icgi.create_or_update_discord_message(embeds=embeds)
+    # icgi.create_or_update_discord_message(embeds=embeds)
+
+# %%

@@ -33,6 +33,16 @@ RANK_EMOTES = {
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
+RANK_EMOTES_INVALID = {
+    0: f"{Emoji.objects.get(name='first invalid').discord_tag}",
+    1: f"{Emoji.objects.get(name='second invalid').discord_tag}",
+    2: f"{Emoji.objects.get(name='third invalid').discord_tag}",
+    "above_average": f"{Emoji.objects.get(name='above average invalid').discord_tag}",
+    "below_average": f"{Emoji.objects.get(name='below average invalid').discord_tag}",
+    "average": f"{Emoji.objects.get(name='average invalid').discord_tag}",
+    "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+}
+
 
 def create_unix_time(t):
     tz = pytz.timezone(str(get_localzone()))
@@ -105,39 +115,46 @@ def get_emboldened_wing(log_date: datetime.datetime):
     return current_wing
 
 
-def create_rank_str(indiv, group):
+def get_rank_emote(indiv, group, core_minimum: int):
     """Find the rank of the indiv in the group.
 
     Parameters
     ----------
     indiv: [DpsLog, InstanceClear, InstanceClearGroup]
     group: list[[DpsLog, InstanceClear, InstanceClearGroup]]
+    core_minimum : (int)
     """
     if indiv.success:
         rank = group.index(indiv)
     else:
         rank = None
 
+    # When amount of players is below the minimum it will still show rank but with a different emote.
+    if indiv.core_player_count < core_minimum:
+        emote_dict = RANK_EMOTES_INVALID
+    else:
+        emote_dict = RANK_EMOTES
+
     # Ranks 1, 2 and 3.
-    if rank in RANK_EMOTES:
-        rank_str = RANK_EMOTES[rank]
+    if rank in emote_dict:
+        rank_str = emote_dict[rank]
 
         # Strikes as an instance dont have cleartimes.
         if indiv.__class__.__name__ == "InstanceClear":
             if indiv.instance.type == "strike":
-                rank_str = RANK_EMOTES["average"]
+                rank_str = emote_dict["average"]
 
     # Other ranks
     else:
-        rank_str = RANK_EMOTES["average"]
+        rank_str = emote_dict["average"]
         if indiv.success:
             if indiv.duration.seconds < (np.mean([i.duration.seconds for i in group]) - 5):
-                rank_str = RANK_EMOTES["above_average"]
+                rank_str = emote_dict["above_average"]
             elif indiv.duration.seconds > (np.mean([i.duration.seconds for i in group]) + 5):
-                rank_str = RANK_EMOTES["below_average"]
+                rank_str = emote_dict["below_average"]
 
     if hasattr(indiv, "emboldened"):
         if indiv.emboldened:
-            rank_str = RANK_EMOTES["emboldened"]
+            rank_str = emote_dict["emboldened"]
 
     return rank_str

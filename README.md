@@ -34,9 +34,9 @@ The log manager is built on a django framework with a local sqlite database, onl
 to use any other python distribution to your liking.
 
 ## Software
-1. Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases) and place
-it anywhere. Unpack the zip.
-2. Intstall the python environment. Download [miniforge](https://github.com/conda-forge/miniforge). Make sure to tick the option to add python 3.10 to system path.
+<!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
+1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip.
+2. Install the python environment. Download [miniforge](https://github.com/conda-forge/miniforge). Make sure to tick the option to add python 3.10 to system path.
 3. Run `Miniforge Prompt` as **admin**. And run the following code;
 ```
 mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #Change to download location

@@ -18,6 +18,12 @@ LEADERBOARD_THREADS = {  # thread channel ids in discord.
     "fractal": os.getenv("WEBHOOK_BOT_CHANNEL_LEADERBOARD_FRACTALS"),
 }
 
+CORE_MINIMUM = {
+    "raid": int(os.getenv("CORE_MINIMUM_RAID")),
+    "strike": int(os.getenv("CORE_MINIMUM_RAID")),
+    "fractal": int(os.getenv("CORE_MINIMUM_FRACTAL")),
+}
+INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS")  # Include non core logs on leaderboards
 
 DPS_REPORT_USERTOKEN = os.getenv("DPS_REPORT_USERTOKEN")
 BASE_DIR = Path(__file__).parent

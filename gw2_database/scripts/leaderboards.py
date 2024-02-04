@@ -1,4 +1,6 @@
 # %%
+
+# %%
 import datetime
 import sys
 from dataclasses import dataclass
@@ -19,6 +21,7 @@ if __name__ == "__main__":
 
 import requests
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from log_helpers import RANK_EMOTES, RANK_EMOTES_INVALID
 
 from bot_settings import settings
 
@@ -35,19 +38,15 @@ class Thread:
 
 webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
 
+INCLUDE_INVALID = True
 
 # %%
+
+
 EMBED_COLOR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
-}
-
-RANK_STR = {
-    0: ":first_place:",
-    1: ":second_place:",
-    2: ":third_place:",
-    "average": f"{Emoji.objects.get(name='average').discord_tag}",
 }
 
 
@@ -64,6 +63,11 @@ for itype in [
     "strike",
     "fractal",
 ]:
+    if INCLUDE_INVALID:
+        min_core_count = 0
+    else:
+        min_core_count = settings.CORE_MINIMUM[itype]
+
     instances = Instance.objects.filter(type=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
         # for instance in [Instance.objects.filter(type=itype).order_by("nr")[5]]:
@@ -75,7 +79,11 @@ for itype in [
         # ----------------
         # Find wing clear times
         iclear_success_all = (
-            instance.instance_clears.filter(success=True, emboldened=False)
+            instance.instance_clears.filter(
+                success=True,
+                emboldened=False,
+                core_player_count__gte=min_core_count,
+            )
             .filter(
                 Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
                 & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
@@ -90,13 +98,18 @@ for itype in [
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
                 duration_str = get_duration_str(instance_clear.duration.seconds)
-                description += f"{RANK_STR[idx]}`{duration_str}` "
+
+                if instance_clear.core_player_count < settings.CORE_MINIMUM[itype]:
+                    rank_emote = RANK_EMOTES_INVALID[idx]
+                else:
+                    rank_emote = RANK_EMOTES[idx]
+                description += f"{rank_emote}`{duration_str}` "
 
             if len(iclear_success_all) > 0:
                 # Add average clear times
                 avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
                 avg_duration_str = get_duration_str(avg_time)
-                description += f"{RANK_STR['average']}`{avg_duration_str}`\n\n"
+                description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n\n"
 
         # ENCOUNTER LEADERBOARDS
         # ----------------------
@@ -120,7 +133,12 @@ for itype in [
 
                 # Find encounter times
                 encounter_success_all = (
-                    encounter.dps_logs.filter(success=True, emboldened=False, cm=cm)
+                    encounter.dps_logs.filter(
+                        success=True,
+                        emboldened=False,
+                        cm=cm,
+                        core_player_count__gte=min_core_count,
+                    )
                     .filter(
                         Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
                         & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
@@ -138,10 +156,14 @@ for itype in [
                 field_value += f"{emote}"
                 for idx, encounter_log in enumerate(encounter_success_all[:3]):
                     duration_str = get_duration_str(encounter_log.duration.seconds)
-                    field_value += f"""[{RANK_STR[idx]}]({encounter_log.url})`{duration_str}` """
+                    if encounter_log.core_player_count < settings.CORE_MINIMUM[itype]:
+                        rank_emote = RANK_EMOTES_INVALID[idx]
+                    else:
+                        rank_emote = RANK_EMOTES[idx]
+                    field_value += f"""[{rank_emote}]({encounter_log.url})`{duration_str}` """
 
                 # Add average cleartime of encounter.
-                field_value += f"{RANK_STR['average']}`{avg_duration_str}`\n"
+                field_value += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
 
         # embed.add_field(name="", value=field_value, inline=False)
 
@@ -157,7 +179,7 @@ for itype in [
 
         if idx_instance == len(instances) - 1:
             embed.timestamp = datetime.datetime.now()
-            embed.set_footer(text="Leaderboard last updated")
+            embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
 
         # Try to update message. If message cant be found, create a new message instead.
         for attempt in range(2):
@@ -183,12 +205,3 @@ for itype in [
                 break
 
 # %%
-for attempt in range(2):
-    try:
-        print(zhd)
-    except:
-        print("except")
-        zhd = 1
-    else:
-        # perhaps reconnect, etc.
-        break
