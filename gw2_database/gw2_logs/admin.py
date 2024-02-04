@@ -8,6 +8,7 @@ class EncounterInline(admin.TabularInline):
     fields = ["id", "name", "emoji"]
     readonly_fields = ["id", "name", "emoji"]
     extra = 0
+    show_change_link = True
 
 
 class DpsLogInline(admin.TabularInline):
@@ -22,8 +23,8 @@ class DpsLogInline(admin.TabularInline):
 
 class InstanceClearInline(admin.TabularInline):
     model = models.InstanceClear
-    fields = ["name", "instance", "start_time", "duration", "success", "emboldened"]
-    readonly_fields = ["name", "instance", "start_time", "duration", "success", "emboldened"]
+    fields = ["name", "instance", "start_time", "duration", "success", "emboldened", "core_player_count"]
+    readonly_fields = ["name", "instance", "start_time", "duration", "success", "emboldened", "core_player_count"]
     extra = 0
     ordering = ("start_time",)
 
@@ -78,6 +79,8 @@ class EmojiAdmin(admin.ModelAdmin):
     list_display = ("name", "discord_id", "animated", "url")
     ordering = ("name",)
 
+    search_fields = ["name"]
+
 
 @admin.register(models.InstanceClear)
 class InstanceClearAdmin(admin.ModelAdmin):
@@ -89,6 +92,7 @@ class InstanceClearAdmin(admin.ModelAdmin):
         "success",
         "emboldened",
         "instance_clear_group",
+        "core_player_count",
     )
     list_filter = ["instance"]
 
@@ -104,6 +108,7 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "duration",
         "start_time",
         "discord_message_id",
+        "core_player_count",
     )
 
     inlines = [InstanceClearInline]

@@ -2,16 +2,9 @@
 """
 TODO list
 - Change day end to reset time.
-- Fractals shouldnt be an input. It should decide on its own what to do.
 # after 30 mins of no logs, stop and update leaderboard.
-# count fractal logs and stop if all are done.
-- bundle raids
 
 Multiple runs on same day/week?
-- minimum core-count of 6 for leaderboards?
-
-- create empty database
-- credentials on database
 """
 
 import datetime
@@ -38,16 +31,17 @@ import requests
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
 from log_helpers import (
     EMBED_COLOR,
+    ITYPE_GROUPS,
     RANK_EMOTES,
     WIPE_EMOTES,
     create_discord_time,
-    create_rank_str,
     create_unix_time,
     find_log_by_date,
     get_duration_str,
     get_emboldened_wing,
-    get_fractal_day,
+    get_rank_emote,
     today_y_m_d,
+    zfill_y_m_d,
 )
 
 from bot_settings import settings
@@ -199,9 +193,8 @@ class LogUploader:
             if r["encounter"]["boss"] == "Dark Ai":
                 r["encounter"]["bossId"] = -23254
 
-        if r["encounter"]["bossId"] == 25413:
-            # OLC normal mode has different bossId because its 3 bosses apparently.
-            # We change it to the cm bossId
+        if r["encounter"]["bossId"] in [25413, 25423]:
+            # OLC has different bossId's. We map all logs to one.
             r["encounter"]["bossId"] = 25414
 
         if r["encounter"]["boss"] == "Eye of Judgement":
@@ -240,6 +233,7 @@ class LogUploader:
             print(f"Log seems broken. Requesting more info {self.log_source_view}")
 
             self.r2 = r2 = self.request_detailed_info()
+            # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
             start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
 
             r["encounter"]["duration"] = self.r2["durationMS"] / 1000
@@ -263,6 +257,7 @@ class LogUploader:
                 "local_path": self.log_source,
                 "json_dump": r,
             },
+            # r["encounterTime"] format is 1702926477
             start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
         )
         print(f"Finished updating {self.log_source_view}")
@@ -306,7 +301,7 @@ class InstanceClearInteraction:
     iclear: InstanceClear
 
     @classmethod
-    def from_logs(cls, logs, instance_group=None):
+    def from_logs(cls, logs: list[DpsLog], instance_group=None):
         """Log should be filtered on instance"""
         iname = f"{logs[0].encounter.instance.name_lower}__{logs[0].start_time.strftime('%Y%m%d')}"
 
@@ -338,6 +333,9 @@ class InstanceClearInteraction:
         last_log = iclear.dps_logs.all().order_by("start_time").last()
         iclear.duration = last_log.start_time + last_log.duration - iclear.start_time
 
+        if len(iclear.dps_logs.all()) > 0:
+            iclear.core_player_count = int(np.median([log.core_player_count for log in iclear.dps_logs.all()]))
+
         # Check if all encounters have been finished.
         encounter_count = max([i.nr for i in iclear.instance.encounters.all()])
 
@@ -360,7 +358,6 @@ class InstanceClearInteraction:
 @dataclass
 class InstanceClearGroupInteraction:
     iclear_group: InstanceClearGroup
-    fractal: bool
 
     def __post_init__(self):
         self.get_total_clear_duration()
@@ -374,22 +371,31 @@ class InstanceClearGroupInteraction:
             start_time__month=m,
             start_time__day=d,
         )
-        if not fractal:
-            logs_day = logs_day.exclude(encounter__instance__type="fractal")
-            name = f"raids__{y}{str(m).zfill(2)}{str(d).zfill(2)}"
-            itype = "raid"
 
-        else:
+        # Get itypes (raid or fractal)
+        itypes = list(set(ITYPE_GROUPS[i] for i in logs_day.values_list("encounter__instance__type", flat=True)))
+
+        if len(itypes) == 0:
+            raise Exception("No itypes?")  # No logs
+
+        if len(itypes) == 1:
+            itype = itypes[0]
+        elif len(itypes) > 1:
+            itype = input(f"Multiple instance types for given period. Choose: {itypes}")
+
+        # TODO grouping raids and strikes doesnt really work nicely.
+        if itype == "fractal":
             logs_day = logs_day.filter(encounter__instance__type="fractal")
-            name = f"fractals__{y}{str(m).zfill(2)}{str(d).zfill(2)}"
-            itype = "fractal"
+        else:
+            logs_day = logs_day.exclude(encounter__instance__type="fractal")
 
-        # if len(logs_day) == 0:
-        #     raise Exception(f"No logs? fractals={fractal}")
+        name = f"{itype}s__{zfill_y_m_d(y,m,d)}"
 
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype)
+        if created:
+            print(f"Created InstanceClearGroup: {iclear_group}")
 
         # Create individual instance clears
         for instance_name in instances_day:
@@ -403,11 +409,11 @@ class InstanceClearGroupInteraction:
                 iclear_group.start_time = start_time
                 iclear_group.save()
 
-        return cls(iclear_group, fractal)
+        return cls(iclear_group)
 
     @classmethod
-    def from_name(cls, name, fractal):
-        return cls(InstanceClearGroup.objects.get(name=name), fractal)
+    def from_name(cls, name):
+        return cls(InstanceClearGroup.objects.get(name=name))
 
     @property
     def clears_by_date(self):
@@ -435,18 +441,25 @@ class InstanceClearGroupInteraction:
                 print("Finished a whole instance group!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
+                self.iclear_group.core_player_count = int(
+                    np.median([i.core_player_count for i in self.clears_by_date])
+                )
+
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
-            if sum([j[0] for j in self.iclear_group.instance_clears.all().values_list("success")]) == len(
+            if sum(self.clears_by_date.values_list("success", flat=True)) == len(
                 Instance.objects.filter(type=self.iclear_group.type)
             ):
                 print("Finished all fracals!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum(
-                    [i[0] for i in (self.iclear_group.instance_clears.all().values_list("duration"))],
+                    self.clears_by_date.values_list("duration", flat=True),
                     datetime.timedelta(),
+                )
+                self.iclear_group.core_player_count = int(
+                    np.median([i.core_player_count for i in self.clears_by_date])
                 )
                 self.iclear_group.save()
 
@@ -487,6 +500,7 @@ class InstanceClearGroupInteraction:
             # Add total instance group time if all bosses finished.
 
             if self.iclear_group.success:
+                # Get rank compared to all cleared instancecleargroups
                 group = list(
                     InstanceClearGroup.objects.filter(success=True, type=icgi.iclear_group.type)
                     .filter(
@@ -495,10 +509,13 @@ class InstanceClearGroupInteraction:
                     )
                     .order_by("duration")
                 )
-                rank_str = create_rank_str(indiv=self.iclear_group, group=group)
+                rank_str = get_rank_emote(
+                    indiv=self.iclear_group,
+                    group=group,
+                    core_minimum=settings.CORE_MINIMUM[self.iclear_group.type],
+                )
 
                 duration_str = get_duration_str(self.iclear_group.duration.seconds)
-                # description = f"⠀⠀⠀⠀⠀:first_place: **{duration_str}** :first_place: \n".join(description.split("\n", 1))
                 title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
             titles[instance_type] = {}
@@ -523,7 +540,11 @@ class InstanceClearGroupInteraction:
                     )
                     .order_by("duration")
                 )
-            rank_str = create_rank_str(indiv=iclear, group=iclear_success_all)
+            rank_str = get_rank_emote(
+                indiv=iclear,
+                group=iclear_success_all,
+                core_minimum=settings.CORE_MINIMUM[iclear.instance.type],
+            )
 
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
@@ -580,7 +601,11 @@ class InstanceClearGroupInteraction:
                         )
                         .order_by("duration")
                     )
-                rank_str = create_rank_str(indiv=log, group=encounter_success_all)
+                rank_str = get_rank_emote(
+                    indiv=log,
+                    group=encounter_success_all,
+                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.type],
+                )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
                 # Dont show wipes that are under 15 seconds.
@@ -690,6 +715,7 @@ class InstanceClearGroupInteraction:
     def create_or_update_discord_message(self, embeds):
         """Send message to discord created by .create_message to discord"""
 
+        # Combine raid and strike embeds in the same group.
         embeds_split = {}
         embeds_split["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
         embeds_split["raid"] = [embeds[i] for i in embeds if "fractal_" not in i]
@@ -703,20 +729,15 @@ class InstanceClearGroupInteraction:
             if embeds_instance == []:
                 continue
 
-            if self.iclear_group.discord_message_id is not None:
-                try:
-                    webhook.edit_message(
-                        message_id=self.iclear_group.discord_message_id,
-                        embeds=embeds_instance,
-                    )
+            # Try to update message. If message cant be found, create a new message instead.
+            try:
+                webhook.edit_message(
+                    message_id=self.iclear_group.discord_message_id,
+                    embeds=embeds_instance,
+                )
+                print("Updating discord message")
 
-                    print("Discord message updated")
-                except Exception as e:  # NotFound error
-                    print("Error updating message")
-                    print(e)
-
-            # Otherwise create a new message.
-            else:
+            except (discord.errors.NotFound, discord.errors.HTTPException):
                 mess = webhook.send(wait=True, embeds=embeds_instance)
                 self.iclear_group.discord_message_id = mess.id
                 self.iclear_group.save()
@@ -726,13 +747,9 @@ class InstanceClearGroupInteraction:
 # %%
 #
 
-
 y, m, d = today_y_m_d()
 # y, m, d = 2024, 1, 29
 # y, m, d = 2023, 12, 11
-
-fractal = get_fractal_day(y, m, d)
-# fractal = False
 
 log_dir1 = Path(settings.DPS_LOGS_DIR)
 log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
@@ -758,7 +775,7 @@ try:
             if success is not False:
                 log_paths_done.append(log_path)
 
-            self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, fractal=fractal)
+            self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
             titles, descriptions = icgi.create_message()
             embeds = icgi.create_embeds(titles, descriptions)
 
@@ -769,6 +786,7 @@ try:
                 if icgi.iclear_group.success:
                     if icgi.iclear_group.type == "fractal":
                         break
+                        # TODO update leaderboards
                     if icgi.iclear_group.type == "raid":
                         pass
                         # TODO add break statement
@@ -787,32 +805,32 @@ except KeyboardInterrupt:
 # %% Just update or create discord message, dont upload logs.
 
 
-y, m, d = today_y_m_d()
-# y, m, d = 2024, 1, 21
-
-fractal = get_fractal_day(y, m, d)
-# fractal = False
+# y, m, d = today_y_m_d()
+y, m, d = 2024, 2, 1
 
 
-self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, fractal=fractal)
+self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
 # self = icgi = InstanceClearGroupInteraction.from_name("dummy")
 
-embeds = icgi.create_message()
-print(embeds)
+titles, descriptions = icgi.create_message()
+embeds = icgi.create_embeds(titles, descriptions)
 
-icgi.create_or_update_discord_message(embeds=embeds)
+# print(embeds)
+
+# icgi.create_or_update_discord_message(embeds=embeds)
 # ici = InstanceClearInteraction.from_name("w7_the_key_of_ahdashim__20231211")
 
 # %% Manual uploads without creating discord message
 
-# y, m, d = 2023, 12, 18
+y, m, d = 2023, 12, 18
 
-# log_dir = Path(settings.DPS_LOGS_DIR)
-# log_paths = list(log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc"))
+log_dir = Path(settings.DPS_LOGS_DIR)
+log_paths = list(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc"))
 
-# for log_path in log_paths:
-#     self = log_upload = LogUploader.from_path(log_path)
-#     log_upload.run()
+for log_path in log_paths:
+    self = log_upload = LogUploader.from_path(log_path)
+    log_upload.run()
+    break
 
 # log_urls = [
 #     r"https://dps.report/dIVa-20231012-213625_void",
@@ -824,26 +842,17 @@ icgi.create_or_update_discord_message(embeds=embeds)
 #     log_upload.run()
 
 
-# %% TEMP update skull ids
+# %% Update all discord messages.
+# for icg in InstanceClearGroup.objects.filter(type="raid"):
+for icg in InstanceClearGroup.objects.all():
+    ymd = icg.name.split("__")[-1]
+    y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
+    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
 
-skull_str = """<:skull_8_8:1199740877782909009>
-<:skull_7_8:1199739773577875458>
-<:skull_6_8:1199739753248084119>
-<:skull_5_8:1199739676467150899>
-<:skull_4_8:1199739673224945745>
-<:skull_3_8:1199739671798890606>
-<:skull_2_8:1199739670641258526>
-<:skull_1_8:1199739666677641227>"""
-
-names = [i for i in skull_str.split(":")[1:] if i.startswith("s")]
-discord_ids = [int(i.split(">")[0]) for i in skull_str.split(":")[1:] if i.startswith("1")]
-for name, discord_id in zip(names, discord_ids):
-    Emoji.objects.update_or_create(name=name, discord_id=discord_id)
-
-# %%
-for icg in InstanceClearGroup.objects.filter(type="raid"):
-    icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
+    # icgi = InstanceClearGroupInteraction.from_name(icg.name)
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
 
-    icgi.create_or_update_discord_message(embeds=embeds)
+    # icgi.create_or_update_discord_message(embeds=embeds)
+
+# %%

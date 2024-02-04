@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 from pathlib import Path
 
 # PWD = os.getenv('PWD')
@@ -18,8 +19,8 @@ def init_django(project_name=None):
     if project_name is None:
         raise Exception(PROJ_MISSING_MSG)
     sys.path.insert(0, PWD)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "spoc_settings.settings")
-    os.environ["DJANGO_SETTINGS_MODULE"] = "spoc_settings.settings"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gw2_database.gw2_database.settings")
+    os.environ["DJANGO_SETTINGS_MODULE"] = "gw2_database.gw2_database.settings"
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     import django
 
@@ -33,8 +34,8 @@ def init_django_production(project_name=None):
     if project_name is None:
         raise Exception(PROJ_MISSING_MSG)
     sys.path.insert(0, PWD)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "spoc_settings.settings")
-    os.environ["DJANGO_SETTINGS_MODULE"] = "spoc_settings.settings"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gw2_database.gw2_database.settings")
+    os.environ["DJANGO_SETTINGS_MODULE"] = "gw2_database.gw2_database.settings"
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     import django
 
@@ -51,9 +52,7 @@ def init_django_from_commands(project_name=None, pwd=Path(__file__).parents[1]):
 
     print(pwd)
 
-    os.environ.setdefault(
-        "DJANGO_SETTINGS_MODULE", "gw2_database.gw2_database.settings"
-    )
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gw2_database.gw2_database.settings")
     os.environ["DJANGO_SETTINGS_MODULE"] = "gw2_database.gw2_database.settings"
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     import django

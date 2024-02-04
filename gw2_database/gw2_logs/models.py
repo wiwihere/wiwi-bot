@@ -116,6 +116,7 @@ class InstanceClearGroup(models.Model):
     duration = models.DurationField(null=True, blank=True)
     success = models.BooleanField(null=True, blank=True, default=False)
     discord_message_id = models.IntegerField(null=True, blank=True)
+    core_player_count = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -164,6 +165,7 @@ class InstanceClear(models.Model):
     duration = models.DurationField(null=True, blank=True)
     success = models.BooleanField(null=True, blank=True, default=False)  # All encounters in instance cleared?
     emboldened = models.BooleanField(null=True, blank=True)
+    core_player_count = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.name
