@@ -43,6 +43,13 @@ RANK_EMOTES_INVALID = {
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
+# Combine raids and strikes into the same group.
+ITYPE_GROUPS = {
+    "raid": "raid",
+    "strike": "raid",
+    "fractal": "fractal",
+}
+
 
 def create_unix_time(t):
     tz = pytz.timezone(str(get_localzone()))
@@ -71,24 +78,15 @@ def today_y_m_d():
     return now.year, now.month, now.day
 
 
+def zfill_y_m_d(y, m, d):
+    return f"{y}{str(m).zfill(2)}{str(d).zfill(2)}"
+
+
 def find_log_by_date(log_dir, y, m, d):
     """Find all log files on a specific date.
     Returns generator
     """
-    return log_dir.rglob(f"{y}{str(m).zfill(2)}{str(d).zfill(2)}*.zevtc")
-
-
-def get_fractal_day(y, m, d):
-    """Return if logs are fractals.
-    By default monday, thursday raids. rest is fractal.
-    """
-    dt = datetime.datetime(year=y, month=m, day=d)
-    wd = dt.weekday()
-
-    # Default raid days
-    if wd in [0, 3]:
-        return False
-    return True
+    return log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc")
 
 
 def get_emboldened_wing(log_date: datetime.datetime):

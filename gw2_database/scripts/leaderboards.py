@@ -19,9 +19,8 @@ if __name__ == "__main__":
     init_django_from_commands("gw2_database")
     # -- temp TESTING --
 
-import requests
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from log_helpers import RANK_EMOTES, RANK_EMOTES_INVALID
+from log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, get_duration_str
 
 from bot_settings import settings
 
@@ -38,24 +37,7 @@ class Thread:
 
 webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
 
-INCLUDE_INVALID = True
-
 # %%
-
-
-EMBED_COLOR = {
-    "raid": 7930903,
-    "strike": 6603422,
-    "fractal": 5512822,
-}
-
-
-def get_duration_str(seconds: int):
-    """Get seconds with datetime.timedelta.seconds"""
-    mins, secs = divmod(seconds, 60)
-    if len(str(mins)) == 1:
-        mins = f" {mins}"
-    return f"{mins}:{str(secs).zfill(2)}"
 
 
 for itype in [
@@ -63,7 +45,7 @@ for itype in [
     "strike",
     "fractal",
 ]:
-    if INCLUDE_INVALID:
+    if settings.INCLUDE_NON_CORE_LOGS:
         min_core_count = 0
     else:
         min_core_count = settings.CORE_MINIMUM[itype]
@@ -164,8 +146,6 @@ for itype in [
 
                 # Add average cleartime of encounter.
                 field_value += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
-
-        # embed.add_field(name="", value=field_value, inline=False)
 
         embed_title = f"{instance.name}"
         if itype == "strike":
