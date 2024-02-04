@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     if icgi.iclear_group.success:
                         if icgi.iclear_group.type == "fractal":
                             leaderboards.create_leaderboard(itype="fractal")
-                            break
+                            return
 
                 # Reset sleep timer
                 current_sleeptime = MAXSLEEPTIME
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
                 print("Finished run")
-                break
+                return
             current_sleeptime -= SLEEPTIME
 
             time.sleep(SLEEPTIME)

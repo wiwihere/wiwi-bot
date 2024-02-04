@@ -69,6 +69,12 @@ A couple tokens and keys need to be set so the results can be posted to discord.
 4. Setup the database. Copy `gw2_datase/db-empty.sqlite3` to `gw2_datase/db.sqlite3`.
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
+## Usage
+For runs on the same day just run `bin\run_logs_today.bat` from the file-explorer.
+
+To import history run `bin\run_logs_date.bat` from the file-explorer. Then enter the date \
+![run_logs_date](img\run_logs_date.png)
+
 ## Customization
 Everything can be customized. Easiest way to make edits to the database is by firing up Django.
 
