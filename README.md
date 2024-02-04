@@ -51,7 +51,8 @@ mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #C
 ## Initial setup
 A couple tokens and keys need to be set so the results can be posted to discord.
 1. Rename `bot_settings\.env-example` to `bot_settings\.env`.
-- .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken between ''
+    - .env\CONDA_DIR -> rename `C:\Users\Wiwi\miniforge3` to your own conda or mamba installation (step 2 in software)
+    - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 
     ![](img/discord_channels.PNG)\
@@ -62,7 +63,6 @@ A couple tokens and keys need to be set so the results can be posted to discord.
 3. Within the leaderboards channel create threads for: `raids`, `strikes` and `fractals`.
 - Get the thread id by right click -> copy link or  -> paste only the last 18 digit number in the .env.
 4. Setup the database. Copy `gw2_datase/db-empty.sqlite3` to `gw2_datase/db.sqlite3`.
-    - Ability to update the databse after new releases is not yet implemented.
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
 ## Customization
@@ -70,7 +70,7 @@ Everything can be customized. Easiest way to make edits to the database is by fi
 
 - Run `bin/django_runserver.bat.`
 - Open http://127.0.0.1:8000/admin/
-
+- user: wiwi, pw: wiwi-bot
 
 #### Add a core member:
 Add members to the players list to have them appear as a core member. 

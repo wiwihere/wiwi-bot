@@ -856,7 +856,7 @@ for icg in InstanceClearGroup.objects.all():
     y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
     icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
 
-    # icgi = InstanceClearGroupInteraction.from_name(icg.name, fractal=True)
+    # icgi = InstanceClearGroupInteraction.from_name(icg.name)
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
 
