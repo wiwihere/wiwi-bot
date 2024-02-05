@@ -1,5 +1,6 @@
 # %%
 import datetime
+import shutil
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -81,14 +82,10 @@ class LogUploader:
             "anonymous": False,
             "detailedwvw": False,
         }
-        files = {
-            "file": open(
-                self.log_path,
-                "rb",
-            )
-        }
+        with open(self.log_path, "rb") as f:
+            files = {"file": f}
 
-        self.r_raw = r = requests.post(base_url, files=files, data=data)
+            self.r_raw = r = requests.post(base_url, files=files, data=data)
 
         if self.r_raw.status_code == 503:
             print(f"ERROR 503: Failed uploading {self.log_source_view}")
@@ -96,8 +93,21 @@ class LogUploader:
         if self.r_raw.status_code == 403:
             print(f"ERROR 403: Failed uploading {self.log_source_view}")
             print(self.r_raw.json()["error"])
+
+            # Move perma fail upload so it wont bother us again.
+            if self.r_raw.json()["error"] == "Encounter is too short for a useful report to be made":
+                self.move_failed_upload()
+
             return False
         return r.json()
+
+    def move_failed_upload(self):
+        """Some logs are just broken. Lets remove them from the equation"""  # noqa
+        out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(self.log_path).name)
+        out_path.parent.mkdir(exist_ok=True)
+        print(f"Moved failing log from {self.log_source_view} to")
+        print(out_path)
+        shutil.move(src=self.log_path, dst=out_path)
 
     def request_metadata(self, report_id=None, url=None):
         """Get metadata from dps.report if an url is available."""
@@ -238,6 +248,13 @@ class LogUploader:
                 print("Requesting final boss health")
                 self.r2 = r2 = self.request_detailed_info()
                 log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+
+                # Sometimes people get in combat at eyes which creates an uneccesary log.
+                if log.final_health_percentage == 100.0 and self.r["encounter"]["boss"] == "Eye of Fate":
+                    self.move_failed_upload()
+                    log.delete()
+                    return False
+
             else:
                 log.final_health_percentage = 0
             log.save()

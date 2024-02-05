@@ -47,6 +47,8 @@ mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #C
     c. Open the file `wiwi-bot/gw2_database/scripts/import_dps_report.py`\
     d. On the bottom right click the python interpreter ![select interpreter](img/vscode_select_interpreter.png) and select the python env we installed at step 2; ![python env](img/vscode_python_env.png).\
     e. Run the code with `shift+enter` or by pressing ![alt text](img/vscode_runcell.png) above the code blocks.
+5. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
+![activate logging](img/activate_logging.png)
 
 ## Initial setup
 A couple tokens and keys need to be set so the results can be posted to discord.
@@ -93,5 +95,4 @@ Add members to the players list to have them appear as a core member.
 When parsing a log from an encounter that is not in the database yet, the script will crash.
 It will have to be added to the database:
 #TODO add image of error report with boss id -->
-#TODO add arcpds logging ingame
 #TODO settings 2nd log dir to .env
