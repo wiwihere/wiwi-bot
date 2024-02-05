@@ -7,7 +7,7 @@ For any questions or feature requests please feel free to slide into the discord
 [Wiwi's Corner](https://discord.gg/rwhFSzTS).
 
 # Features
-The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
+It is local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
 
 ### Static clears
 ![Raid message](img/raid_message.png)

@@ -55,7 +55,7 @@ def create_leaderboard(itype: str):
         if itype != "strike":
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
-                duration_str = get_duration_str(instance_clear.duration.seconds)
+                duration_str = get_duration_str(instance_clear.duration.seconds, add_space=True)
 
                 if instance_clear.core_player_count < settings.CORE_MINIMUM[itype]:
                     rank_emote = RANK_EMOTES_INVALID[idx]
@@ -66,7 +66,7 @@ def create_leaderboard(itype: str):
             if len(iclear_success_all) > 0:
                 # Add average clear times
                 avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
-                avg_duration_str = get_duration_str(avg_time)
+                avg_duration_str = get_duration_str(avg_time, add_space=True)
                 description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n\n"
 
         # ENCOUNTER LEADERBOARDS
@@ -103,12 +103,12 @@ def create_leaderboard(itype: str):
                     continue
 
                 avg_time = int(np.mean([e[0].seconds for e in encounter_success_all.values_list("duration")]))
-                avg_duration_str = get_duration_str(avg_time)
+                avg_duration_str = get_duration_str(avg_time, add_space=True)
 
                 # Go through top 3 logs and add this to the message
                 field_value += f"{emote}"
                 for idx, encounter_log in enumerate(encounter_success_all[:3]):
-                    duration_str = get_duration_str(encounter_log.duration.seconds)
+                    duration_str = get_duration_str(encounter_log.duration.seconds, add_space=True)
                     if encounter_log.core_player_count < settings.CORE_MINIMUM[itype]:
                         rank_emote = RANK_EMOTES_INVALID[idx]
                     else:
