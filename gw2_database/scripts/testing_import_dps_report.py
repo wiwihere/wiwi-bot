@@ -2,7 +2,6 @@
 """
 TODO list
 - Change day end to reset time.
-# after 30 mins of no logs, stop and update leaderboard.
 
 Multiple runs on same day/week?
 """
@@ -25,6 +24,9 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+import importlib
+
+import log_uploader
 from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
 from log_helpers import (
@@ -45,23 +47,25 @@ from log_instance_interaction import InstanceClearGroupInteraction
 from log_uploader import LogUploader
 from scripts import leaderboards
 
+importlib.reload(log_uploader)
+
 # %%
 #
 
-# y, m, d = today_y_m_d()
-y, m, d = 2024, 2, 1
+y, m, d = today_y_m_d()
+# y, m, d = 2024, 2, 1
 # y, m, d = 2023, 12, 11
+if True:
+    log_dir1 = Path(settings.DPS_LOGS_DIR)
+    log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
+    log_dirs = [log_dir1, log_dir2]
 
-log_dir1 = Path(settings.DPS_LOGS_DIR)
-log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
-log_dirs = [log_dir1, log_dir2]
-
-log_paths_done = []
-run_count = 0
-icgi = None
-MAXSLEEPTIME = 60 * 20  # Number of seconds without a log until we stop looking.
-SLEEPTIME = 30
-try:
+    log_paths_done = []
+    run_count = 0
+    icgi = None
+    MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
+    SLEEPTIME = 30
+    current_sleeptime = MAXSLEEPTIME
     while True:
         print(f"Run {run_count}")
 
@@ -74,22 +78,22 @@ try:
             print(log_path)
             log_upload = LogUploader.from_path(log_path)
 
-            success = log_upload.run()
-            if success is not False:
+            upload_success = log_upload.run()
+
+            if upload_success is not False:
                 log_paths_done.append(log_path)
 
-            self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
-            titles, descriptions = icgi.create_message()
-            embeds = icgi.create_embeds(titles, descriptions)
+                self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
+                titles, descriptions = icgi.create_message()
+                embeds = icgi.create_embeds(titles, descriptions)
 
-            icgi.create_or_update_discord_message(embeds=embeds)
-            # break
+                icgi.create_or_update_discord_message(embeds=embeds)
 
             if icgi is not None:
                 if icgi.iclear_group.success:
                     if icgi.iclear_group.type == "fractal":
                         leaderboards.create_leaderboard(itype="fractal")
-                        break
+                        # return
 
             # Reset sleep timer
             current_sleeptime = MAXSLEEPTIME
@@ -101,14 +105,11 @@ try:
             leaderboards.create_leaderboard(itype="raid")
             leaderboards.create_leaderboard(itype="strike")
             print("Finished run")
-            break
+            # return
+        break
         current_sleeptime -= SLEEPTIME
-
         time.sleep(SLEEPTIME)
         run_count += 1
-
-except KeyboardInterrupt:
-    pass
 
 
 # %% Just update or create discord message, dont upload logs.

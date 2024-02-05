@@ -7,4 +7,9 @@ class Command(BaseCommand):
     help = "Update leaderboards on discord"
 
     def handle(self, *args, **options):
-        result = leaderboards.create_leaderboard()
+        for itype in [
+            "raid",
+            "strike",
+            "fractal",
+        ]:
+            leaderboards.create_leaderboard(itype=itype)

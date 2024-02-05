@@ -42,7 +42,7 @@ class Command(BaseCommand):
         log_paths_done = []
         run_count = 0
         icgi = None
-        MAXSLEEPTIME = 60 * 20  # Number of seconds without a log until we stop looking.
+        MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
         while True:
@@ -57,16 +57,15 @@ class Command(BaseCommand):
                 print(log_path)
                 log_upload = LogUploader.from_path(log_path)
 
-                success = log_upload.run()
-                if success is not False:
+                upload_success = log_upload.run()
+                if upload_success is not False:
                     log_paths_done.append(log_path)
 
-                self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
-                titles, descriptions = icgi.create_message()
-                embeds = icgi.create_embeds(titles, descriptions)
+                    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
+                    titles, descriptions = icgi.create_message()
+                    embeds = icgi.create_embeds(titles, descriptions)
 
-                icgi.create_or_update_discord_message(embeds=embeds)
-                # break
+                    icgi.create_or_update_discord_message(embeds=embeds)
 
                 if icgi is not None:
                     if icgi.iclear_group.success:
@@ -86,6 +85,5 @@ class Command(BaseCommand):
                 print("Finished run")
                 return
             current_sleeptime -= SLEEPTIME
-
             time.sleep(SLEEPTIME)
             run_count += 1

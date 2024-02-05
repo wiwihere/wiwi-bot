@@ -7,7 +7,7 @@ For any questions or feature requests please feel free to slide into the discord
 [Wiwi's Corner](https://discord.gg/rwhFSzTS).
 
 # Features
-The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
+It is local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
 
 ### Static clears
 ![Raid message](img/raid_message.png)
@@ -47,6 +47,8 @@ mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #C
     c. Open the file `wiwi-bot/gw2_database/scripts/import_dps_report.py`\
     d. On the bottom right click the python interpreter ![select interpreter](img/vscode_select_interpreter.png) and select the python env we installed at step 2; ![python env](img/vscode_python_env.png).\
     e. Run the code with `shift+enter` or by pressing ![alt text](img/vscode_runcell.png) above the code blocks.
+5. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
+![activate logging](img/activate_logging.png)
 
 ## Initial setup
 A couple tokens and keys need to be set so the results can be posted to discord.
@@ -59,9 +61,9 @@ A couple tokens and keys need to be set so the results can be posted to discord.
 
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 
-    ![](img/discord_channels.PNG)\
+    ![discord_channels](img/discord_channel.png)\
     Make sure to tick the option:\
-    ![](img/discord_use_emoji.PNG)
+    ![discord_use_emoji](img/discord_use_emoji.png)
 
     discord Server Setttings -> integrations -> Webhooks -> Copy Webhook URL
 3. Within the leaderboards channel create threads for: `raids`, `strikes` and `fractals`.
@@ -70,15 +72,15 @@ A couple tokens and keys need to be set so the results can be posted to discord.
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
 ## Usage
-For runs on the same day just run `bin\run_logs_today.bat` from the file-explorer.
+For runs on the same day just run `bin\run_logs_today.cmd` from the file-explorer.
 
-To import history run `bin\run_logs_date.bat` from the file-explorer. Then enter the date \
-![run_logs_date](img\run_logs_date.png)
+To import history run `bin\run_logs_date.cmd` from the file-explorer. Then enter the date \
+![run_logs_date](img/run_logs_date.png)
 
 ## Customization
 Everything can be customized. Easiest way to make edits to the database is by firing up Django.
 
-- Run `bin/django_runserver.bat.`
+- Run `bin/django_runserver.cmd.`
 - Open http://127.0.0.1:8000/admin/
 - user: wiwi, pw: wiwi-bot
 
@@ -89,9 +91,8 @@ Add members to the players list to have them appear as a core member.
 <img src="img/add_player.png" width="500"/>
 
 
-#### Add new encounter
+<!-- #### Add new encounter
 When parsing a log from an encounter that is not in the database yet, the script will crash.
 It will have to be added to the database:
-
-
-#TODO add image of error report with boss id
+#TODO add image of error report with boss id -->
+#TODO settings 2nd log dir to .env

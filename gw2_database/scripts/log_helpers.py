@@ -75,11 +75,15 @@ def create_discord_time(t: datetime.datetime):
     return f"<t:{create_unix_time(t)}:t>"
 
 
-def get_duration_str(seconds: int):
+def get_duration_str(seconds: int, add_space: bool = False):
     """Get seconds with datetime.timedelta.seconds"""
     mins, secs = divmod(seconds, 60)
     if mins < 60:
+        if add_space:
+            if len(str(mins)) == 1:
+                mins = f" {mins}"
         return f"{mins}:{str(secs).zfill(2)}"
+
     hours, mins = divmod(mins, 60)
     return f"{hours}:{mins}:{str(secs).zfill(2)}"
 
