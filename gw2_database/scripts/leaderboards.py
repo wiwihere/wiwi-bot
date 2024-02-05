@@ -158,8 +158,8 @@ def create_leaderboard(itype: str):
 
 if __name__ == "__main__":
     for itype in [
-        "raid",
+        # "raid",
         "strike",
-        "fractal",
+        # "fractal",
     ]:
         create_leaderboard(itype=itype)

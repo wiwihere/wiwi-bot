@@ -4,15 +4,12 @@ import shutil
 import sys
 
 if __name__ == "__main__":
-    sys.path.append("../../nbs")
-    # -- temp TESTING --
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-    # -- temp TESTING --
 
 from gw2_logs.models import DpsLog, Guild, Instance, InstanceClear, InstanceClearGroup, Player
-from log_helpers import today_y_m_d
+from scripts.log_helpers import today_y_m_d
 
 from gw2_database.gw2_database import settings as django_settings
 

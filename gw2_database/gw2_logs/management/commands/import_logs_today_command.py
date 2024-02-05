@@ -42,7 +42,7 @@ class Command(BaseCommand):
         log_paths_done = []
         run_count = 0
         icgi = None
-        MAXSLEEPTIME = 60 * 20  # Number of seconds without a log until we stop looking.
+        MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
         while True:

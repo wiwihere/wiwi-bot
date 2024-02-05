@@ -182,7 +182,7 @@ class InstanceClearGroupInteraction:
             if sum(self.clears_by_date.values_list("success", flat=True)) == len(
                 Instance.objects.filter(type=self.iclear_group.type)
             ):
-                print("Finished all fracals!")
+                print("Finished all fractals!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum(
                     self.clears_by_date.values_list("duration", flat=True),
