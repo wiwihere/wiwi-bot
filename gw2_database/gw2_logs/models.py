@@ -1,7 +1,7 @@
 from django.db import models
 from traitlets import default
 
-INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike")]
+INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
 INSTANCEGROUP_TYPES = [("raid", "Raid"), ("fractal", "Fractal")]
 
 # %%

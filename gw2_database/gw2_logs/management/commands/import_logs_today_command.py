@@ -4,9 +4,9 @@ import time
 from itertools import chain
 from pathlib import Path
 
+import scripts.leaderboards as leaderboards
 from bot_settings import settings
 from django.core.management.base import BaseCommand
-from scripts import leaderboards
 from scripts.log_helpers import (
     find_log_by_date,
     today_y_m_d,
@@ -41,18 +41,22 @@ class Command(BaseCommand):
 
         log_paths_done = []
         run_count = 0
-        icgi = None
         MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
         while True:
             print(f"Run {run_count}")
 
+            icgi = None
+
             # Find logs in directory
             log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
             log_paths = sorted(log_paths, key=os.path.getmtime)
 
             # Process each log
+            raid_success = False
+            fractal_success = False
+
             for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
                 print(log_path)
                 log_upload = LogUploader.from_path(log_path)
@@ -61,17 +65,30 @@ class Command(BaseCommand):
                 if upload_success is not False:
                     log_paths_done.append(log_path)
 
-                    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
-                    titles, descriptions = icgi.create_message()
-                    embeds = icgi.create_embeds(titles, descriptions)
+                    if not raid_success:
+                        self = icgi_raid = InstanceClearGroupInteraction.create_from_date(
+                            y=y, m=m, d=d, itype_group="raid"
+                        )
+                    else:
+                        icgi_raid = None
+                    if not fractal_success:
+                        self = icgi_fractal = InstanceClearGroupInteraction.create_from_date(
+                            y=y, m=m, d=d, itype_group="fractal"
+                        )
+                    else:
+                        icgi_fractal = None
 
-                    icgi.create_or_update_discord_message(embeds=embeds)
+                for icgi in [icgi_raid, icgi_fractal]:
+                    if icgi is not None:
+                        titles, descriptions = icgi.create_message()
+                        embeds = icgi.create_embeds(titles, descriptions)
 
-                if icgi is not None:
-                    if icgi.iclear_group.success:
-                        if icgi.iclear_group.type == "fractal":
-                            leaderboards.create_leaderboard(itype="fractal")
-                            return
+                        icgi.create_or_update_discord_message(embeds=embeds)
+
+                        if icgi.iclear_group.success:
+                            if icgi.iclear_group.type == "fractal":
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
 
                 # Reset sleep timer
                 current_sleeptime = MAXSLEEPTIME
@@ -79,7 +96,7 @@ class Command(BaseCommand):
             # Stop when its not today, not expecting more logs anyway.
             # Or stop when more than MAXSLEEPTIME no logs.
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
-                icgi.iclear_group.type
+                leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
                 print("Finished run")
