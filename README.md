@@ -91,8 +91,10 @@ Add members to the players list to have them appear as a core member.
 <img src="img/add_player.png" width="500"/>
 
 
-<!-- #### Add new encounter
+#### Add new encounter
 When parsing a log from an encounter that is not in the database yet, the script will crash.
 It will have to be added to the database:
-#TODO add image of error report with boss id -->
+![missing_bossid](img/missing_bossid.png)
+
+
 #TODO settings 2nd log dir to .env

@@ -46,9 +46,8 @@ RANK_EMOTES_INVALID = {
 
 # Combine raids and strikes into the same group.
 ITYPE_GROUPS = {
-    "raid": "raid",
-    "strike": "raid",
-    "fractal": "fractal",
+    "raid": ["raid", "strike"],
+    "fractal": ["fractal"],
 }
 
 

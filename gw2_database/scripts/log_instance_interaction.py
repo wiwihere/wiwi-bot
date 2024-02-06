@@ -1,3 +1,4 @@
+# %%
 import datetime
 from dataclasses import dataclass
 from itertools import chain
@@ -93,37 +94,38 @@ class InstanceClearGroupInteraction:
         self.get_total_clear_duration()
 
     @classmethod
-    def create_from_date(cls, y, m, d, fractal=False):
+    def create_from_date(cls, y, m, d, itype_group):
         """Create an instance clear group from a specific date."""
         # All logs in a day
         logs_day = DpsLog.objects.filter(
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
-        )
+            encounter__instance__type__in=ITYPE_GROUPS[itype_group],
+        ).exclude(encounter__instance__type="golem")
 
         # Get itypes (raid or fractal)
-        itypes = list(set(ITYPE_GROUPS[i] for i in logs_day.values_list("encounter__instance__type", flat=True)))
+        # itypes = logs_day.values_list("encounter__instance__type", flat=True)
 
-        if len(itypes) == 0:
-            raise Exception("No itypes?")  # No logs
+        if len(logs_day) == 0:
+            return None
 
-        if len(itypes) == 1:
-            itype = itypes[0]
-        elif len(itypes) > 1:
-            itype = input(f"Multiple instance types for given period. Choose: {itypes}")
+        # if len(itypes) == 1:
+        # itype = itypes[0]
+        # elif len(itypes) > 1:
+        # itype = input(f"Multiple instance types for given period. Choose: {itypes}")
 
-        # TODO grouping raids and strikes doesnt really work nicely.
-        if itype == "fractal":
-            logs_day = logs_day.filter(encounter__instance__type="fractal")
-        else:
-            logs_day = logs_day.exclude(encounter__instance__type="fractal")
+        # # TODO grouping raids and strikes doesnt really work nicely.
+        # if itype_group == "fractal":
+        #     logs_day = logs_day.filter(encounter__instance__type="fractal")
+        # else:
+        #     logs_day = logs_day.exclude(encounter__instance__type="fractal")
 
-        name = f"{itype}s__{zfill_y_m_d(y,m,d)}"
+        name = f"{itype_group}s__{zfill_y_m_d(y,m,d)}"
 
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
 
-        iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype)
+        iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
             print(f"Created InstanceClearGroup: {iclear_group}")
 

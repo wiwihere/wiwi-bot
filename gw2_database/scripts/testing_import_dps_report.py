@@ -50,73 +50,91 @@ from scripts import leaderboards
 importlib.reload(log_uploader)
 
 # %%
+
 #
 
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 2, 1
 # y, m, d = 2023, 12, 11
 if True:
-    log_dir1 = Path(settings.DPS_LOGS_DIR)
-    log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
-    log_dirs = [log_dir1, log_dir2]
+    print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
 
-    log_paths_done = []
-    run_count = 0
-    icgi = None
-    MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
-    SLEEPTIME = 30
-    current_sleeptime = MAXSLEEPTIME
-    while True:
-        print(f"Run {run_count}")
+    # y, m, d = 2023, 12, 11
+    if True:
+        log_dir1 = Path(settings.DPS_LOGS_DIR)
+        log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
+        log_dirs = [log_dir1, log_dir2]
 
-        # Find logs in directory
-        log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-        log_paths = sorted(log_paths, key=os.path.getmtime)
+        log_paths_done = []
+        run_count = 0
+        MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
+        SLEEPTIME = 30
+        current_sleeptime = MAXSLEEPTIME
+        while True:
+            print(f"Run {run_count}")
 
-        # Process each log
-        for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-            print(log_path)
-            log_upload = LogUploader.from_path(log_path)
+            icgi = None
 
-            upload_success = log_upload.run()
+            # Find logs in directory
+            log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
+            log_paths = sorted(log_paths, key=os.path.getmtime)
 
-            if upload_success is not False:
-                log_paths_done.append(log_path)
+            # Process each log
+            raid_success = False
+            fractal_success = False
 
-                self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
-                titles, descriptions = icgi.create_message()
-                embeds = icgi.create_embeds(titles, descriptions)
+            for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
+                print(log_path)
+                log_upload = LogUploader.from_path(log_path)
 
-                icgi.create_or_update_discord_message(embeds=embeds)
+                upload_success = log_upload.run()
+                if upload_success is not False:
+                    log_paths_done.append(log_path)
 
-            if icgi is not None:
-                if icgi.iclear_group.success:
-                    if icgi.iclear_group.type == "fractal":
-                        leaderboards.create_leaderboard(itype="fractal")
-                        # return
+                    if not raid_success:
+                        self = icgi_raid = InstanceClearGroupInteraction.create_from_date(
+                            y=y, m=m, d=d, itype_group="raid"
+                        )
+                    else:
+                        icgi_raid = None
+                    if not fractal_success:
+                        self = icgi_fractal = InstanceClearGroupInteraction.create_from_date(
+                            y=y, m=m, d=d, itype_group="fractal"
+                        )
+                    else:
+                        icgi_fractal = None
 
-            # Reset sleep timer
-            current_sleeptime = MAXSLEEPTIME
+                for icgi in [icgi_raid, icgi_fractal]:
+                    if icgi is not None:
+                        titles, descriptions = icgi.create_message()
+                        embeds = icgi.create_embeds(titles, descriptions)
 
-        # Stop when its not today, not expecting more logs anyway.
-        # Or stop when more than MAXSLEEPTIME no logs.
-        if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
-            icgi.iclear_group.type
-            leaderboards.create_leaderboard(itype="raid")
-            leaderboards.create_leaderboard(itype="strike")
-            print("Finished run")
-            # return
-        break
-        current_sleeptime -= SLEEPTIME
-        time.sleep(SLEEPTIME)
-        run_count += 1
+                        icgi.create_or_update_discord_message(embeds=embeds)
 
+                        if icgi.iclear_group.success:
+                            if icgi.iclear_group.type == "fractal":
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
+
+                # Reset sleep timer
+                current_sleeptime = MAXSLEEPTIME
+
+            # Stop when its not today, not expecting more logs anyway.
+            # Or stop when more than MAXSLEEPTIME no logs.
+            if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+                leaderboards.create_leaderboard(itype="fractal")
+                leaderboards.create_leaderboard(itype="raid")
+                leaderboards.create_leaderboard(itype="strike")
+                print("Finished run")
+                # return
+            current_sleeptime -= SLEEPTIME
+            time.sleep(SLEEPTIME)
+            run_count += 1
 
 # %% Just update or create discord message, dont upload logs.
 
 
 # y, m, d = today_y_m_d()
-y, m, d = 2024, 2, 2
+y, m, d = 2022, 1, 27
 
 
 self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
@@ -132,15 +150,15 @@ embeds = icgi.create_embeds(titles, descriptions)
 
 # %% Manual uploads without creating discord message
 
-y, m, d = 2023, 12, 18
+# y, m, d = 2023, 12, 18
 
-log_dir = Path(settings.DPS_LOGS_DIR)
-log_paths = list(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc"))
+# log_dir = Path(settings.DPS_LOGS_DIR)
+# log_paths = list(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc"))
 
-for log_path in log_paths:
-    self = log_upload = LogUploader.from_path(log_path)
-    log_upload.run()
-    break
+# for log_path in log_paths:
+#     self = log_upload = LogUploader.from_path(log_path)
+#     log_upload.run()
+#     break
 
 # log_urls = [
 #     r"https://dps.report/dIVa-20231012-213625_void",
