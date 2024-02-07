@@ -109,9 +109,13 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "start_time",
         "discord_message_id",
         "core_player_count",
+        "log_count",
     )
 
     inlines = [InstanceClearInline]
+
+    def log_count(self, obj):
+        return len([log for ic in obj.instance_clears.all() for log in ic.dps_logs.all()])
 
 
 @admin.register(models.DpsLog)
