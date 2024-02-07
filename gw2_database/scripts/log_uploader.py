@@ -288,12 +288,4 @@ ERROR
             log.save()
         print(f"Finished processing: {self.log_source_view}")
 
-        # # If encounter is not part of database the log will still be processed but we dont return
-        # # the log. This way
-        # if raise_at_end:
-        #     if settings.DEBUG:
-        #         raise Encounter.DoesNotExist
-        #     else:
-        #         return False
-
         return log

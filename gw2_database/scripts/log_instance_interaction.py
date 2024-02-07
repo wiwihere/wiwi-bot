@@ -104,32 +104,17 @@ class InstanceClearGroupInteraction:
             encounter__instance__type__in=ITYPE_GROUPS[itype_group],
         ).exclude(encounter__instance__type="golem")
 
-        # Get itypes (raid or fractal)
-        # itypes = logs_day.values_list("encounter__instance__type", flat=True)
-
         if len(logs_day) == 0:
             return None
 
-        # if len(itypes) == 1:
-        # itype = itypes[0]
-        # elif len(itypes) > 1:
-        # itype = input(f"Multiple instance types for given period. Choose: {itypes}")
-
-        # # TODO grouping raids and strikes doesnt really work nicely.
-        # if itype_group == "fractal":
-        #     logs_day = logs_day.filter(encounter__instance__type="fractal")
-        # else:
-        #     logs_day = logs_day.exclude(encounter__instance__type="fractal")
-
         name = f"{itype_group}s__{zfill_y_m_d(y,m,d)}"
-
-        instances_day = np.unique([log.encounter.instance.name for log in logs_day])
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
             print(f"Created InstanceClearGroup: {iclear_group}")
 
         # Create individual instance clears
+        instances_day = np.unique([log.encounter.instance.name for log in logs_day])
         for instance_name in instances_day:
             logs_instance = logs_day.filter(encounter__instance__name=instance_name)
             ici = InstanceClearInteraction.from_logs(logs=logs_instance, instance_group=iclear_group)

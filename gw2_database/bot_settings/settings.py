@@ -23,7 +23,7 @@ CORE_MINIMUM = {
     "strike": int(os.getenv("CORE_MINIMUM_RAID")),
     "fractal": int(os.getenv("CORE_MINIMUM_FRACTAL")),
 }
-INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS") == True  # Include non core logs on leaderboards
+INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
 
 DPS_REPORT_USERTOKEN = os.getenv("DPS_REPORT_USERTOKEN")
 DEBUG = os.getenv("DEBUG") == "True"
