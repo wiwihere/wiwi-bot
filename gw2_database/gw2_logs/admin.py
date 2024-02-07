@@ -62,6 +62,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "has_cm",
         "lb",
         "lb_cm",
+        "log_count",
     )
 
     # list_filter = "instance__type"
@@ -72,6 +73,9 @@ class EncounterAdmin(admin.ModelAdmin):
             return obj.instance.type
         else:
             return None
+
+    def log_count(self, obj):
+        return obj.dps_logs.all().count()
 
 
 @admin.register(models.Emoji)
@@ -115,7 +119,7 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
     inlines = [InstanceClearInline]
 
     def log_count(self, obj):
-        return len([log for ic in obj.instance_clears.all() for log in ic.dps_logs.all()])
+        return sum([ic.dps_logs.all().count() for ic in obj.instance_clears.all()])
 
 
 @admin.register(models.DpsLog)
