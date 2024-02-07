@@ -97,10 +97,14 @@ class InstanceClearAdmin(admin.ModelAdmin):
         "emboldened",
         "instance_clear_group",
         "core_player_count",
+        "log_count",
     )
     list_filter = ["instance"]
 
     inlines = [DpsLogInline]
+
+    def log_count(self, obj):
+        return obj.dps_logs.all().count()
 
 
 @admin.register(models.InstanceClearGroup)

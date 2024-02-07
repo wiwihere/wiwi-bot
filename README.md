@@ -84,6 +84,7 @@ Everything can be customized. Easiest way to make edits to the database is by fi
 - Open http://127.0.0.1:8000/admin/
 - user: wiwi, pw: wiwi-bot
 
+
 #### Add a core member:
 Add members to the players list to have them appear as a core member. 
 
@@ -101,6 +102,7 @@ The encounter will have to be added to the database if you want it to show up on
 - Add encounter to http://127.0.0.1:8000/admin/gw2_logs/encounter/
 - Use the boss id from error message.
 
+
 #### Removing logs
 To remove logs or a clear you need to look at these three tables.
 - http://127.0.0.1:8000/admin/gw2_logs/instancecleargroup/
@@ -108,3 +110,10 @@ To remove logs or a clear you need to look at these three tables.
 - http://127.0.0.1:8000/admin/gw2_logs/dpslog/
 
 ![remove_logs](img/remove_logs.png)
+
+
+#### Showing non-cm encounters on leaderboard
+We are not showing all enounters in the leaderboard because we are not interested in non-CM runs.
+Which encounters are shown is configured in the LB and LB CM options per encounter.\
+See http://127.0.0.1:8000/admin/gw2_logs/encounter/ \
+![leaderboard_selection](img/leaderboard_selection.png)
