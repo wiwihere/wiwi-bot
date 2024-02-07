@@ -62,6 +62,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "has_cm",
         "lb",
         "lb_cm",
+        "log_count",
     )
 
     # list_filter = "instance__type"
@@ -72,6 +73,9 @@ class EncounterAdmin(admin.ModelAdmin):
             return obj.instance.type
         else:
             return None
+
+    def log_count(self, obj):
+        return obj.dps_logs.all().count()
 
 
 @admin.register(models.Emoji)
@@ -93,10 +97,14 @@ class InstanceClearAdmin(admin.ModelAdmin):
         "emboldened",
         "instance_clear_group",
         "core_player_count",
+        "log_count",
     )
     list_filter = ["instance"]
 
     inlines = [DpsLogInline]
+
+    def log_count(self, obj):
+        return obj.dps_logs.all().count()
 
 
 @admin.register(models.InstanceClearGroup)
@@ -109,9 +117,13 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "start_time",
         "discord_message_id",
         "core_player_count",
+        "log_count",
     )
 
     inlines = [InstanceClearInline]
+
+    def log_count(self, obj):
+        return sum([ic.dps_logs.all().count() for ic in obj.instance_clears.all()])
 
 
 @admin.register(models.DpsLog)

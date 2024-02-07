@@ -148,13 +148,13 @@ class LogUploader:
         """Get log from database, if not there, upload it."""
 
         if len(self.get_django_log()) == 0:
-            print(f"Uploading log:  {self.log_source_view}")
+            print("    Uploading log")
             if self.log_path:
                 r = self.upload_log()
             if self.log_url:
                 r = self.request_metadata(url=self.log_url)
         else:
-            print(f"Already in database: {self.log_source_view}")
+            print("    Already in database")
             r = self.get_django_log().first().json_dump
         return r
 
@@ -166,7 +166,7 @@ class LogUploader:
             # fightName in detailed logs do names as below, so we can look them up
             # 'Dark Ai, Keeper of the Peak'
             # 'Elemental Ai, Keeper of the Peak'
-            print("Fixing Ai boss name")
+            print("    Fixing Ai boss name")
             self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
             r["encounter"]["boss"] = r2["fightName"].split(",")[0]
             # Dark to different bossid so it gives separate log
@@ -191,6 +191,7 @@ class LogUploader:
         False on fail
         DpsLog.object on success
         """
+        print(f"Start processing: {self.log_source_view}")
         self.r = r = self.get_or_upload_log()
 
         if r is False:
@@ -202,9 +203,18 @@ class LogUploader:
             encounter = Encounter.objects.get(dpsreport_boss_id=r["encounter"]["bossId"])
         except Encounter.DoesNotExist:
             encounter = None
-            print(f"Encounter not part of database. Register? {r['encounter']}")
-            print(f"bossId:  {r['encounter']['bossId']}")
-            print(f"bossname:  {r['encounter']['boss']}")
+            # jank way of making error known to user.
+            print(
+                f"""
+ERROR
+Encounter not part of database. Register? {r['encounter']}
+bossId:  {r['encounter']['bossId']}
+print(f"bossname:  {r['encounter']['boss']}
+ERROR
+"""
+            )
+            if settings.DEBUG:
+                raise Encounter.DoesNotExist
 
         # Check wrong metadata, sometimes the normal json response has empty
         # or plain wrong data. This has to do with some memory issues on dps.report.
@@ -240,12 +250,11 @@ class LogUploader:
             # r["encounterTime"] format is 1702926477
             start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
         )
-        print(f"Finished updating {self.log_source_view}")
 
         # Update final health percentage
         if log.final_health_percentage is None:
             if log.success is False:
-                print("Requesting final boss health")
+                print("    Requesting final boss health")
                 self.r2 = r2 = self.request_detailed_info()
                 log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
 
@@ -260,14 +269,14 @@ class LogUploader:
             log.save()
 
         # Check emboldened
-        if log.emboldened is None:
+        if (log.emboldened is None) and (log.encounter is not None):
             emboldened_wing = get_emboldened_wing(log.start_time)
             if (
                 (emboldened_wing == log.encounter.instance.nr)
                 and (log.encounter.instance.type == "raid")
                 and not (log.cm)
             ):
-                print("Checking for emboldened")
+                print("    Checking for emboldened")
                 self.r2 = r2 = self.request_detailed_info()
                 if "presentInstanceBuffs" in r2:
                     log.emboldened = 68087 in list(chain(*r2["presentInstanceBuffs"]))
@@ -277,5 +286,6 @@ class LogUploader:
                 log.emboldened = False
 
             log.save()
+        print(f"Finished processing: {self.log_source_view}")
 
         return log

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+r = load_dotenv(Path(__file__).parent.joinpath(".env"))
 
 DISCORD_API_SECRET = os.getenv("DISCORD_API_TOKEN")
 WEBHOOK_BOT_CHANNEL_RAID = os.getenv("WEBHOOK_BOT_CHANNEL_RAID")
@@ -23,9 +23,11 @@ CORE_MINIMUM = {
     "strike": int(os.getenv("CORE_MINIMUM_RAID")),
     "fractal": int(os.getenv("CORE_MINIMUM_FRACTAL")),
 }
-INCLUDE_NON_CORE_LOGS = bool(os.getenv("INCLUDE_NON_CORE_LOGS"))  # Include non core logs on leaderboards
+INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
 
 DPS_REPORT_USERTOKEN = os.getenv("DPS_REPORT_USERTOKEN")
+DEBUG = os.getenv("DEBUG") == "True"
+
 BASE_DIR = Path(__file__).parent
 
 DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtlogs"
