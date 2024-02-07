@@ -58,10 +58,12 @@ class Command(BaseCommand):
             fractal_success = False
 
             for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-                print(log_path)
                 log_upload = LogUploader.from_path(log_path)
 
                 upload_success = log_upload.run()
+
+                icgi_raid = None
+                icgi_fractal = None
                 if upload_success is not False:
                     log_paths_done.append(log_path)
 
@@ -69,14 +71,10 @@ class Command(BaseCommand):
                         self = icgi_raid = InstanceClearGroupInteraction.create_from_date(
                             y=y, m=m, d=d, itype_group="raid"
                         )
-                    else:
-                        icgi_raid = None
                     if not fractal_success:
                         self = icgi_fractal = InstanceClearGroupInteraction.create_from_date(
                             y=y, m=m, d=d, itype_group="fractal"
                         )
-                    else:
-                        icgi_fractal = None
 
                 for icgi in [icgi_raid, icgi_fractal]:
                     if icgi is not None:
