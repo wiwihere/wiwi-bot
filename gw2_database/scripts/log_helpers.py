@@ -10,14 +10,14 @@ from gw2_logs.models import Emoji
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
-    1: Emoji.objects.get(name="skull_1_8").discord_tag,  # Between 0 and 12.5%
-    2: Emoji.objects.get(name="skull_2_8").discord_tag,
-    3: Emoji.objects.get(name="skull_3_8").discord_tag,
-    4: Emoji.objects.get(name="skull_4_8").discord_tag,
-    5: Emoji.objects.get(name="skull_5_8").discord_tag,
-    6: Emoji.objects.get(name="skull_6_8").discord_tag,
-    7: Emoji.objects.get(name="skull_7_8").discord_tag,
-    8: Emoji.objects.get(name="skull_8_8").discord_tag,  # Full health
+    1: Emoji.objects.get(name="wipe 13").discord_tag,  # Between 0 and 12.5%
+    2: Emoji.objects.get(name="wipe 25").discord_tag,
+    3: Emoji.objects.get(name="wipe 38").discord_tag,
+    4: Emoji.objects.get(name="wipe 50").discord_tag,
+    5: Emoji.objects.get(name="wipe 63").discord_tag,
+    6: Emoji.objects.get(name="wipe 75").discord_tag,
+    7: Emoji.objects.get(name="wipe 88").discord_tag,
+    8: Emoji.objects.get(name="wipe 100").discord_tag,  # Full health
 }
 EMBED_COLOR = {
     "raid": 7930903,

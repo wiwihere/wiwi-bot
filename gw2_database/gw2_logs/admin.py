@@ -80,10 +80,11 @@ class EncounterAdmin(admin.ModelAdmin):
 
 @admin.register(models.Emoji)
 class EmojiAdmin(admin.ModelAdmin):
-    list_display = ("name", "discord_id", "animated", "url")
-    ordering = ("name",)
+    list_display = ("name", "type", "png_name", "discord_id", "animated", "url")
+    ordering = ("type", "png_name", "name")
 
     search_fields = ["name"]
+    list_filter = ["type"]
 
 
 @admin.register(models.InstanceClear)

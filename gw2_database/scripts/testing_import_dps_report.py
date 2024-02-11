@@ -129,6 +129,8 @@ if True:
             time.sleep(SLEEPTIME)
             run_count += 1
 
+            break
+
 # %% Just update or create discord message, dont upload logs.
 
 
@@ -170,16 +172,54 @@ embeds = icgi.create_embeds(titles, descriptions)
 
 
 # %% Update all discord messages.
-# for icg in InstanceClearGroup.objects.filter(type="raid"):
 for icg in InstanceClearGroup.objects.all():
     ymd = icg.name.split("__")[-1]
     y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
-    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
+    # y,m,d= 2024,2,6
+
+    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
 
     # icgi = InstanceClearGroupInteraction.from_name(icg.name)
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
 
-    # icgi.create_or_update_discord_message(embeds=embeds)
+    icgi.create_or_update_discord_message(embeds=embeds)
+    # break
+
+# %% Updating emoji ids in bulk
+pngs_dir = Path(__file__).parents[1].joinpath("img", "raid")
+
+print("Copy this into discord")
+for png in pngs_dir.glob("*.png"):
+    png_name = png.stem
+    print(f"\:{png.stem}:")
 
 # %%
+emote_ids_raw = """paste result from discord here."""
+emote_ids = {i.split(":")[1]: i.split(":")[-1].split(">")[0] for i in emote_ids_raw.split("\n")}
+
+
+for png_name, png_id in emote_ids.items():
+    cm = False
+    if png_name.endswith("_cm"):
+        png_name = png_name[:-3]
+        cm = True
+    e = Emoji.objects.get(png_name=png_name)
+
+    if png_id:
+        if cm:
+            e.discord_id_cm = int(png_id)
+        else:
+            e.discord_id = int(png_id)
+        print(f"Update {e.name}. CM:{cm}")
+
+        e.save()
+
+
+# %%
+
+es = Emoji.objects.filter(type="other")
+for e in es:
+    if e.png_name is None:
+        e.png_name = e.name.replace(" ", "_").lower()
+        e.save()

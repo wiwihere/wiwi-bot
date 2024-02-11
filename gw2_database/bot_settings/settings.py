@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-r = load_dotenv(Path(__file__).parent.joinpath(".env"))
+load_dotenv()
 
 DISCORD_API_SECRET = os.getenv("DISCORD_API_TOKEN")
 WEBHOOK_BOT_CHANNEL_RAID = os.getenv("WEBHOOK_BOT_CHANNEL_RAID")

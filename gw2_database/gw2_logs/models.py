@@ -2,6 +2,7 @@ from django.db import models
 from traitlets import default
 
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
+EMOJI_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("medal", "Medal"), ("other", "Other")]
 INSTANCEGROUP_TYPES = [("raid", "Raid"), ("fractal", "Fractal")]
 
 # %%
@@ -19,6 +20,8 @@ class Emoji(models.Model):
     animated = models.BooleanField(null=True, blank=True, default=False)
     discord_id_cm = models.IntegerField(null=True, blank=True)
     url_cm = models.URLField(null=True, blank=True)
+    type = models.CharField(null=True, max_length=10, choices=EMOJI_TYPES, default=None)
+    png_name = models.CharField(max_length=50, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         self.url = f"https://cdn.discordapp.com/emojis/{self.discord_id}.webp?size=32&quality=lossless"
