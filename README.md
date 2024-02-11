@@ -14,6 +14,7 @@ It is local tool that uses dps logs from arc-dps and uploads them to dps.report.
 (**4:41**) cleartime of the encounter\
 _+1:07_ Time between the end of the previous kill run and the start of the current kill run. If its the first log in the session it will be 0:00, unless there is a fail log. \
 <img src="gw2_database/img/medal/first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
+<img src="gw2_database/img/medal/first_invalid.png" width="20"/> Invalid medals mean that there were more pugs than allowed (check settings).\
 <img src="gw2_database/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
 <img src="gw2_database/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
 <img src="gw2_database/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health.\
@@ -21,7 +22,7 @@ _+1:07_ Time between the end of the previous kill run and the start of the curre
 Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
 <img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_database/img/medal/below_average.png" width="20"/>**35:25**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
+<img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
