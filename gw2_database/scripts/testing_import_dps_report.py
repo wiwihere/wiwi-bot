@@ -129,6 +129,8 @@ if True:
             time.sleep(SLEEPTIME)
             run_count += 1
 
+            break
+
 # %% Just update or create discord message, dont upload logs.
 
 
@@ -184,4 +186,10 @@ for icg in InstanceClearGroup.objects.all():
     icgi.create_or_update_discord_message(embeds=embeds)
     # break
 
+# %%
+pngs_dir = Path(r"C:\Users\Wietse\Documents\github\wiwi-bot\gw2_database\img\raid")
+for png in pngs_dir.glob("*.png"):
+    e = Emoji.objects.get(png_name=png.stem)
+
+    print(png.name)
 # %%
