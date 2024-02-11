@@ -1,10 +1,8 @@
 # Gw2 Log Manager
 This log manager is specifically geared towards tracking clears within a raid static. It will upload logs to dps.report and create a discord message using webhooks with the run times. 
 It compares the runs with previous results and show how you did.
-
-
 For any questions or feature requests please feel free to slide into the discord server
-[Wiwi's Corner](https://discord.gg/rwhFSzTS).
+[Wiwi's Corner](https://discord.gg/C6sNvPq3dK).
 
 # Features
 It is local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
@@ -23,8 +21,8 @@ _+1:07_ Time between the end of the previous kill run and the start of the curre
 Clicking the skull icon will also open the log of that run. Does not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
 <img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_database/img/badmedal.png" width="20"/>**35:25**<img src="gw2_database/img/badmedal.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.
-
+<img src="gw2_database/img/badmedal.png" width="20"/>**35:25**<img src="gw2_database/img/badmedal.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
+<img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
 <img src="gw2_database/img/medal_first.png" width="20"/> Click the medal to go to the dps report.

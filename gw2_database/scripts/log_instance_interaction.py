@@ -452,10 +452,10 @@ class InstanceClearGroupInteraction:
                     message_id=self.iclear_group.discord_message_id,
                     embeds=embeds_instance,
                 )
-                print("Updating discord message")
+                print(f"Updating discord message: {self.iclear_group.name}")
 
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 mess = webhook.send(wait=True, embeds=embeds_instance)
                 self.iclear_group.discord_message_id = mess.id
                 self.iclear_group.save()
-                print("New discord message created")
+                print("New discord message created: {self.iclear_group.name}")
