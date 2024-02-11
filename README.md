@@ -1,11 +1,11 @@
 # Gw2 Log Manager
-This log manager is specifically geared towards tracking clears within a raid static. It will upload logs to dps.report and create a discord message using webhooks with the run times. 
-It compares the runs with previous results and show how you did.
-For any questions or feature requests please feel free to slide into the discord server
+This log manager is specifically geared towards tracking clears within a raid static. It will upload logs to [dps.report](https://dps.report) and create a discord message using webhooks with the run times. 
+It also compares the runs with previous results and shows how you did on the leaderboard.
+For any questions or feature requests feel free to slide into the discord server
 [Wiwi's Corner](https://discord.gg/C6sNvPq3dK).
 
 # Features
-It is local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs every time there is one available.
+It is a local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs while raiding every time there is one available. Or just upload the full run afterwards.
 
 ### Static clears
 ![Raid message](img/raid_message.png)
