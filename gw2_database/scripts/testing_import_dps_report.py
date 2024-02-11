@@ -186,10 +186,31 @@ for icg in InstanceClearGroup.objects.all():
     icgi.create_or_update_discord_message(embeds=embeds)
     # break
 
-# %%
-pngs_dir = Path(r"C:\Users\Wietse\Documents\github\wiwi-bot\gw2_database\img\raid")
-for png in pngs_dir.glob("*.png"):
-    e = Emoji.objects.get(png_name=png.stem)
+# %% Updating emoji ids in bulk
+pngs_dir = Path(__file__).parents[1].joinpath("img", "raid")
 
-    print(png.name)
+print("Copy this into discord")
+for png in pngs_dir.glob("*.png"):
+    png_name = png.stem
+    print(f"\:{png.stem}:")
+
 # %%
+emote_ids_raw = """paste result from discord here."""
+emote_ids = {i.split(":")[1]: i.split(":")[-1].split(">")[0] for i in emote_ids_raw.split("\n")}
+
+
+for png_name, png_id in emote_ids.items():
+    cm = False
+    if png_name.endswith("_cm"):
+        png_name = png_name[:-3]
+        cm = True
+    e = Emoji.objects.get(png_name=png_name)
+
+    if png_id:
+        if cm:
+            e.discord_id_cm = int(png_id)
+        else:
+            e.discord_id = int(png_id)
+        print(f"Update {e.name}. CM:{cm}")
+
+        e.save()

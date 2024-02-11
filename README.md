@@ -13,19 +13,19 @@ It is local tool that uses dps logs from arc-dps and uploads them to dps.report.
 
 (**4:41**) cleartime of the encounter\
 _+1:07_ Time between the end of the previous kill run and the start of the current kill run. If its the first log in the session it will be 0:00, unless there is a fail log. \
-<img src="gw2_database/img/medal_first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
-<img src="gw2_database/img/badmedal.png" alt="below average" width="20"/> 5s slower than average\
-<img src="gw2_database/img/goodmedal.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
-<img src="gw2_database/img/skull_5_8.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health.\
+<img src="gw2_database/img/medal/first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
+<img src="gw2_database/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
+<img src="gw2_database/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
+<img src="gw2_database/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health.\
 <img src="img/click_wipe.png" alt="click_wipe%" width=""/>\
-Clicking the skull icon will also open the log of that run. Does not work on phone.\
+Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
 <img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_database/img/badmedal.png" width="20"/>**35:25**<img src="gw2_database/img/badmedal.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
+<img src="gw2_database/img/medal/below_average.png" width="20"/>**35:25**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
-<img src="gw2_database/img/medal_first.png" width="20"/> Click the medal to go to the dps report.
+<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.
 
 # Installation
 The log manager is built on a django framework with a local sqlite database, only tested on Windows. All we need is a local python environment to run the scripts. Below installation is done with miniforge, but feel free
@@ -55,7 +55,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
-    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal_first_invalid.png" width="20"/>)
+    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal/first_invalid.png" width="20"/>)
 
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 
