@@ -214,3 +214,12 @@ for png_name, png_id in emote_ids.items():
         print(f"Update {e.name}. CM:{cm}")
 
         e.save()
+
+
+# %%
+
+es = Emoji.objects.filter(type="other")
+for e in es:
+    if e.png_name is None:
+        e.png_name = e.name.replace(" ", "_").lower()
+        e.save()
