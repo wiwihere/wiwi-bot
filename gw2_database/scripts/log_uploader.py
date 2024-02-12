@@ -99,7 +99,10 @@ class LogUploader:
                 self.move_failed_upload()
 
             return False
-        return r.json()
+        try:
+            return r.json()
+        except:
+            return False
 
     def move_failed_upload(self):
         """Some logs are just broken. Lets remove them from the equation"""  # noqa
