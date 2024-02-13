@@ -87,22 +87,24 @@ class LogUploader:
 
             self.r_raw = r = requests.post(base_url, files=files, data=data)
 
-        if self.r_raw.status_code == 503:
+        if r.status_code == 503:
             print(f"ERROR 503: Failed uploading {self.log_source_view}")
             return False
-        if self.r_raw.status_code == 403:
+        if r.status_code == 403:
             print(f"ERROR 403: Failed uploading {self.log_source_view}")
-            print(self.r_raw.json()["error"])
+            print(r.json()["error"])
 
             # Move perma fail upload so it wont bother us again.
-            if self.r_raw.json()["error"] == "Encounter is too short for a useful report to be made":
+            if r.json()["error"] == "Encounter is too short for a useful report to be made":
                 self.move_failed_upload()
 
             return False
-        try:
-            return r.json()
-        except:
-            return False
+
+        if hasattr(r, "status_code"):
+            if r.status_code == 200:
+                return r.json()
+        print(f"ERROR: Failed uploading log for unknown reason {self.log_source_view}")
+        return False
 
     def move_failed_upload(self):
         """Some logs are just broken. Lets remove them from the equation"""  # noqa
