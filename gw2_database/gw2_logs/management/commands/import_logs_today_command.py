@@ -45,8 +45,6 @@ class Command(BaseCommand):
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
         while True:
-            print(f"Run {run_count}")
-
             icgi = None
 
             # Find logs in directory
@@ -100,5 +98,7 @@ class Command(BaseCommand):
                 print("Finished run")
                 return
             current_sleeptime -= SLEEPTIME
+            print(f"Run {run_count} done")
+
             time.sleep(SLEEPTIME)
             run_count += 1

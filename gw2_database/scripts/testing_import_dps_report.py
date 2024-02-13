@@ -55,7 +55,7 @@ importlib.reload(log_uploader)
 #
 
 y, m, d = today_y_m_d()
-y, m, d = 2023, 11, 14
+# y, m, d = 2023, 11, 14
 if True:
     print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
 

@@ -40,7 +40,7 @@ if res == "y":
         print("Deleting all: Guild")
         Guild.objects.all().delete()
 
-        print("Deleting all: discord_leaderboard_message_id form Instance")
+        print("Deleting all: discord_leaderboard_message_id from Instance")
         for instance in Instance.objects.all():
             instance.discord_leaderboard_message_id = None
             instance.save()

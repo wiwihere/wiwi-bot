@@ -458,4 +458,4 @@ class InstanceClearGroupInteraction:
                 mess = webhook.send(wait=True, embeds=embeds_instance)
                 self.iclear_group.discord_message_id = mess.id
                 self.iclear_group.save()
-                print("New discord message created: {self.iclear_group.name}")
+                print(f"New discord message created: {self.iclear_group.name}")
