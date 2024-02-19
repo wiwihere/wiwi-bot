@@ -10,6 +10,7 @@ from gw2_logs.models import Emoji
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
+    0: Emoji.objects.get(name="wipe 13").discord_tag,  # OLC can still be bugged and give 0 health.
     1: Emoji.objects.get(name="wipe 13").discord_tag,  # Between 0 and 12.5%
     2: Emoji.objects.get(name="wipe 25").discord_tag,
     3: Emoji.objects.get(name="wipe 38").discord_tag,
