@@ -57,6 +57,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
     - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal/first_invalid.png" width="20"/>)
+    - .env\MEAN_OR_MEDIAN -> [mean or median] Choose what unranked runs are compared with, the median or mean of all runs.
 
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 

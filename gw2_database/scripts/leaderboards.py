@@ -7,7 +7,6 @@ import discord
 import numpy as np
 import pytz
 from discord import SyncWebhook
-from django.db.models import Q
 
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
@@ -15,6 +14,7 @@ if __name__ == "__main__":
     init_django_from_commands("gw2_database")
 
 from bot_settings import settings
+from django.db.models import Q
 from gw2_logs.models import Instance
 from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
@@ -65,7 +65,11 @@ def create_leaderboard(itype: str):
 
             if len(iclear_success_all) > 0:
                 # Add average clear times
-                avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
+                avg_time = int(
+                    getattr(np, settings.MEAN_OR_MEDIAN)(
+                        [e[0].seconds for e in iclear_success_all.values_list("duration")]
+                    )
+                )
                 avg_duration_str = get_duration_str(avg_time, add_space=True)
                 description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n\n"
 
@@ -102,7 +106,11 @@ def create_leaderboard(itype: str):
                 if len(encounter_success_all) == 0:
                     continue
 
-                avg_time = int(np.mean([e[0].seconds for e in encounter_success_all.values_list("duration")]))
+                avg_time = int(
+                    getattr(np, settings.MEAN_OR_MEDIAN)(
+                        [e[0].seconds for e in encounter_success_all.values_list("duration")]
+                    )
+                )
                 avg_duration_str = get_duration_str(avg_time, add_space=True)
 
                 # Go through top 3 logs and add this to the message
@@ -159,7 +167,9 @@ def create_leaderboard(itype: str):
 if __name__ == "__main__":
     for itype in [
         # "raid",
-        "strike",
-        # "fractal",
+        # "strike",
+        "fractal",
     ]:
         create_leaderboard(itype=itype)
+
+# %%

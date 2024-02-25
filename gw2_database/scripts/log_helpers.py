@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pytz
+from bot_settings import settings
 from gw2_logs.models import Emoji
 from tzlocal import get_localzone
 
@@ -29,9 +30,13 @@ RANK_EMOTES = {
     0: f"{Emoji.objects.get(name='first').discord_tag}",
     1: f"{Emoji.objects.get(name='second').discord_tag}",
     2: f"{Emoji.objects.get(name='third').discord_tag}",
-    "above_average": f"{Emoji.objects.get(name='above average').discord_tag}",
-    "below_average": f"{Emoji.objects.get(name='below average').discord_tag}",
-    "average": f"{Emoji.objects.get(name='average').discord_tag}",
+    "above_average": f"{Emoji.objects.get(name='above average').discord_tag}".replace(
+        "average", settings.MEAN_OR_MEDIAN
+    ),
+    "below_average": f"{Emoji.objects.get(name='below average').discord_tag}".replace(
+        "average", settings.MEAN_OR_MEDIAN
+    ),
+    "average": f"{Emoji.objects.get(name='average').discord_tag}".replace("average", settings.MEAN_OR_MEDIAN),
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
@@ -39,9 +44,13 @@ RANK_EMOTES_INVALID = {
     0: f"{Emoji.objects.get(name='first invalid').discord_tag}",
     1: f"{Emoji.objects.get(name='second invalid').discord_tag}",
     2: f"{Emoji.objects.get(name='third invalid').discord_tag}",
-    "above_average": f"{Emoji.objects.get(name='above average invalid').discord_tag}",
-    "below_average": f"{Emoji.objects.get(name='below average invalid').discord_tag}",
-    "average": f"{Emoji.objects.get(name='average invalid').discord_tag}",
+    "above_average": f"{Emoji.objects.get(name='above average invalid').discord_tag}".replace(
+        "average", settings.MEAN_OR_MEDIAN
+    ),
+    "below_average": f"{Emoji.objects.get(name='below average invalid').discord_tag}".replace(
+        "average", settings.MEAN_OR_MEDIAN
+    ),
+    "average": f"{Emoji.objects.get(name='average invalid').discord_tag}".replace("average", settings.MEAN_OR_MEDIAN),
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
@@ -161,9 +170,13 @@ def get_rank_emote(indiv, group, core_minimum: int):
     else:
         rank_str = emote_dict["average"]
         if indiv.success:
-            if indiv.duration.seconds < (np.mean([i.duration.seconds for i in group]) - 5):
+            if indiv.duration.seconds < (
+                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+            ):
                 rank_str = emote_dict["above_average"]
-            elif indiv.duration.seconds > (np.mean([i.duration.seconds for i in group]) + 5):
+            elif indiv.duration.seconds > (
+                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+            ):
                 rank_str = emote_dict["below_average"]
 
     if hasattr(indiv, "emboldened"):
