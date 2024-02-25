@@ -65,9 +65,13 @@ def create_leaderboard(itype: str):
 
             if len(iclear_success_all) > 0:
                 # Add average clear times
-                avg_time = int(np.mean([e[0].seconds for e in iclear_success_all.values_list("duration")]))
+                avg_time = int(
+                    getattr(np, settings.MEAN_OR_MEDIAN)(
+                        [e[0].seconds for e in iclear_success_all.values_list("duration")]
+                    )
+                )
                 avg_duration_str = get_duration_str(avg_time, add_space=True)
-                description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n\n"
+                description += f"{RANK_EMOTES[settings.MEAN_OR_MEDIAN]}`{avg_duration_str}`\n\n"
 
         # ENCOUNTER LEADERBOARDS
         # ----------------------
@@ -102,7 +106,11 @@ def create_leaderboard(itype: str):
                 if len(encounter_success_all) == 0:
                     continue
 
-                avg_time = int(np.mean([e[0].seconds for e in encounter_success_all.values_list("duration")]))
+                avg_time = int(
+                    getattr(np, settings.MEAN_OR_MEDIAN)(
+                        [e[0].seconds for e in encounter_success_all.values_list("duration")]
+                    )
+                )
                 avg_duration_str = get_duration_str(avg_time, add_space=True)
 
                 # Go through top 3 logs and add this to the message
@@ -116,7 +124,7 @@ def create_leaderboard(itype: str):
                     field_value += f"""[{rank_emote}]({encounter_log.url})`{duration_str}` """
 
                 # Add average cleartime of encounter.
-                field_value += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
+                field_value += f"{RANK_EMOTES[settings.MEAN_OR_MEDIAN]}`{avg_duration_str}`\n"
 
         embed_title = f"{instance.name}"
         if itype == "strike":  # strike needs emoji because it doenst have instance average
@@ -159,7 +167,9 @@ def create_leaderboard(itype: str):
 if __name__ == "__main__":
     for itype in [
         # "raid",
-        "strike",
-        # "fractal",
+        # "strike",
+        "fractal",
     ]:
         create_leaderboard(itype=itype)
+
+# %%

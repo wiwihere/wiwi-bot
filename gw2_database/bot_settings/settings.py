@@ -26,6 +26,8 @@ CORE_MINIMUM = {
 INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
 
 DPS_REPORT_USERTOKEN = os.getenv("DPS_REPORT_USERTOKEN")
+MEAN_OR_MEDIAN = os.getenv("MEAN_OR_MEDIAN")
+
 DEBUG = os.getenv("DEBUG") == "True"
 
 BASE_DIR = Path(__file__).parent

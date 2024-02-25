@@ -96,8 +96,8 @@ class Encounter(models.Model):
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of boss in instance
     has_cm = models.BooleanField(null=True, blank=True)
-    lb = models.BooleanField(null=True, blank=True)  # Include in leaderboard
-    lb_cm = models.BooleanField(null=True, blank=True)  # Include cm in leaderboard
+    lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
+    lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
 
     def __str__(self):
         return self.name

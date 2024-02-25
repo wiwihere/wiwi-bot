@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pytz
+from bot_settings import settings
 from gw2_logs.models import Emoji
 from tzlocal import get_localzone
 
@@ -31,7 +32,7 @@ RANK_EMOTES = {
     2: f"{Emoji.objects.get(name='third').discord_tag}",
     "above_average": f"{Emoji.objects.get(name='above average').discord_tag}",
     "below_average": f"{Emoji.objects.get(name='below average').discord_tag}",
-    "average": f"{Emoji.objects.get(name='average').discord_tag}",
+    settings.MEAN_OR_MEDIAN: f"{Emoji.objects.get(name='average').discord_tag}",
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
@@ -41,7 +42,7 @@ RANK_EMOTES_INVALID = {
     2: f"{Emoji.objects.get(name='third invalid').discord_tag}",
     "above_average": f"{Emoji.objects.get(name='above average invalid').discord_tag}",
     "below_average": f"{Emoji.objects.get(name='below average invalid').discord_tag}",
-    "average": f"{Emoji.objects.get(name='average invalid').discord_tag}",
+    settings.MEAN_OR_MEDIAN: f"{Emoji.objects.get(name='average invalid').discord_tag}",
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
 
@@ -155,15 +156,19 @@ def get_rank_emote(indiv, group, core_minimum: int):
         # Strikes as an instance dont have cleartimes.
         if indiv.__class__.__name__ == "InstanceClear":
             if indiv.instance.type == "strike":
-                rank_str = emote_dict["average"]
+                rank_str = emote_dict[settings.MEAN_OR_MEDIAN]
 
     # Other ranks
     else:
-        rank_str = emote_dict["average"]
+        rank_str = emote_dict[settings.MEAN_OR_MEDIAN]
         if indiv.success:
-            if indiv.duration.seconds < (np.mean([i.duration.seconds for i in group]) - 5):
+            if indiv.duration.seconds < (
+                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+            ):
                 rank_str = emote_dict["above_average"]
-            elif indiv.duration.seconds > (np.mean([i.duration.seconds for i in group]) + 5):
+            elif indiv.duration.seconds > (
+                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+            ):
                 rank_str = emote_dict["below_average"]
 
     if hasattr(indiv, "emboldened"):
