@@ -7,7 +7,6 @@ import discord
 import numpy as np
 import pytz
 from discord import SyncWebhook
-from django.db.models import Q
 
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
@@ -15,6 +14,7 @@ if __name__ == "__main__":
     init_django_from_commands("gw2_database")
 
 from bot_settings import settings
+from django.db.models import Q
 from gw2_logs.models import Instance
 from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
@@ -71,7 +71,7 @@ def create_leaderboard(itype: str):
                     )
                 )
                 avg_duration_str = get_duration_str(avg_time, add_space=True)
-                description += f"{RANK_EMOTES[settings.MEAN_OR_MEDIAN]}`{avg_duration_str}`\n\n"
+                description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n\n"
 
         # ENCOUNTER LEADERBOARDS
         # ----------------------
@@ -124,7 +124,7 @@ def create_leaderboard(itype: str):
                     field_value += f"""[{rank_emote}]({encounter_log.url})`{duration_str}` """
 
                 # Add average cleartime of encounter.
-                field_value += f"{RANK_EMOTES[settings.MEAN_OR_MEDIAN]}`{avg_duration_str}`\n"
+                field_value += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
 
         embed_title = f"{instance.name}"
         if itype == "strike":  # strike needs emoji because it doenst have instance average
