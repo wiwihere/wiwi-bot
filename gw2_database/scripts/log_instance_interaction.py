@@ -434,12 +434,20 @@ class InstanceClearGroupInteraction:
 
         # Combine raid and strike embeds in the same group.
         embeds_split = {}
+        embeds_split["raid"] = [embeds[i] for i in embeds if "raid_" in i]
+        embeds_split["strike"] = [embeds[i] for i in embeds if "strike_" in i]
         embeds_split["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
-        embeds_split["raid"] = [embeds[i] for i in embeds if "fractal_" not in i]
+
+        # Combine raid and strike message if its in the same channel
+        if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
+            embeds_split["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
+        else:
+            embeds_split["raid"] = [embeds[i] for i in embeds if "raid_" in i]
+            embeds_split["strike"] = [embeds[i] for i in embeds if "strike_" in i]
 
         webhooks = {}
-        webhooks["fractal"] = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_FRACTAL)
-        webhooks["raid"] = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_RAID)
+        for key in embeds_split:
+            webhooks[key] = SyncWebhook.from_url(getattr(settings, f"WEBHOOK_BOT_CHANNEL_{key.upper()}"))
 
         # Update message if it exists
         for embeds_instance, webhook in zip(embeds_split.values(), webhooks.values()):

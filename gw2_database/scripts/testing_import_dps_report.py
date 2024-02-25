@@ -54,7 +54,7 @@ importlib.reload(log_uploader)
 
 
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 2, 23
+y, m, d = 2024, 2, 22
 if True:
     print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
 
@@ -69,8 +69,9 @@ if True:
         MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
-        while True:
+        if True:
             print(f"Run {run_count}")
+            # WEBHOOK_BOT_CHANNEL_STRIKE='https://discord.com/api/webhooks/1210730645953974312/stSp-bvSQsCu5_ZOSWmuVIG47yXMf3VGb8-Asi7oxFKbRd0HaPVa7sgUfNf3fX1a4ebo'
 
             icgi = None
 
@@ -79,29 +80,26 @@ if True:
             log_paths = sorted(log_paths, key=os.path.getmtime)
 
             # Process each log
-            raid_success = False
-            fractal_success = False
+            success = {"raid": False, "strike": False, "fractal": False}
 
             for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
                 log_upload = LogUploader.from_path(log_path)
 
                 upload_success = log_upload.run()
 
-                icgi_raid = None
-                icgi_fractal = None
+                # instance clear group interaction 's
+                icgi = None
                 if upload_success is not False:
                     log_paths_done.append(log_path)
 
-                    if not raid_success:
-                        self = icgi_raid = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group="raid"
-                        )
-                    if not fractal_success:
-                        self = icgi_fractal = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group="fractal"
-                        )
+                    log_itype = log_upload.log.encounter.instance.type
 
-                for icgi in [icgi_raid, icgi_fractal]:
+                    if log_itype in ITYPE_GROUPS:
+                        if not success[log_itype]:
+                            self = icgi = InstanceClearGroupInteraction.create_from_date(
+                                y=y, m=m, d=d, itype_group=log_itype
+                            )
+
                     if icgi is not None:
                         titles, descriptions = icgi.create_message()
                         embeds = icgi.create_embeds(titles, descriptions)
@@ -109,26 +107,28 @@ if True:
                         icgi.create_or_update_discord_message(embeds=embeds)
 
                         if icgi.iclear_group.success:
+                            success[log_itype] = True
                             if icgi.iclear_group.type == "fractal":
-                                leaderboards.create_leaderboard(itype="fractal")
-                                fractal_success = True
+                                # leaderboards.create_leaderboard(itype="fractal")
+                                pass
 
-                # Reset sleep timer
-                current_sleeptime = MAXSLEEPTIME
+            # Reset sleep timer
+            current_sleeptime = MAXSLEEPTIME
 
+            # %%
             # Stop when its not today, not expecting more logs anyway.
             # Or stop when more than MAXSLEEPTIME no logs.
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
-                leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
+                leaderboards.create_leaderboard(itype="fractal")
                 print("Finished run")
                 # return
             current_sleeptime -= SLEEPTIME
             time.sleep(SLEEPTIME)
             run_count += 1
 
-            break
+            # break
 
 # %% Just update or create discord message, dont upload logs.
 
