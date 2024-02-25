@@ -7,28 +7,41 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DISCORD_API_SECRET = os.getenv("DISCORD_API_TOKEN")
-WEBHOOK_BOT_CHANNEL_RAID = os.getenv("WEBHOOK_BOT_CHANNEL_RAID")
-WEBHOOK_BOT_CHANNEL_FRACTAL = os.getenv("WEBHOOK_BOT_CHANNEL_FRACTAL")
-WEBHOOK_BOT_CHANNEL_LEADERBOARD = os.getenv("WEBHOOK_BOT_CHANNEL_LEADERBOARD")
+
+class MissingEnvironmentVariable(Exception):
+    pass
+
+
+def get_env(name):
+    """Get variable from .env, otherwise raise exception"""
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise MissingEnvironmentVariable(rf"Add {name} variable to your gw2_database\bot_settings\.env file.")
+
+
+DISCORD_API_SECRET = get_env("DISCORD_API_TOKEN")
+WEBHOOK_BOT_CHANNEL_RAID = get_env("WEBHOOK_BOT_CHANNEL_RAID")
+WEBHOOK_BOT_CHANNEL_FRACTAL = get_env("WEBHOOK_BOT_CHANNEL_FRACTAL")
+WEBHOOK_BOT_CHANNEL_LEADERBOARD = get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD")
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
-    "raid": os.getenv("WEBHOOK_BOT_CHANNEL_LEADERBOARD_RAIDS"),
-    "strike": os.getenv("WEBHOOK_BOT_CHANNEL_LEADERBOARD_STRIKES"),
-    "fractal": os.getenv("WEBHOOK_BOT_CHANNEL_LEADERBOARD_FRACTALS"),
+    "raid": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_RAIDS"),
+    "strike": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_STRIKES"),
+    "fractal": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_FRACTALS"),
 }
 
 CORE_MINIMUM = {
-    "raid": int(os.getenv("CORE_MINIMUM_RAID")),
-    "strike": int(os.getenv("CORE_MINIMUM_RAID")),
-    "fractal": int(os.getenv("CORE_MINIMUM_FRACTAL")),
+    "raid": int(get_env("CORE_MINIMUM_RAID")),
+    "strike": int(get_env("CORE_MINIMUM_RAID")),
+    "fractal": int(get_env("CORE_MINIMUM_FRACTAL")),
 }
-INCLUDE_NON_CORE_LOGS = os.getenv("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
+INCLUDE_NON_CORE_LOGS = get_env("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
 
-DPS_REPORT_USERTOKEN = os.getenv("DPS_REPORT_USERTOKEN")
-MEAN_OR_MEDIAN = os.getenv("MEAN_OR_MEDIAN")
+DPS_REPORT_USERTOKEN = get_env("DPS_REPORT_USERTOKEN")
+MEAN_OR_MEDIAN = get_env("MEAN_OR_MEDIAN")
 
-DEBUG = os.getenv("DEBUG") == "True"
+DEBUG = get_env("DEBUG") == "True"
 
 BASE_DIR = Path(__file__).parent
 
@@ -42,9 +55,9 @@ COGS_DIR = BASE_DIR / "cogs"
 VIDEOCMDS_DIR = BASE_DIR / "videocmds"
 
 
-# GUILDS_ID = discord.Object(id=int(os.getenv("GUILD")))
-# FEEDBACK_CH = int(os.getenv("FEEDBACK_CH", 0))
-# GUILD_ID_INT = int(os.getenv("GUILD"))
+# GUILDS_ID = discord.Object(id=int(get_env("GUILD")))
+# FEEDBACK_CH = int(get_env("FEEDBACK_CH", 0))
+# GUILD_ID_INT = int(get_env("GUILD"))
 
 LOGGING_CONFIG = {
     "version": 1,
