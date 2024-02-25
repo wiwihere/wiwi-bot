@@ -31,6 +31,16 @@ class InstanceClearInline(admin.TabularInline):
     show_change_link = True
 
 
+class InstanceClearGroupInline(admin.TabularInline):
+    model = models.InstanceClearGroup
+    fields = ["name", "type", "start_time", "duration", "success", "core_player_count"]
+    readonly_fields = ["name", "type", "start_time", "duration", "success", "core_player_count"]
+    extra = 0
+    ordering = ("start_time",)
+
+    show_change_link = True
+
+
 class PlayerInline(admin.TabularInline):
     model = models.Player
     fields = ["name", "gw2_id"]
@@ -116,9 +126,10 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "success",
         "duration",
         "start_time",
-        "discord_message_id",
+        "discord_message",
         "core_player_count",
         "log_count",
+        "discord_message_id_old",
     )
 
     inlines = [InstanceClearInline]
@@ -160,3 +171,11 @@ class PlayerAdmin(admin.ModelAdmin):
 class GuildAdmin(admin.ModelAdmin):
     list_display = ("name",)
     inlines = [PlayerInline]
+
+
+@admin.register(models.DiscordMessage)
+class DiscordMessage(admin.ModelAdmin):
+    list_display = ("message_id",)
+    inlines = [
+        InstanceClearGroupInline,
+    ]

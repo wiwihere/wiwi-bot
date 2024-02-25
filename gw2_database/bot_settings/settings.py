@@ -34,7 +34,7 @@ LEADERBOARD_THREADS = {  # thread channel ids in discord.
 
 CORE_MINIMUM = {
     "raid": int(get_env("CORE_MINIMUM_RAID")),
-    "strike": int(get_env("CORE_MINIMUM_RAID")),
+    "strike": int(get_env("CORE_MINIMUM_STRIKE")),
     "fractal": int(get_env("CORE_MINIMUM_FRACTAL")),
 }
 INCLUDE_NON_CORE_LOGS = get_env("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards

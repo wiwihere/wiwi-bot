@@ -13,7 +13,16 @@ if __name__ == "__main__":
 
     init_django_from_commands("gw2_database")
 from bot_settings import settings
-from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from gw2_logs.models import (
+    DiscordMessage,
+    DpsLog,
+    Emoji,
+    Encounter,
+    Instance,
+    InstanceClear,
+    InstanceClearGroup,
+    Player,
+)
 from scripts.log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
@@ -213,32 +222,31 @@ class InstanceClearGroupInteraction:
 \n{pug_str}\n
 """
 
-            title = self.iclear_group.pretty_time
             # Add total instance group time if all bosses finished.
-
-            if self.iclear_group.success:
-                # Get rank compared to all cleared instancecleargroups
-                group = list(
-                    InstanceClearGroup.objects.filter(success=True, type=self.iclear_group.type)
-                    .filter(
-                        Q(start_time__gte=self.iclear_group.start_time - datetime.timedelta(days=9999))
-                        & Q(start_time__lte=self.iclear_group.start_time)
+            # Loop through both the
+            for icg in set([self.iclear_group] + list(self.iclear_group.discord_message.instance_clear_group.all())):
+                title = self.iclear_group.pretty_time
+                if icg.success:
+                    # Get rank compared to all cleared instancecleargroups
+                    group = list(
+                        InstanceClearGroup.objects.filter(success=True, type=icg.type)
+                        .filter(
+                            Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
+                            & Q(start_time__lte=icg.start_time)
+                        )
+                        .order_by("duration")
                     )
-                    .order_by("duration")
-                )
-                rank_str = get_rank_emote(
-                    indiv=self.iclear_group,
-                    group=group,
-                    core_minimum=settings.CORE_MINIMUM[self.iclear_group.type],
-                )
+                    rank_str = get_rank_emote(
+                        indiv=icg,
+                        group=group,
+                        core_minimum=settings.CORE_MINIMUM[icg.type],
+                    )
 
-                duration_str = get_duration_str(self.iclear_group.duration.seconds)
-                title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+                    duration_str = get_duration_str(icg.duration.seconds)
+                    title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
-            titles[instance_type] = {}
-            titles[instance_type]["main"] = title
-            descriptions[instance_type] = {}
-            descriptions[instance_type]["main"] = description
+                titles[icg.type] = {"main": title}
+            descriptions[instance_type] = {"main": description}
 
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
@@ -432,18 +440,14 @@ class InstanceClearGroupInteraction:
     def create_or_update_discord_message(self, embeds):
         """Send message to discord created by .create_message to discord"""
 
-        # Combine raid and strike embeds in the same group.
         embeds_split = {}
-        embeds_split["raid"] = [embeds[i] for i in embeds if "raid_" in i]
-        embeds_split["strike"] = [embeds[i] for i in embeds if "strike_" in i]
-        embeds_split["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
-
         # Combine raid and strike message if its in the same channel
         if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
             embeds_split["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
         else:
             embeds_split["raid"] = [embeds[i] for i in embeds if "raid_" in i]
             embeds_split["strike"] = [embeds[i] for i in embeds if "strike_" in i]
+        embeds_split["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
 
         webhooks = {}
         for key in embeds_split:
@@ -454,16 +458,32 @@ class InstanceClearGroupInteraction:
             if embeds_instance == []:
                 continue
 
+            # Set the same discord message id when strikes and raids are combined.
+            if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
+                if self.iclear_group.discord_message is None:
+                    group_names = [
+                        "__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]
+                    ]
+                    self.iclear_group.discord_message_id = (
+                        InstanceClearGroup.objects.filter(name__in=group_names)
+                        .exclude(discord_message=None)
+                        .values_list("discord_message", flat=True)
+                        .first()
+                    )
+                    self.iclear_group.save()
+                    print("assigning message id")
+
             # Try to update message. If message cant be found, create a new message instead.
             try:
                 webhook.edit_message(
-                    message_id=self.iclear_group.discord_message_id,
+                    message_id=self.iclear_group.discord_message.message_id,
                     embeds=embeds_instance,
                 )
                 print(f"Updating discord message: {self.iclear_group.name}")
 
-            except (discord.errors.NotFound, discord.errors.HTTPException):
+            except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
                 mess = webhook.send(wait=True, embeds=embeds_instance)
-                self.iclear_group.discord_message_id = mess.id
+                disc_mess = DiscordMessage.objects.create(message_id=mess.id)
+                self.iclear_group.discord_message = disc_mess
                 self.iclear_group.save()
                 print(f"New discord message created: {self.iclear_group.name}")
