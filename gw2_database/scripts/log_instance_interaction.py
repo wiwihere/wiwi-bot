@@ -221,10 +221,15 @@ class InstanceClearGroupInteraction:
 {create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
 \n{pug_str}\n
 """
-
             # Add total instance group time if all bosses finished.
             # Loop through both the
-            for icg in set([self.iclear_group] + list(self.iclear_group.discord_message.instance_clear_group.all())):
+            if instance_type not in titles:
+                titles[instance_type] = {"main": ""}
+
+            grp_lst = [self.iclear_group]
+            if self.iclear_group.discord_message is not None:
+                grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
+            for icg in set(grp_lst):
                 title = self.iclear_group.pretty_time
                 if icg.success:
                     # Get rank compared to all cleared instancecleargroups
@@ -245,7 +250,8 @@ class InstanceClearGroupInteraction:
                     duration_str = get_duration_str(icg.duration.seconds)
                     title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
-                titles[icg.type] = {"main": title}
+                titles[icg.type] = {}
+                titles[icg.type]["main"] = title
             descriptions[instance_type] = {"main": description}
 
         # Loop over the instance clears
@@ -471,7 +477,6 @@ class InstanceClearGroupInteraction:
                         .first()
                     )
                     self.iclear_group.save()
-                    print("assigning message id")
 
             # Try to update message. If message cant be found, create a new message instead.
             try:

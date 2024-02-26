@@ -223,3 +223,67 @@ for e in es:
     if e.png_name is None:
         e.png_name = e.name.replace(" ", "_").lower()
         e.save()
+
+
+# %%
+if True:
+    if True:
+        self.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in self.clears_by_date]))
+
+        instance_types = np.unique([i.instance.type for i in self.clears_by_date])
+
+        descriptions = {}
+        titles = {}
+
+        # Put raid, strike, fractal in separate embeds.
+        for instance_type in instance_types:
+            core_emote = Emoji.objects.get(name="core").discord_tag
+            pug_emote = Emoji.objects.get(name="pug").discord_tag
+            try:
+                core_count = int(np.median([log.core_player_count for log in self.all_logs]))
+                pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
+            except TypeError:
+                core_count = 0
+                pug_count = 0
+
+            # Nina's space, add space after 5 ducks for better readability.
+            pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
+            pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
+            pug_str = ">".join(pug_split_str)
+
+            # title description with start - end time and colored ducks for core/pugs
+            description = f"""{create_discord_time(self.all_logs[0].start_time)} - \
+{create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
+\n{pug_str}\n
+"""
+            # Add total instance group time if all bosses finished.
+            # Loop through both the
+            if instance_type not in titles:
+                titles[instance_type] = {"main": ""}
+
+            for icg in set([self.iclear_group] + list(self.iclear_group.discord_message.instance_clear_group.all())):
+                title = self.iclear_group.pretty_time
+                if icg.success:
+                    # Get rank compared to all cleared instancecleargroups
+                    group = list(
+                        InstanceClearGroup.objects.filter(success=True, type=icg.type)
+                        .filter(
+                            Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
+                            & Q(start_time__lte=icg.start_time)
+                        )
+                        .order_by("duration")
+                    )
+                    rank_str = get_rank_emote(
+                        indiv=icg,
+                        group=group,
+                        core_minimum=settings.CORE_MINIMUM[icg.type],
+                    )
+
+                    duration_str = get_duration_str(icg.duration.seconds)
+                    title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+
+                titles[icg.type] = {}
+                titles[icg.type]["main"] = title
+            descriptions[instance_type] = {"main": description}
+
+titles
