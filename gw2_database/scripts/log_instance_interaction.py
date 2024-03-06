@@ -193,9 +193,13 @@ class InstanceClearGroupInteraction:
         """Create a discord message from the available logs that are linked
         to the instance clear.
         """
-        self.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in self.icg_iclears_all]))
+        icg = self.iclear_group
 
-        # instance_types = np.unique([i.instance.type for i in self.clears_by_date])
+        self.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in self.icg_iclears_all]))
+        # Find all iclears. Can be both strike and raid.
+        all_success_logs = list(
+            chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in self.icg_iclears_all])
+        )
 
         descriptions = {}
         titles = {}
@@ -223,51 +227,32 @@ class InstanceClearGroupInteraction:
 """
         # Add total instance group time if all bosses finished.
         # Loop through all instance clears in the same discord message.
-
-        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
-        grp_lst = [self.iclear_group]
-        if self.iclear_group.discord_message is not None:
-            grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
-        grp_lst = set(grp_lst)
-
-        for icg in grp_lst:
-            title = self.iclear_group.pretty_time
-            if icg.success:
-                # Get rank compared to all cleared instancecleargroups
-                group = list(
-                    InstanceClearGroup.objects.filter(success=True, type=icg.type)
-                    .filter(
-                        Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
-                        & Q(start_time__lte=icg.start_time)
-                    )
-                    .order_by("duration")
+        title = self.iclear_group.pretty_time
+        if icg.success:
+            # Get rank compared to all cleared instancecleargroups
+            group = list(
+                InstanceClearGroup.objects.filter(success=True, type=icg.type)
+                .filter(
+                    Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
+                    & Q(start_time__lte=icg.start_time)
                 )
-                rank_str = get_rank_emote(
-                    indiv=icg,
-                    group=group,
-                    core_minimum=settings.CORE_MINIMUM[icg.type],
-                )
+                .order_by("duration")
+            )
+            rank_str = get_rank_emote(
+                indiv=icg,
+                group=group,
+                core_minimum=settings.CORE_MINIMUM[icg.type],
+            )
 
-                duration_str = get_duration_str(icg.duration.seconds)
-                title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+            duration_str = get_duration_str(icg.duration.seconds)
+            title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
-            titles[icg.type] = {}
-            titles[icg.type]["main"] = title
-
-            if icg.type not in descriptions:
-                descriptions[icg.type] = {"main": description}
-            if icg.type not in titles:
-                titles[icg.type] = {"main": ""}
-
-        # Find all iclears. Can be both strike and raid.
-        grouped_iclears = list(chain(*[icg.instance_clears.all() for icg in grp_lst]))
-        all_success_logs = list(
-            chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in grouped_iclears])
-        )
+        titles[icg.type] = {"main": title}
+        descriptions[icg.type] = {"main": description}
 
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
-        for iclear in grouped_iclears:
+        for iclear in self.icg_iclears_all:
             titles[iclear.instance.type][iclear.name] = ""  # field title
             descriptions[iclear.instance.type][iclear.name] = ""  # field description
 
@@ -451,24 +436,26 @@ class InstanceClearGroupInteraction:
 
         return embeds
 
+    def group_embeds(self, embeds):
+        embeds_grouped = {}
+        # Combine raid and strike message if its in the same channel
+        if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
+            embeds_grouped["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
+        else:
+            embeds_grouped["raid"] = [embeds[i] for i in embeds if "raid_" in i]
+            embeds_grouped["strike"] = [embeds[i] for i in embeds if "strike_" in i]
+        embeds_grouped["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
+        return embeds_grouped
+
     def create_or_update_discord_message(self, embeds):
         """Send message to discord created by .create_message to discord"""
 
-        embeds_split = {}
-        # Combine raid and strike message if its in the same channel
-        if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
-            embeds_split["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
-        else:
-            embeds_split["raid"] = [embeds[i] for i in embeds if "raid_" in i]
-            embeds_split["strike"] = [embeds[i] for i in embeds if "strike_" in i]
-        embeds_split["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
-
         webhooks = {}
-        for key in embeds_split:
+        for key in embeds_grouped:
             webhooks[key] = SyncWebhook.from_url(getattr(settings, f"WEBHOOK_BOT_CHANNEL_{key.upper()}"))
 
         # Update message if it exists
-        for embeds_instance, webhook in zip(embeds_split.values(), webhooks.values()):
+        for embeds_instance, webhook in zip(embeds_grouped.values(), webhooks.values()):
             if embeds_instance == []:
                 continue
 
@@ -511,5 +498,11 @@ if __name__ == "__main__":
 
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
+    embeds_grouped = icgi.embeds_grouped(embeds)
+    # icgi.create_or_update_discord_message(embeds=embeds)
 
-    icgi.create_or_update_discord_message(embeds=embeds)
+    # # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+    grp_lst = [icgi.iclear_group]
+    if icgi.iclear_group.discord_message is not None:
+        grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
+    grp_lst = set(grp_lst)
