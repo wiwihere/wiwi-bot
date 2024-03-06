@@ -28,7 +28,15 @@ import importlib
 
 import log_uploader
 from bot_settings import settings
-from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from gw2_logs.models import (
+    DpsLog,
+    Emoji,
+    Encounter,
+    Instance,
+    InstanceClear,
+    InstanceClearGroup,
+    Player,
+)
 from log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
@@ -43,7 +51,7 @@ from log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
-from log_instance_interaction import InstanceClearGroupInteraction
+from log_instance_interaction import InstanceClearGroupInteraction, InstanceClearInteraction
 from log_uploader import LogUploader
 from scripts import leaderboards
 
@@ -261,7 +269,10 @@ if True:
             if instance_type not in titles:
                 titles[instance_type] = {"main": ""}
 
-            for icg in set([self.iclear_group] + list(self.iclear_group.discord_message.instance_clear_group.all())):
+            grp_lst = [self.iclear_group]
+            if self.iclear_group.discord_message is not None:
+                grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
+            for icg in set(grp_lst):
                 title = self.iclear_group.pretty_time
                 if icg.success:
                     # Get rank compared to all cleared instancecleargroups
@@ -287,3 +298,35 @@ if True:
             descriptions[instance_type] = {"main": description}
 
 titles
+
+# %%
+if True:
+    if True:
+        logs_day = DpsLog.objects.filter(
+            start_time__year=y,
+            start_time__month=m,
+            start_time__day=d,
+            encounter__instance__type=itype_group,
+        ).exclude(encounter__instance__type="golem")
+
+        # if len(logs_day) == 0:
+        #     return None
+
+        name = f"{itype_group}s__{zfill_y_m_d(y,m,d)}"
+
+        iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
+        if created:
+            print(f"Created InstanceClearGroup: {iclear_group}")
+
+        # Create individual instance clears
+        instances_day = np.unique([log.encounter.instance.name for log in logs_day])
+        for instance_name in instances_day:
+            logs_instance = logs_day.filter(encounter__instance__name=instance_name)
+            ici = InstanceClearInteraction.from_logs(logs=logs_instance, instance_group=iclear_group)
+
+        # Set start time of clear
+        if iclear_group.instance_clears.all():
+            start_time = min([i.start_time for i in iclear_group.instance_clears.all()])
+            if iclear_group.start_time != start_time:
+                iclear_group.start_time = start_time
+                iclear_group.save()

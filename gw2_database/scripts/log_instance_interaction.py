@@ -110,7 +110,7 @@ class InstanceClearGroupInteraction:
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
-            encounter__instance__type__in=ITYPE_GROUPS[itype_group],
+            encounter__instance__type=itype_group,
         ).exclude(encounter__instance__type="golem")
 
         if len(logs_day) == 0:
@@ -222,14 +222,17 @@ class InstanceClearGroupInteraction:
 \n{pug_str}\n
 """
             # Add total instance group time if all bosses finished.
-            # Loop through both the
+            # Loop through all instance clears in the same discord message.
             if instance_type not in titles:
                 titles[instance_type] = {"main": ""}
 
+            # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
             grp_lst = [self.iclear_group]
             if self.iclear_group.discord_message is not None:
                 grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
-            for icg in set(grp_lst):
+            grp_lst = set(grp_lst)
+
+            for icg in grp_lst:
                 title = self.iclear_group.pretty_time
                 if icg.success:
                     # Get rank compared to all cleared instancecleargroups
@@ -252,7 +255,9 @@ class InstanceClearGroupInteraction:
 
                 titles[icg.type] = {}
                 titles[icg.type]["main"] = title
-            descriptions[instance_type] = {"main": description}
+
+                if icg.type not in descriptions:
+                    descriptions[icg.type] = {"main": description}
 
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
@@ -492,3 +497,14 @@ class InstanceClearGroupInteraction:
                 self.iclear_group.discord_message = disc_mess
                 self.iclear_group.save()
                 print(f"New discord message created: {self.iclear_group.name}")
+
+
+# %%
+
+if __name__ == "__main__":
+    y, m, d = 2024, 2, 22
+    itype_group = "raid"
+    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+
+    titles, descriptions = icgi.create_message()
+    embeds = icgi.create_embeds(titles, descriptions)
