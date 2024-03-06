@@ -142,7 +142,7 @@ class InstanceClearGroupInteraction:
         return cls(InstanceClearGroup.objects.get(name=name))
 
     @property
-    def clears_by_date(self):
+    def icg_iclears_all(self):
         return self.iclear_group.instance_clears.all().order_by("start_time")
 
     def get_total_clear_duration(self):
@@ -168,24 +168,24 @@ class InstanceClearGroupInteraction:
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
                 self.iclear_group.core_player_count = int(
-                    np.median([i.core_player_count for i in self.clears_by_date])
+                    np.median([i.core_player_count for i in self.icg_iclears_all])
                 )
 
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
-            if sum(self.clears_by_date.values_list("success", flat=True)) == len(
+            if sum(self.icg_iclears_all.values_list("success", flat=True)) == len(
                 Instance.objects.filter(type=self.iclear_group.type)
             ):
                 print("Finished all fractals!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum(
-                    self.clears_by_date.values_list("duration", flat=True),
+                    self.icg_iclears_all.values_list("duration", flat=True),
                     datetime.timedelta(),
                 )
                 self.iclear_group.core_player_count = int(
-                    np.median([i.core_player_count for i in self.clears_by_date])
+                    np.median([i.core_player_count for i in self.icg_iclears_all])
                 )
                 self.iclear_group.save()
 
@@ -193,75 +193,81 @@ class InstanceClearGroupInteraction:
         """Create a discord message from the available logs that are linked
         to the instance clear.
         """
-        self.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in self.clears_by_date]))
+        self.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in self.icg_iclears_all]))
 
-        instance_types = np.unique([i.instance.type for i in self.clears_by_date])
+        # instance_types = np.unique([i.instance.type for i in self.clears_by_date])
 
         descriptions = {}
         titles = {}
 
         # Put raid, strike, fractal in separate embeds.
-        for instance_type in instance_types:
-            core_emote = Emoji.objects.get(name="core").discord_tag
-            pug_emote = Emoji.objects.get(name="pug").discord_tag
-            try:
-                core_count = int(np.median([log.core_player_count for log in self.all_logs]))
-                pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
-            except TypeError:
-                core_count = 0
-                pug_count = 0
+        # for instance_type in instance_types:
+        core_emote = Emoji.objects.get(name="core").discord_tag
+        pug_emote = Emoji.objects.get(name="pug").discord_tag
+        try:
+            core_count = int(np.median([log.core_player_count for log in self.all_logs]))
+            pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
+        except TypeError:
+            core_count = 0
+            pug_count = 0
 
-            # Nina's space, add space after 5 ducks for better readability.
-            pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
-            pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
-            pug_str = ">".join(pug_split_str)
+        # Nina's space, add space after 5 ducks for better readability.
+        pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
+        pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
+        pug_str = ">".join(pug_split_str)
 
-            # title description with start - end time and colored ducks for core/pugs
-            description = f"""{create_discord_time(self.all_logs[0].start_time)} - \
+        # title description with start - end time and colored ducks for core/pugs
+        description = f"""{create_discord_time(self.all_logs[0].start_time)} - \
 {create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
 \n{pug_str}\n
 """
-            # Add total instance group time if all bosses finished.
-            # Loop through all instance clears in the same discord message.
-            if instance_type not in titles:
-                titles[instance_type] = {"main": ""}
+        # Add total instance group time if all bosses finished.
+        # Loop through all instance clears in the same discord message.
 
-            # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
-            grp_lst = [self.iclear_group]
-            if self.iclear_group.discord_message is not None:
-                grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
-            grp_lst = set(grp_lst)
+        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+        grp_lst = [self.iclear_group]
+        if self.iclear_group.discord_message is not None:
+            grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
+        grp_lst = set(grp_lst)
 
-            for icg in grp_lst:
-                title = self.iclear_group.pretty_time
-                if icg.success:
-                    # Get rank compared to all cleared instancecleargroups
-                    group = list(
-                        InstanceClearGroup.objects.filter(success=True, type=icg.type)
-                        .filter(
-                            Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
-                            & Q(start_time__lte=icg.start_time)
-                        )
-                        .order_by("duration")
+        for icg in grp_lst:
+            title = self.iclear_group.pretty_time
+            if icg.success:
+                # Get rank compared to all cleared instancecleargroups
+                group = list(
+                    InstanceClearGroup.objects.filter(success=True, type=icg.type)
+                    .filter(
+                        Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
+                        & Q(start_time__lte=icg.start_time)
                     )
-                    rank_str = get_rank_emote(
-                        indiv=icg,
-                        group=group,
-                        core_minimum=settings.CORE_MINIMUM[icg.type],
-                    )
+                    .order_by("duration")
+                )
+                rank_str = get_rank_emote(
+                    indiv=icg,
+                    group=group,
+                    core_minimum=settings.CORE_MINIMUM[icg.type],
+                )
 
-                    duration_str = get_duration_str(icg.duration.seconds)
-                    title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+                duration_str = get_duration_str(icg.duration.seconds)
+                title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
-                titles[icg.type] = {}
-                titles[icg.type]["main"] = title
+            titles[icg.type] = {}
+            titles[icg.type]["main"] = title
 
-                if icg.type not in descriptions:
-                    descriptions[icg.type] = {"main": description}
+            if icg.type not in descriptions:
+                descriptions[icg.type] = {"main": description}
+            if icg.type not in titles:
+                titles[icg.type] = {"main": ""}
+
+        # Find all iclears. Can be both strike and raid.
+        grouped_iclears = list(chain(*[icg.instance_clears.all() for icg in grp_lst]))
+        all_success_logs = list(
+            chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in grouped_iclears])
+        )
 
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
-        for iclear in self.clears_by_date:
+        for iclear in grouped_iclears:
             titles[iclear.instance.type][iclear.name] = ""  # field title
             descriptions[iclear.instance.type][iclear.name] = ""  # field description
 
@@ -292,9 +298,6 @@ class InstanceClearGroupInteraction:
             field_value = ""
 
             instance_logs = iclear.dps_logs.order_by("start_time")
-            all_success_logs = list(
-                chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in self.clears_by_date])
-            )
 
             # Loop all logs in an instance (raid wing).
             # If there are wipes also take those
@@ -508,3 +511,5 @@ if __name__ == "__main__":
 
     titles, descriptions = icgi.create_message()
     embeds = icgi.create_embeds(titles, descriptions)
+
+    icgi.create_or_update_discord_message(embeds=embeds)
