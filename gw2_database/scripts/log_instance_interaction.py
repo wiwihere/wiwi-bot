@@ -437,19 +437,19 @@ class InstanceClearGroupInteraction:
         return embeds
 
 
-def group_embeds(embeds):
-    embeds_grouped = {}
-    # Combine raid and strike message if its in the same channel
-    if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
-        embeds_grouped["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
-    else:
-        embeds_grouped["raid"] = [embeds[i] for i in embeds if "raid_" in i]
-        embeds_grouped["strike"] = [embeds[i] for i in embeds if "strike_" in i]
-    embeds_grouped["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
-    return embeds_grouped
+# def group_embeds(embeds):
+#     embeds_grouped = {}
+#     # Combine raid and strike message if its in the same channel
+#     if ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]:
+#         embeds_grouped["raid"] = [embeds[i] for j in ITYPE_GROUPS["raid"] for i in embeds if j in i]
+#     else:
+#         embeds_grouped["raid"] = [embeds[i] for i in embeds if "raid_" in i]
+#         embeds_grouped["strike"] = [embeds[i] for i in embeds if "strike_" in i]
+#     embeds_grouped["fractal"] = [embeds[i] for i in embeds if "fractal_" in i]
+#     return embeds_grouped
 
 
-def create_or_update_discord_message(iclear_group, embeds_mes, dc_mes=None):
+def create_or_update_discord_message(iclear_group, embeds_mes):
     """Send message to discord created by .create_message to discord"""
 
     webhook = SyncWebhook.from_url(getattr(settings, f"WEBHOOK_BOT_CHANNEL_{iclear_group.type.upper()}"))
@@ -457,17 +457,17 @@ def create_or_update_discord_message(iclear_group, embeds_mes, dc_mes=None):
     # Try to update message. If message cant be found, create a new message instead.
     try:
         webhook.edit_message(
-            message_id=dc_mes,
+            message_id=iclear_group.discord_message.message_id,
             embeds=embeds_mes,
         )
-        print(f"Updating discord message: ")
+        print(f"Updating discord message: {iclear_group.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes)
         disc_mess = DiscordMessage.objects.create(message_id=mess.id)
         iclear_group.discord_message = disc_mess
         iclear_group.save()
-        print(f"New discord message created: ")
+        print(f"New discord message created: {iclear_group.name}")
 
 
 # %%
@@ -475,6 +475,7 @@ def create_or_update_discord_message(iclear_group, embeds_mes, dc_mes=None):
 if __name__ == "__main__":
     y, m, d = 2024, 2, 22
     itype_group = "strike"
+
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
     # Set the same discord message id when strikes and raids are combined.
@@ -508,5 +509,4 @@ if __name__ == "__main__":
     create_or_update_discord_message(
         iclear_group=icgi.iclear_group,
         embeds_mes=embeds_mes,
-        dc_mes=icgi.iclear_group.discord_message,
     )
