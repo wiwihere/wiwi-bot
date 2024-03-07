@@ -1,9 +1,9 @@
+from discord import ChannelFlags
 from django.db import models
 from traitlets import default
 
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
 EMOJI_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("medal", "Medal"), ("other", "Other")]
-INSTANCEGROUP_TYPES = [("raid", "Raid"), ("fractal", "Fractal")]
 
 # %%
 
@@ -46,6 +46,13 @@ class Emoji(models.Model):
         if not self.animated:
             return f"<:{self.name_lower}:{self.discord_id_cm}>"
         return f"<a:{self.name_lower}:{self.discord_id_cm}>"
+
+
+class DiscordMessage(models.Model):
+    message_id = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.message_id}"
 
 
 class Instance(models.Model):
@@ -114,11 +121,18 @@ class InstanceClearGroup(models.Model):
     """Group of dps logs"""
 
     name = models.CharField(max_length=100, unique=True)
-    type = models.CharField(max_length=10, choices=INSTANCEGROUP_TYPES, default="raid")
+    type = models.CharField(max_length=10, choices=INSTANCE_TYPES, default="raid")
     start_time = models.DateTimeField(null=True, blank=True)
     duration = models.DurationField(null=True, blank=True)
     success = models.BooleanField(null=True, blank=True, default=False)
-    discord_message_id = models.IntegerField(null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance_clear_group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    discord_message_id_old = models.IntegerField(null=True, blank=True)  # TODO remove
     core_player_count = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
@@ -190,6 +204,8 @@ class InstanceClear(models.Model):
 
 
 class DpsLog(models.Model):
+    """Base class to store dps logs in"""
+
     url = models.URLField(max_length=100)
     duration = models.DurationField(null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True, unique=True)

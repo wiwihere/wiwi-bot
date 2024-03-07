@@ -22,6 +22,7 @@ def get_env(name):
 
 DISCORD_API_SECRET = get_env("DISCORD_API_TOKEN")
 WEBHOOK_BOT_CHANNEL_RAID = get_env("WEBHOOK_BOT_CHANNEL_RAID")
+WEBHOOK_BOT_CHANNEL_STRIKE = get_env("WEBHOOK_BOT_CHANNEL_STRIKE")
 WEBHOOK_BOT_CHANNEL_FRACTAL = get_env("WEBHOOK_BOT_CHANNEL_FRACTAL")
 WEBHOOK_BOT_CHANNEL_LEADERBOARD = get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD")
 
@@ -33,7 +34,7 @@ LEADERBOARD_THREADS = {  # thread channel ids in discord.
 
 CORE_MINIMUM = {
     "raid": int(get_env("CORE_MINIMUM_RAID")),
-    "strike": int(get_env("CORE_MINIMUM_RAID")),
+    "strike": int(get_env("CORE_MINIMUM_STRIKE")),
     "fractal": int(get_env("CORE_MINIMUM_FRACTAL")),
 }
 INCLUDE_NON_CORE_LOGS = get_env("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards

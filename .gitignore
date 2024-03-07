@@ -60,6 +60,7 @@ cover/
 *.log
 local_settings.py
 db.sqlite3
+db_test.sqlite3
 db.sqlite3-journal
 gw2_database/backups/*.sqlite3
 gw2_database/img/deprecated
@@ -126,6 +127,7 @@ celerybeat.pid
 .env
 .env-life
 .env-test
+.env-test-raidstrike_combi
 .venv
 env/
 venv/

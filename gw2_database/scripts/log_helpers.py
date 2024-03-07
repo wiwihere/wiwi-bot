@@ -55,10 +55,20 @@ RANK_EMOTES_INVALID = {
 }
 
 # Combine raids and strikes into the same group.
-ITYPE_GROUPS = {
-    "raid": ["raid", "strike"],
-    "fractal": ["fractal"],
-}
+
+# Strikes and raids are combined in the same message when they are posted to the same channel
+if settings.WEBHOOK_BOT_CHANNEL_RAID == settings.WEBHOOK_BOT_CHANNEL_STRIKE:
+    ITYPE_GROUPS = {
+        "raid": ["raid", "strike"],
+        "strike": ["raid", "strike"],
+        "fractal": ["fractal"],
+    }
+else:
+    ITYPE_GROUPS = {
+        "raid": ["raid"],
+        "strike": ["strike"],
+        "fractal": ["fractal"],
+    }
 
 
 @dataclass
