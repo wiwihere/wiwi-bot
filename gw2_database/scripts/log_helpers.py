@@ -1,5 +1,6 @@
 # %%
 """Helper functions and variables"""
+
 import datetime
 import time
 from dataclasses import dataclass
@@ -104,7 +105,7 @@ def get_duration_str(seconds: int, add_space: bool = False):
         return f"{mins}:{str(secs).zfill(2)}"
 
     hours, mins = divmod(mins, 60)
-    return f"{hours}:{mins}:{str(secs).zfill(2)}"
+    return f"{hours}:{str(mins).zfill(2)}:{str(secs).zfill(2)}"
 
 
 def today_y_m_d():
