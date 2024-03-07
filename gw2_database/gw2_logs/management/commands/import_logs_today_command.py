@@ -59,55 +59,57 @@ class Command(BaseCommand):
 
                 fractal_success = False
                 if uploaded_log is not False:
+                    log_paths_done.append(log_path)
+
                     if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
                         continue
 
                     self = icgi = InstanceClearGroupInteraction.create_from_date(
                         y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
                     )
+                    if icgi is not None:
+                        # Set the same discord message id when strikes and raids are combined.
+                        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
+                            icgi.iclear_group.type in ["raid", "strike"]
+                        ):
+                            if self.iclear_group.discord_message is None:
+                                group_names = [
+                                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
+                                    for j in ITYPE_GROUPS["raid"]
+                                ]
+                                self.iclear_group.discord_message_id = (
+                                    InstanceClearGroup.objects.filter(name__in=group_names)
+                                    .exclude(discord_message=None)
+                                    .values_list("discord_message", flat=True)
+                                    .first()
+                                )
+                                self.iclear_group.save()
 
-                    # Set the same discord message id when strikes and raids are combined.
-                    if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
-                        icgi.iclear_group.type in ["raid", "strike"]
-                    ):
-                        if self.iclear_group.discord_message is None:
-                            group_names = [
-                                "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
-                                for j in ITYPE_GROUPS["raid"]
-                            ]
-                            self.iclear_group.discord_message_id = (
-                                InstanceClearGroup.objects.filter(name__in=group_names)
-                                .exclude(discord_message=None)
-                                .values_list("discord_message", flat=True)
-                                .first()
-                            )
-                            self.iclear_group.save()
+                        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+                        grp_lst = [icgi.iclear_group]
+                        if icgi.iclear_group.discord_message is not None:
+                            grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
+                        grp_lst = set(grp_lst)
 
-                    # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
-                    grp_lst = [icgi.iclear_group]
-                    if icgi.iclear_group.discord_message is not None:
-                        grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-                    grp_lst = set(grp_lst)
+                        # combine embeds
+                        embeds = {}
+                        for icg in grp_lst:
+                            icgi = InstanceClearGroupInteraction.from_name(icg.name)
 
-                    # combine embeds
-                    embeds = {}
-                    for icg in grp_lst:
-                        icgi = InstanceClearGroupInteraction.from_name(icg.name)
+                            titles, descriptions = icgi.create_message()
+                            icg_embeds = icgi.create_embeds(titles, descriptions)
+                            embeds.update(icg_embeds)
+                        embeds_mes = list(embeds.values())
 
-                        titles, descriptions = icgi.create_message()
-                        icg_embeds = icgi.create_embeds(titles, descriptions)
-                        embeds.update(icg_embeds)
-                    embeds_mes = list(embeds.values())
+                        create_or_update_discord_message(
+                            iclear_group=icgi.iclear_group,
+                            embeds_mes=embeds_mes,
+                        )
 
-                    create_or_update_discord_message(
-                        iclear_group=icgi.iclear_group,
-                        embeds_mes=embeds_mes,
-                    )
-
-                    if icgi.iclear_group.success:
-                        if icgi.iclear_group.type == "fractal":
-                            leaderboards.create_leaderboard(itype="fractal")
-                            fractal_success = True
+                        if icgi.iclear_group.success:
+                            if icgi.iclear_group.type == "fractal":
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
 
                 # Reset sleep timer
                 current_sleeptime = MAXSLEEPTIME
