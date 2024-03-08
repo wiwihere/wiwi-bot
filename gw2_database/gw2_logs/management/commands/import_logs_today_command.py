@@ -30,7 +30,7 @@ class Command(BaseCommand):
         parser.add_argument("--y", type=int, nargs="?", default=None)
         parser.add_argument("--m", type=int, nargs="?", default=None)
         parser.add_argument("--d", type=int, nargs="?", default=None)
-        parser.add_argument("--itype_groups", nargs="*", default=None)
+        parser.add_argument("--itype_groups", nargs="*", default=["raid", "strike", "fractal"])
 
     def handle(self, *args, **options):
         y = options["y"]
