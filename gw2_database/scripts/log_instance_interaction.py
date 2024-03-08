@@ -164,6 +164,7 @@ class InstanceClearGroupInteraction:
             )
 
             if len(successes) == len(Instance.objects.filter(type=self.iclear_group.type)):
+                # if self.iclear_group.success is False:
                 print("Finished a whole instance group!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())

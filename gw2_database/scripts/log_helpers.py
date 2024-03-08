@@ -1,13 +1,16 @@
 # %%
 """Helper functions and variables"""
+
 import datetime
 import time
 from dataclasses import dataclass
+from itertools import chain
 
 import numpy as np
+import pandas as pd
 import pytz
 from bot_settings import settings
-from gw2_logs.models import Emoji
+from gw2_logs.models import Emoji, Encounter
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
@@ -104,7 +107,7 @@ def get_duration_str(seconds: int, add_space: bool = False):
         return f"{mins}:{str(secs).zfill(2)}"
 
     hours, mins = divmod(mins, 60)
-    return f"{hours}:{mins}:{str(secs).zfill(2)}"
+    return f"{hours}:{str(mins).zfill(2)}:{str(secs).zfill(2)}"
 
 
 def today_y_m_d():
@@ -194,3 +197,20 @@ def get_rank_emote(indiv, group, core_minimum: int):
             rank_str = emote_dict["emboldened"]
 
     return rank_str
+
+
+def create_folder_names(itype_groups: list):
+    """Create list of possible folder names for the selected itype_group.
+    This makes it possible to filter logs before uploading them.
+    """
+    if itype_groups is None:
+        return
+    else:
+        # Create df of encounter foldernames and boss_ids
+        encounter_folders = Encounter.objects.all().values_list("folder_names", "dpsreport_boss_id", "instance__type")
+        enc_df = pd.DataFrame(encounter_folders, columns=["folder", "boss_id", "itype"])
+
+        # Create a list of all possible folder names with selected itype_groups
+        folder_names = enc_df[enc_df["itype"].isin(itype_groups)][["folder", "boss_id"]].to_numpy().tolist()
+        folder_names = list(chain(*[str(i).split(";") for i in chain(*folder_names)]))
+        return folder_names
