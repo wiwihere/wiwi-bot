@@ -1,4 +1,5 @@
 # %%
+import datetime
 import os
 import time
 from itertools import chain
@@ -7,7 +8,13 @@ from pathlib import Path
 import scripts.leaderboards as leaderboards
 from bot_settings import settings
 from django.core.management.base import BaseCommand
-from scripts.log_helpers import ITYPE_GROUPS, find_log_by_date, today_y_m_d, zfill_y_m_d
+from scripts.log_helpers import (
+    ITYPE_GROUPS,
+    create_folder_names,
+    find_log_by_date,
+    today_y_m_d,
+    zfill_y_m_d,
+)
 from scripts.log_instance_interaction import (
     InstanceClearGroup,
     InstanceClearGroupInteraction,
@@ -20,20 +27,25 @@ class Command(BaseCommand):
     help = "Update leaderboards on discord"
 
     def add_arguments(self, parser):
-        parser.add_argument("y", type=int, nargs="?", default=None)
-        parser.add_argument("m", type=int, nargs="?", default=None)
-        parser.add_argument("d", type=int, nargs="?", default=None)
+        parser.add_argument("--y", type=int, nargs="?", default=None)
+        parser.add_argument("--m", type=int, nargs="?", default=None)
+        parser.add_argument("--d", type=int, nargs="?", default=None)
+        parser.add_argument("--itype_groups", nargs="*", default=None)
 
     def handle(self, *args, **options):
         y = options["y"]
         m = options["m"]
         d = options["d"]
+        itype_groups = options["itype_groups"]
         if y is None:
             y, m, d = today_y_m_d()
 
         print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
-
+        print(f"Selected instance types: {itype_groups}")
         # y, m, d = 2023, 12, 11
+
+        # possible folder names for selected itype_groups
+        folder_names = create_folder_names(itype_groups=itype_groups)
 
         log_dir1 = Path(settings.DPS_LOGS_DIR)
         log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
@@ -53,8 +65,17 @@ class Command(BaseCommand):
 
             # Process each log
             for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-                log_upload = LogUploader.from_path(log_path)
+                # Skip upload if log is not in itype_group
+                try:
+                    if itype_groups is not None:
+                        boss_name = log_path.split("arcdps.cbtlogs")[1].split("/")[1]
+                        if boss_name not in folder_names:
+                            log_paths_done.append(log_path)
+                            continue
+                except IndexError:
+                    pass
 
+                log_upload = LogUploader.from_path(log_path)
                 uploaded_log = log_upload.run()
 
                 fractal_success = False
@@ -127,3 +148,6 @@ class Command(BaseCommand):
 
             time.sleep(SLEEPTIME)
             run_count += 1
+
+
+# %%
