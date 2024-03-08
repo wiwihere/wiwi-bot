@@ -1,6 +1,4 @@
 # %%
-
-# %%
 import datetime
 
 import discord
@@ -15,7 +13,7 @@ if __name__ == "__main__":
 
 from bot_settings import settings
 from django.db.models import Q
-from gw2_logs.models import Instance
+from gw2_logs.models import Encounter, Instance
 from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
 
@@ -28,8 +26,10 @@ def create_leaderboard(itype: str):
     else:
         min_core_count = settings.CORE_MINIMUM[itype]
 
+    # Instance leaderboards (wings/ strikes/ fractal scales)
     instances = Instance.objects.filter(type=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
+        continue
         discord_message_id = instance.discord_leaderboard_message_id
         thread = Thread(settings.LEADERBOARD_THREADS[instance.type])
 
@@ -163,6 +163,12 @@ def create_leaderboard(itype: str):
             else:  # stop when no exception raised
                 break
 
+    # %%
+
+    itype
+    discord_message_id = instance.discord_leaderboard_message_id
+    thread = Thread(settings.LEADERBOARD_THREADS[instance.type])
+
 
 if __name__ == "__main__":
     for itype in [
@@ -171,5 +177,3 @@ if __name__ == "__main__":
         "fractal",
     ]:
         create_leaderboard(itype=itype)
-
-# %%

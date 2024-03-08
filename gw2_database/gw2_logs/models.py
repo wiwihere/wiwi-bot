@@ -67,7 +67,14 @@ class Instance(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_leaderboard_message_id = models.IntegerField(null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    discord_leaderboard_message_id = models.IntegerField(null=True, blank=True)  # FIXME phaseout
     nr = models.IntegerField(null=True, blank=True)  # Nr of instance (raid nr)
 
     def __str__(self):
@@ -79,6 +86,20 @@ class Instance(models.Model):
 
     class Meta:
         ordering = ["type", "nr"]
+
+
+class InstanceGroup(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance_group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    def __str__(self):
+        return self.name
 
 
 class Encounter(models.Model):
@@ -106,6 +127,8 @@ class Encounter(models.Model):
     has_cm = models.BooleanField(null=True, blank=True)
     lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
+    # Use the encounter in the total clear time
+    use_total_clear_time = models.BooleanField(verbose_name="use for total cleartime", null=True, blank=True)
 
     def __str__(self):
         return self.name

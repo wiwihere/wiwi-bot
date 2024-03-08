@@ -59,6 +59,11 @@ class InstanceAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(models.InstanceGroup)
+class InstanceGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "discord_message")
+
+
 @admin.register(models.Encounter)
 class EncounterAdmin(admin.ModelAdmin):
     list_display = (
@@ -74,6 +79,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "lb",
         "lb_cm",
         "log_count",
+        "use_total_clear_time",
     )
 
     # list_filter = "instance__type"
