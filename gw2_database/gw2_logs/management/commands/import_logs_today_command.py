@@ -68,16 +68,19 @@ class Command(BaseCommand):
                 # Skip upload if log is not in itype_group
                 try:
                     if itype_groups is not None:
-                        boss_name = log_path.split("arcdps.cbtlogs")[1].split("/")[1]
+                        boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("/")[1]
                         if boss_name not in folder_names:
+                            print(f"Skipped {log_path}")
                             log_paths_done.append(log_path)
                             continue
                 except IndexError:
                     pass
 
+                # Upload log
                 log_upload = LogUploader.from_path(log_path)
                 uploaded_log = log_upload.run()
 
+                # Create ICGI and update discord message
                 fractal_success = False
                 if uploaded_log is not False:
                     log_paths_done.append(log_path)
