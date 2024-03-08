@@ -127,8 +127,14 @@ class Encounter(models.Model):
     has_cm = models.BooleanField(null=True, blank=True)
     lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
-    # Use the encounter in the total clear time
-    use_total_clear_time = models.BooleanField(verbose_name="use for total cleartime", null=True, blank=True)
+
+    use_in_instance_group = models.ForeignKey(
+        InstanceGroup,
+        related_name="instance_groups",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )  # Use the instance_group to select encounters that need to be bundled
 
     def __str__(self):
         return self.name

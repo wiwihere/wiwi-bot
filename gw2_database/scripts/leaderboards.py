@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 from bot_settings import settings
 from django.db.models import Q
-from gw2_logs.models import Encounter, Instance
+from gw2_logs.models import Encounter, Instance, InstanceGroup
 from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
 
@@ -177,3 +177,5 @@ if __name__ == "__main__":
         "fractal",
     ]:
         create_leaderboard(itype=itype)
+
+# %%

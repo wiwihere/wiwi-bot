@@ -63,6 +63,10 @@ class InstanceAdmin(admin.ModelAdmin):
 class InstanceGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "discord_message")
 
+    inlines = [
+        EncounterInline,
+    ]
+
 
 @admin.register(models.Encounter)
 class EncounterAdmin(admin.ModelAdmin):
@@ -79,7 +83,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "lb",
         "lb_cm",
         "log_count",
-        "use_total_clear_time",
+        "use_in_instance_group",
     )
 
     # list_filter = "instance__type"
