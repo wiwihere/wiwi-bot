@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 from bot_settings import settings
 from django.db.models import Q
-from gw2_logs.models import Encounter, Instance, InstanceGroup
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
 from scripts.log_helpers import EMBED_COLOR, RANK_EMOTES, RANK_EMOTES_INVALID, Thread, get_duration_str
 
 
@@ -164,11 +164,141 @@ def create_leaderboard(itype: str):
                 break
 
     # %%
+    # TODO how to handle CM?
+    webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)  # FIXME delete after tests
+    if settings.INCLUDE_NON_CORE_LOGS:
+        min_core_count = 0  # select all logs when including non core
+    else:
+        min_core_count = settings.CORE_MINIMUM[itype]
 
-    itype
-    discord_message_id = instance.discord_leaderboard_message_id
-    thread = Thread(settings.LEADERBOARD_THREADS[instance.type])
+    itype = "raid"
 
+    instance_group = InstanceGroup.objects.get(name=itype)
+    discord_message_id = instance_group.discord_message
+    thread = Thread(settings.LEADERBOARD_THREADS[itype])
+
+    blank_emote = Emoji.objects.get(name="blank").discord_tag
+    encounters = instance_group.encounters.all()
+    instance_names = np.unique(encounters.values_list("instance__name", flat=True))
+    instances = Instance.objects.filter(name__in=instance_names).order_by("nr")
+
+    description = ""
+    for instance in instances:
+        # Instance emote
+        description += f"{instance.emoji.discord_tag}"
+
+        # Loop over the encounters
+        counter = 0
+        for ec in instance.encounters.filter(use_in_instance_group__name=itype).order_by("nr"):
+            # encounter emote
+            description += ec.emoji.discord_tag
+            counter += 1
+
+        # Add empty spaces to align.
+        while counter < 6:
+            description += blank_emote
+            counter += 1
+
+        # Find instance clear fastest and average time
+        iclear_success_all = (
+            instance.instance_clears.filter(
+                success=True,
+                emboldened=False,
+                core_player_count__gte=min_core_count,
+            )
+            .filter(
+                Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+                & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+            )
+            .order_by("duration")
+        )
+
+        for idx, instance_clear in enumerate(iclear_success_all[:1]):
+            duration_str = get_duration_str(instance_clear.duration.seconds, add_space=True)
+
+            if instance_clear.core_player_count < settings.CORE_MINIMUM[itype]:
+                rank_emote = RANK_EMOTES_INVALID[idx]
+            else:
+                rank_emote = RANK_EMOTES[idx]
+            description += f"{rank_emote}`{duration_str}` "
+
+        if len(iclear_success_all) > 0:
+            # Add average clear times
+            avg_time = int(
+                getattr(np, settings.MEAN_OR_MEDIAN)(
+                    [e[0].seconds for e in iclear_success_all.values_list("duration")]
+                )
+            )
+            avg_duration_str = get_duration_str(avg_time, add_space=True)
+            description += f"{RANK_EMOTES['average']}`{avg_duration_str}`\n"
+
+    # List the top 3 of the instance group clear time
+
+    description += "\n"
+    icleargroup_success_all = (
+        InstanceClearGroup.objects.filter(
+            success=True,
+            type=itype,
+            core_player_count__gte=min_core_count,
+        )
+        .filter(
+            Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+            & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+        )
+        .order_by("duration")
+    )
+
+    for idx, instance_clear in enumerate(icleargroup_success_all[:3]):
+        duration_str = get_duration_str(instance_clear.duration.seconds, add_space=True)
+
+        if instance_clear.core_player_count < settings.CORE_MINIMUM[itype]:
+            rank_emote = RANK_EMOTES_INVALID[idx]
+        else:
+            rank_emote = RANK_EMOTES[idx]
+        description += f"{rank_emote}`{duration_str}` "
+
+    if len(icleargroup_success_all) > 0:
+        # Add average clear times
+        avg_time = int(
+            getattr(np, settings.MEAN_OR_MEDIAN)(
+                [e[0].seconds for e in icleargroup_success_all.values_list("duration")]
+            )
+        )
+        avg_duration_str = get_duration_str(avg_time, add_space=True)
+        description += f"{RANK_EMOTES['average']}`{avg_duration_str}`"
+
+    # Create embed
+    embed = discord.Embed(
+        title="Test test",
+        description=description,
+        colour=EMBED_COLOR[instance.type],
+    )
+
+    # Try to update message. If message cant be found, create a new message instead.
+    for attempt in range(2):
+        try:
+            webhook.edit_message(
+                message_id=discord_message_id,
+                embeds=[embed],
+                thread=thread,
+            )
+            print(f"Updating {instance.type}s leaderboard: {instance.name}")
+
+        except (discord.errors.NotFound, discord.errors.HTTPException):
+            print(f"Creating {instance.type}: {instance.name}")
+            mess = webhook.send(
+                wait=True,
+                embeds=[discord.Embed(description=f"{instance.name} leaderboard is in the making")],
+                thread=thread,
+            )
+            discord_message = DiscordMessage.objects.create(message_id=mess.id)
+            discord_message_id = instance_group.discord_message = discord_message
+            instance_group.save()
+        else:  # stop when no exception raised
+            break
+
+
+# %%
 
 if __name__ == "__main__":
     for itype in [

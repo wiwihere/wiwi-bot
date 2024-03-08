@@ -130,7 +130,7 @@ class Encounter(models.Model):
 
     use_in_instance_group = models.ForeignKey(
         InstanceGroup,
-        related_name="instance_groups",
+        related_name="encounters",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
