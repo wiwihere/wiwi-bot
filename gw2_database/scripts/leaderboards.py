@@ -144,7 +144,6 @@ def create_leaderboard(itype: str):
 
     # Create message for total clear time.
     instance_group = InstanceGroup.objects.get(name=itype)
-
     encounters = instance_group.encounters.all()
     instance_names = np.unique(encounters.values_list("instance__name", flat=True))
     instances = Instance.objects.filter(name__in=instance_names).order_by("nr")
