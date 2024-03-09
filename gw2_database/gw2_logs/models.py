@@ -74,7 +74,6 @@ class Instance(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_leaderboard_message_id = models.IntegerField(null=True, blank=True)  # FIXME phaseout
     nr = models.IntegerField(null=True, blank=True)  # Nr of instance (raid nr)
 
     def __str__(self):

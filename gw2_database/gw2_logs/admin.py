@@ -53,7 +53,7 @@ class PlayerInline(admin.TabularInline):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "emoji", "nr", "discord_leaderboard_message_id")
+    list_display = ("name", "type", "emoji", "nr")
     inlines = [
         EncounterInline,
     ]

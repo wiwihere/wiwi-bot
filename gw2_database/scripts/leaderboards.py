@@ -57,7 +57,7 @@ def create_leaderboard(itype: str):
 
         description = ""
 
-        # Strikes dont have average clear time currently
+        # Strikes dont have average clear time currently # FIXME
         if itype != "strike":
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
@@ -142,6 +142,7 @@ def create_leaderboard(itype: str):
     else:
         min_core_count = settings.CORE_MINIMUM[itype]
 
+    # Create message for total clear time.
     instance_group = InstanceGroup.objects.get(name=itype)
 
     encounters = instance_group.encounters.all()
