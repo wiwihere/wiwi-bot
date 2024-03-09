@@ -290,6 +290,13 @@ class DpsLog(models.Model):
         return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"
 
+    @property
+    def pretty_time(self):
+        if self.start_time is not None:
+            return self.start_time.strftime("%a %d %b %Y")
+        else:
+            return "No start time yet"
+
 
 class Guild(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)

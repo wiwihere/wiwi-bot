@@ -26,7 +26,10 @@ Clicking the skull icon will also open the log of that run. Does sadly not work 
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
-<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.
+<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
+<img src="gw2_database/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
+of the run.
+
 
 # Installation
 The log manager is built on a django framework with a local sqlite database, only tested on Windows. All we need is a local python environment to run the scripts. Below installation is done with miniforge, but feel free

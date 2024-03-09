@@ -1,5 +1,6 @@
 # %%
 import datetime
+import re
 
 import discord
 import numpy as np
@@ -19,6 +20,7 @@ from scripts.log_helpers import (
     RANK_EMOTES_INVALID,
     WEBHOOKS,
     Thread,
+    create_discord_time,
     create_or_update_discord_message,
     get_avg_duration_str,
     get_duration_str,
@@ -61,7 +63,11 @@ def create_leaderboard(itype: str):
         if itype != "strike":
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
-                description += get_rank_duration_str(instance_clear, iclear_success_all, itype)
+                rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype)
+                description += rank_duration_str.replace(
+                    re.findall(r":(.*?):", rank_duration_str)[0],
+                    instance_clear.dps_logs.first().pretty_time.replace(" ", "_"),
+                )
 
             if len(iclear_success_all) > 0:
                 # Add average cleartime of instance.
@@ -135,13 +141,6 @@ def create_leaderboard(itype: str):
         )
 
     # %%
-    itype = "fractal"
-
-    if settings.INCLUDE_NON_CORE_LOGS:
-        min_core_count = 0  # select all logs when including non core
-    else:
-        min_core_count = settings.CORE_MINIMUM[itype]
-
     # Create message for total clear time.
     instance_group = InstanceGroup.objects.get(name=itype)
     encounters = instance_group.encounters.all()
@@ -182,7 +181,12 @@ def create_leaderboard(itype: str):
         )
 
         for idx, instance_clear in enumerate(iclear_success_all[:1]):
-            description += get_rank_duration_str(instance_clear, iclear_success_all, itype)
+            # Add first rank time to message. The popup of the medal will give the date
+            rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype)
+            description += rank_duration_str.replace(
+                re.findall(r":(.*?):", rank_duration_str)[0],
+                instance_clear.dps_logs.first().pretty_time.replace(" ", "_"),
+            )
 
         if len(iclear_success_all) > 0:
             # Add average clear times
@@ -205,7 +209,11 @@ def create_leaderboard(itype: str):
     )
 
     for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
-        description += get_rank_duration_str(icleargroup, icleargroup_success_all, itype)
+        rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype)
+        description += rank_duration_str.replace(
+            re.findall(r":(.*?):", rank_duration_str)[0],
+            icleargroup.instance_clears.first().dps_logs.first().pretty_time.replace(" ", "_"),
+        )
 
     if len(icleargroup_success_all) > 0:
         # Add average clear times
@@ -229,10 +237,6 @@ def create_leaderboard(itype: str):
 
 
 # %%
-
-
-# %%
-
 if __name__ == "__main__":
     for itype in [
         # "raid",
