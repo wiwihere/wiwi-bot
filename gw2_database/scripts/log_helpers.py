@@ -2,6 +2,7 @@
 """Helper functions and variables"""
 
 import datetime
+import re
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -227,8 +228,12 @@ def create_folder_names(itype_groups: list):
         return folder_names
 
 
-def get_rank_duration_str(indiv, group, itype):
-    """Find rank of indiv instance in group. And add duration to string."""
+def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
+    """Find rank of indiv instance in group. And add duration to string.
+
+    pretty_time (bool):
+        replace the rank string with a pretty time.
+    """
     duration_str = get_duration_str(indiv.duration.seconds, add_space=True)
 
     rank_str = get_rank_emote(
@@ -236,6 +241,15 @@ def get_rank_duration_str(indiv, group, itype):
         group=list(group),
         core_minimum=settings.CORE_MINIMUM[itype],
     )
+
+    if pretty_time:
+        if hasattr(indiv, "instance_clears"):
+            replace_str = indiv.instance_clears.first().dps_logs.first().pretty_time.replace(" ", "_")
+        elif hasattr(indiv, "dps_logs"):
+            replace_str = indiv.dps_logs.first().pretty_time.replace(" ", "_")
+
+        rank_str = rank_str.replace(re.findall(r":(.*?):", rank_str)[0], replace_str)
+
     return f"{rank_str}`{duration_str}` "
 
 

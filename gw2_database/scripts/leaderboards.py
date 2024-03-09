@@ -1,6 +1,5 @@
 # %%
 import datetime
-import re
 
 import discord
 import numpy as np
@@ -29,6 +28,8 @@ from scripts.log_helpers import (
 )
 
 # TODO remove ITYPE_GROUPS
+
+itype = "fractal"
 
 
 # %%
@@ -63,11 +64,8 @@ def create_leaderboard(itype: str):
         if itype != "strike":
             description += f"{instance.emoji.discord_tag}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
-                rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype)
-                description += rank_duration_str.replace(
-                    re.findall(r":(.*?):", rank_duration_str)[0],
-                    instance_clear.dps_logs.first().pretty_time.replace(" ", "_"),
-                )
+                rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype, pretty_time=True)
+                description += rank_duration_str
 
             if len(iclear_success_all) > 0:
                 # Add average cleartime of instance.
@@ -182,11 +180,8 @@ def create_leaderboard(itype: str):
 
         for idx, instance_clear in enumerate(iclear_success_all[:1]):
             # Add first rank time to message. The popup of the medal will give the date
-            rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype)
-            description += rank_duration_str.replace(
-                re.findall(r":(.*?):", rank_duration_str)[0],
-                instance_clear.dps_logs.first().pretty_time.replace(" ", "_"),
-            )
+            rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype, pretty_time=True)
+            description += rank_duration_str
 
         if len(iclear_success_all) > 0:
             # Add average clear times
@@ -209,11 +204,8 @@ def create_leaderboard(itype: str):
     )
 
     for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
-        rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype)
-        description += rank_duration_str.replace(
-            re.findall(r":(.*?):", rank_duration_str)[0],
-            icleargroup.instance_clears.first().dps_logs.first().pretty_time.replace(" ", "_"),
-        )
+        rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype, pretty_time=True)
+        description += rank_duration_str
 
     if len(icleargroup_success_all) > 0:
         # Add average clear times
