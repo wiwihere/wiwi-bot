@@ -28,8 +28,9 @@ from scripts.log_helpers import (
 )
 
 # TODO remove ITYPE_GROUPS
-
-itype = "fractal"
+if __name__ == "__main__":
+    itype = "fractal"
+    min_core_count = 0  # select all logs when including non core
 
 
 # %%
