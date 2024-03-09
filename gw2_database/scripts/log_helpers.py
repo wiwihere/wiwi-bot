@@ -56,7 +56,7 @@ RANK_EMOTES_INVALID = {
     "average": f"{Emoji.objects.get(name='average invalid').discord_tag}".replace("average", settings.MEAN_OR_MEDIAN),
     "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
 }
-
+BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
 # Combine raids and strikes into the same group.
 
 # Strikes and raids are combined in the same message when they are posted to the same channel
@@ -174,6 +174,7 @@ def get_rank_emote(indiv, group, core_minimum: int):
     if rank in emote_dict:
         rank_str = emote_dict[rank]
 
+        # FIXME remove this
         # Strikes as an instance dont have cleartimes.
         if indiv.__class__.__name__ == "InstanceClear":
             if indiv.instance.type == "strike":
@@ -214,3 +215,22 @@ def create_folder_names(itype_groups: list):
         folder_names = enc_df[enc_df["itype"].isin(itype_groups)][["folder", "boss_id"]].to_numpy().tolist()
         folder_names = list(chain(*[str(i).split(";") for i in chain(*folder_names)]))
         return folder_names
+
+
+def get_rank_duration_str(indiv, group, itype):
+    """Find rank of indiv instance in group. And add duration to string."""
+    duration_str = get_duration_str(indiv.duration.seconds, add_space=True)
+
+    rank_str = get_rank_emote(
+        indiv=indiv,
+        group=list(group),
+        core_minimum=settings.CORE_MINIMUM[itype],
+    )
+    return f"{rank_str}`{duration_str}` "
+
+
+def get_avg_duration_str(group):
+    """Create string with rank emote and average duration"""
+    avg_time = int(getattr(np, settings.MEAN_OR_MEDIAN)([e[0].seconds for e in group.values_list("duration")]))
+    avg_duration_str = get_duration_str(avg_time, add_space=True)
+    return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
