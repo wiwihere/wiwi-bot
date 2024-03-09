@@ -67,7 +67,13 @@ class Instance(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_leaderboard_message_id = models.IntegerField(null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     nr = models.IntegerField(null=True, blank=True)  # Nr of instance (raid nr)
 
     def __str__(self):
@@ -79,6 +85,20 @@ class Instance(models.Model):
 
     class Meta:
         ordering = ["type", "nr"]
+
+
+class InstanceGroup(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance_group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    def __str__(self):
+        return self.name
 
 
 class Encounter(models.Model):
@@ -106,6 +126,14 @@ class Encounter(models.Model):
     has_cm = models.BooleanField(null=True, blank=True)
     lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
+
+    use_in_instance_group = models.ForeignKey(
+        InstanceGroup,
+        related_name="encounters",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )  # Use the instance_group to select encounters that need to be bundled
 
     def __str__(self):
         return self.name
@@ -261,6 +289,13 @@ class DpsLog(models.Model):
             cm_str = " CM"
         return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"
+
+    @property
+    def pretty_time(self):
+        if self.start_time is not None:
+            return self.start_time.strftime("%a %d %b %Y")
+        else:
+            return "No start time yet"
 
 
 class Guild(models.Model):

@@ -26,7 +26,10 @@ Clicking the skull icon will also open the log of that run. Does sadly not work 
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
-<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.
+<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
+<img src="gw2_database/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
+of the run.
+
 
 # Installation
 The log manager is built on a django framework with a local sqlite database, only tested on Windows. All we need is a local python environment to run the scripts. Below installation is done with miniforge, but feel free
@@ -115,5 +118,19 @@ To remove logs or a clear you need to look at these three tables.
 #### Showing non-cm encounters on leaderboard
 We are not showing all enounters in the leaderboard because we are not interested in non-CM runs.
 Which encounters are shown is configured in the LB and LB CM options per encounter.\
-See http://127.0.0.1:8000/admin/gw2_logs/encounter/ \
+See http://127.0.0.1:8000/admin/gw2_logs/encounter/ to change the behaviour\
 ![leaderboard_selection](img/leaderboard_selection.png)
+
+
+#### Selecting encounters that will be added to the total clear time
+Not all groups clear everything. It is possible to select the encounters you want to include in 
+the total clear time. The total clear time will be displayed in the leaderboard and on
+the top-right of the discord message.
+
+Go to http://127.0.0.1:8000/admin/gw2_logs/encounter/. Change the column _use in instance_group_ to 
+the desired group. For each encounter you want to add or remove.
+
+![leaderboard_full_clear](img/leaderboard_full_clear.png)
+![message_total_cleartime](img/message_total_cleartime.png)
+
+![alt select_instance_group](img/select_instance_group.png)

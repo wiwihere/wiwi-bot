@@ -53,7 +53,16 @@ class PlayerInline(admin.TabularInline):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "emoji", "nr", "discord_leaderboard_message_id")
+    list_display = ("name", "type", "emoji", "nr")
+    inlines = [
+        EncounterInline,
+    ]
+
+
+@admin.register(models.InstanceGroup)
+class InstanceGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "discord_message")
+
     inlines = [
         EncounterInline,
     ]
@@ -74,6 +83,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "lb",
         "lb_cm",
         "log_count",
+        "use_in_instance_group",
     )
 
     # list_filter = "instance__type"
