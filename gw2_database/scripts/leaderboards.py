@@ -4,13 +4,11 @@ import datetime
 import discord
 import numpy as np
 import pytz
-from discord import SyncWebhook
 
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-
 from bot_settings import settings
 from django.db.models import Q
 from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
@@ -19,19 +17,20 @@ from scripts.log_helpers import (
     EMBED_COLOR,
     RANK_EMOTES,
     RANK_EMOTES_INVALID,
+    WEBHOOKS,
     Thread,
+    create_or_update_discord_message,
     get_avg_duration_str,
     get_duration_str,
     get_rank_duration_str,
     get_rank_emote,
 )
 
+# TODO remove ITYPE_GROUPS
+
 
 # %%
 def create_leaderboard(itype: str):
-    webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)
-    thread = Thread(settings.LEADERBOARD_THREADS[itype])
-
     if settings.INCLUDE_NON_CORE_LOGS:
         min_core_count = 0  # select all logs when including non core
     else:
@@ -40,8 +39,6 @@ def create_leaderboard(itype: str):
     # Instance leaderboards (wings/ strikes/ fractal scales)
     instances = Instance.objects.filter(type=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
-        discord_message_id = instance.discord_leaderboard_message_id
-
         # INSTANCE LEADERBOARDS
         # ----------------
         # Find wing clear times
@@ -120,6 +117,7 @@ def create_leaderboard(itype: str):
                 field_value += f"{avg_duration_str}\n"
 
         embed_title = f"{instance.name}"
+        # TODO strike should have average too
         if itype == "strike":  # strike needs emoji because it doenst have instance average
             embed_title = f"{instance.emoji.discord_tag} {instance.name}"
 
@@ -129,38 +127,15 @@ def create_leaderboard(itype: str):
             colour=EMBED_COLOR[instance.type],
         )
 
-        if idx_instance == len(instances) - 1:
-            embed.timestamp = datetime.datetime.now()
-            embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
-
-        # Try to update message. If message cant be found, create a new message instead.
-        for attempt in range(2):
-            try:
-                webhook.edit_message(
-                    message_id=discord_message_id,
-                    embeds=[embed],
-                    thread=thread,
-                )
-                print(f"Updating {instance.type}s leaderboard: {instance.name}")
-
-            except (discord.errors.NotFound, discord.errors.HTTPException):
-                print(f"Creating {instance.type}: {instance.name}")
-                mess = webhook.send(
-                    wait=True,
-                    embeds=[discord.Embed(description=f"{instance.name} leaderboard is in the making")],
-                    thread=thread,
-                )
-
-                discord_message_id = instance.discord_leaderboard_message_id = mess.id
-                instance.save()
-            else:  # stop when no exception raised
-                break
+        create_or_update_discord_message(
+            group=instance,
+            hook=WEBHOOKS["leaderboard"],
+            embeds_mes=[embed],
+            thread=Thread(settings.LEADERBOARD_THREADS[itype]),
+        )
 
     # %%
-    itype = "raid"
-
-    webhook = SyncWebhook.from_url(settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD)  # FIXME delete after tests
-    thread = Thread(settings.LEADERBOARD_THREADS[itype])
+    itype = "fractal"
 
     if settings.INCLUDE_NON_CORE_LOGS:
         min_core_count = 0  # select all logs when including non core
@@ -168,7 +143,6 @@ def create_leaderboard(itype: str):
         min_core_count = settings.CORE_MINIMUM[itype]
 
     instance_group = InstanceGroup.objects.get(name=itype)
-    discord_message_id = instance_group.discord_message
 
     encounters = instance_group.encounters.all()
     instance_names = np.unique(encounters.values_list("instance__name", flat=True))
@@ -246,28 +220,15 @@ def create_leaderboard(itype: str):
     embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
     embed.timestamp = datetime.datetime.now()
 
-    # Try to update message. If message cant be found, create a new message instead.
-    for attempt in range(2):
-        try:
-            webhook.edit_message(
-                message_id=discord_message_id,
-                embeds=[embed],
-                thread=thread,
-            )
-            print(f"Updating {itype}s leaderboard: full clear")
+    create_or_update_discord_message(
+        group=instance_group,
+        hook=WEBHOOKS["leaderboard"],
+        embeds_mes=[embed],
+        thread=Thread(settings.LEADERBOARD_THREADS[itype]),
+    )
 
-        except (discord.errors.NotFound, discord.errors.HTTPException):
-            print(f"Creating {itype}s leaderboard: full clear")
-            mess = webhook.send(
-                wait=True,
-                embeds=[discord.Embed(description=f"{instance.name} leaderboard is in the making")],
-                thread=thread,
-            )
-            discord_message = DiscordMessage.objects.create(message_id=mess.id)
-            discord_message_id = instance_group.discord_message = discord_message
-            instance_group.save()
-        else:  # stop when no exception raised
-            break
+
+# %%
 
 
 # %%

@@ -10,6 +10,7 @@ from bot_settings import settings
 from django.core.management.base import BaseCommand
 from scripts.log_helpers import (
     ITYPE_GROUPS,
+    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
@@ -127,6 +128,7 @@ class Command(BaseCommand):
 
                         create_or_update_discord_message(
                             iclear_group=icgi.iclear_group,
+                            hook=WEBHOOKS[icgi.iclear_group.type],
                             embeds_mes=embeds_mes,
                         )
 

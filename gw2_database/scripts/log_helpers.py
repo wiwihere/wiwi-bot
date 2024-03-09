@@ -6,11 +6,14 @@ import time
 from dataclasses import dataclass
 from itertools import chain
 
+import discord
 import numpy as np
 import pandas as pd
 import pytz
 from bot_settings import settings
-from gw2_logs.models import Emoji, Encounter
+from discord import SyncWebhook
+from discord.utils import MISSING
+from gw2_logs.models import DiscordMessage, Emoji, Encounter
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
@@ -58,6 +61,13 @@ RANK_EMOTES_INVALID = {
 }
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
 # Combine raids and strikes into the same group.
+
+WEBHOOKS = {
+    "raid": settings.WEBHOOK_BOT_CHANNEL_RAID,
+    "strike": settings.WEBHOOK_BOT_CHANNEL_STRIKE,
+    "fractal": settings.WEBHOOK_BOT_CHANNEL_FRACTAL,
+    "leaderboard": settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD,
+}
 
 # Strikes and raids are combined in the same message when they are posted to the same channel
 if settings.WEBHOOK_BOT_CHANNEL_RAID == settings.WEBHOOK_BOT_CHANNEL_STRIKE:
@@ -234,3 +244,31 @@ def get_avg_duration_str(group):
     avg_time = int(getattr(np, settings.MEAN_OR_MEDIAN)([e[0].seconds for e in group.values_list("duration")]))
     avg_duration_str = get_duration_str(avg_time, add_space=True)
     return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
+
+
+def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSING):
+    """Send message to discord
+
+    group: instance_group or iclear_group
+    hook: log_helper.WEBHOOK[itype]
+    embeds_mes: [Embed, Embed]
+    thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    """
+
+    webhook = SyncWebhook.from_url(hook)
+
+    # Try to update message. If message cant be found, create a new message instead.
+    try:
+        webhook.edit_message(
+            message_id=group.discord_message.message_id,
+            embeds=embeds_mes,
+            thread=thread,
+        )
+        print(f"Updating discord message: {group.name}")
+
+    except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
+        mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+        disc_mess = DiscordMessage.objects.create(message_id=mess.id)
+        group.discord_message = disc_mess
+        group.save()
+        print(f"New discord message created: {group.name}")
