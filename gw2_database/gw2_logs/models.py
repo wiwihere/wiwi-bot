@@ -1,3 +1,5 @@
+from itertools import chain
+
 from discord import ChannelFlags
 from django.db import models
 from traitlets import default
@@ -182,9 +184,9 @@ class InstanceClearGroup(models.Model):
         else:
             return "No start time yet"
 
-    # @property
-    # def title(self):
-    #     return f"{self.pretty_time}   {self.name.split('__')[0].title()}"
+    @property
+    def dps_logs_all(self):
+        return list(chain(*[i.dps_logs.all() for i in self.instance_clears.all()]))
 
 
 class InstanceClear(models.Model):
@@ -261,13 +263,13 @@ class DpsLog(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    group_clear = models.ForeignKey(
-        InstanceClearGroup,
-        related_name="dps_logs",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
+    # group_clear = models.ForeignKey(
+    #     InstanceClearGroup,
+    #     related_name="dps_logs",
+    #     null=True,
+    #     blank=True,
+    #     on_delete=models.SET_NULL,
+    # )
     report_id = models.CharField(max_length=100, null=True, blank=True)
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
