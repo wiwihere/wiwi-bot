@@ -17,7 +17,7 @@ _+1:07_ Time between the end of the previous kill run and the start of the curre
 <img src="gw2_database/img/medal/first_invalid.png" width="20"/> Invalid medals mean that there were more pugs than allowed (check settings).\
 <img src="gw2_database/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
 <img src="gw2_database/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
-<img src="gw2_database/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health.\
+<img src="gw2_database/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health. Hover to see remaining health percentage.\
 <img src="img/click_wipe.png" alt="click_wipe%" width=""/>\
 Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
