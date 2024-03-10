@@ -44,6 +44,12 @@ class Emoji(models.Model):
         return f"<a:{self.name_lower}:{self.discord_id}>"
 
     @property
+    def discord_tag_custom_name(self):
+        if not self.animated:
+            return f"<:{{}}:{self.discord_id}>"
+        return f"<a:{{}}:{self.discord_id}>"
+
+    @property
     def discord_tag_cm(self):
         if not self.animated:
             return f"<:{self.name_lower}:{self.discord_id_cm}>"

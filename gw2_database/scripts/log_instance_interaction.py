@@ -363,7 +363,9 @@ class InstanceClearGroupInteraction:
                 wipe_str = ""
                 for wipe in encounter_wipes:
                     if wipe.duration.seconds > 15:
-                        wipe_emote = WIPE_EMOTES[np.ceil(wipe.final_health_percentage / 12.5)]
+                        wipe_emote = WIPE_EMOTES[np.ceil(wipe.final_health_percentage / 12.5)].format(
+                            f"wipe_at_{int(wipe.final_health_percentage)}"
+                        )
                         wipe_str += f" [{wipe_emote}]({wipe.url})"
 
                 # Add encounter to field
@@ -486,7 +488,7 @@ if __name__ == "__main__":
                 )
                 self.iclear_group.save()
 
-        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
         grp_lst = [icgi.iclear_group]
         if icgi.iclear_group.discord_message is not None:
             grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
@@ -507,3 +509,5 @@ if __name__ == "__main__":
             hook=WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )
+
+# %%

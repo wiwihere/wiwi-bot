@@ -18,48 +18,56 @@ from gw2_logs.models import DiscordMessage, Emoji, Encounter
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
-    0: Emoji.objects.get(name="wipe 13").discord_tag,  # OLC can still be bugged and give 0 health.
-    1: Emoji.objects.get(name="wipe 13").discord_tag,  # Between 0 and 12.5%
-    2: Emoji.objects.get(name="wipe 25").discord_tag,
-    3: Emoji.objects.get(name="wipe 38").discord_tag,
-    4: Emoji.objects.get(name="wipe 50").discord_tag,
-    5: Emoji.objects.get(name="wipe 63").discord_tag,
-    6: Emoji.objects.get(name="wipe 75").discord_tag,
-    7: Emoji.objects.get(name="wipe 88").discord_tag,
-    8: Emoji.objects.get(name="wipe 100").discord_tag,  # Full health
+    0: Emoji.objects.get(name="wipe 13").discord_tag_custom_name,  # OLC can still be bugged and give 0 health.
+    1: Emoji.objects.get(name="wipe 13").discord_tag_custom_name,  # Between 0 and 12.5%
+    2: Emoji.objects.get(name="wipe 25").discord_tag_custom_name,
+    3: Emoji.objects.get(name="wipe 38").discord_tag_custom_name,
+    4: Emoji.objects.get(name="wipe 50").discord_tag_custom_name,
+    5: Emoji.objects.get(name="wipe 63").discord_tag_custom_name,
+    6: Emoji.objects.get(name="wipe 75").discord_tag_custom_name,
+    7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name,
+    8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name,  # Full health
 }
 EMBED_COLOR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
 }
-RANK_EMOTES = {
-    0: f"{Emoji.objects.get(name='first').discord_tag}",
-    1: f"{Emoji.objects.get(name='second').discord_tag}",
-    2: f"{Emoji.objects.get(name='third').discord_tag}",
-    "above_average": f"{Emoji.objects.get(name='above average').discord_tag}".replace(
-        "average", settings.MEAN_OR_MEDIAN
-    ),
-    "below_average": f"{Emoji.objects.get(name='below average').discord_tag}".replace(
-        "average", settings.MEAN_OR_MEDIAN
-    ),
-    "average": f"{Emoji.objects.get(name='average').discord_tag}".replace("average", settings.MEAN_OR_MEDIAN),
-    "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
-}
 
-RANK_EMOTES_INVALID = {
-    0: f"{Emoji.objects.get(name='first invalid').discord_tag}",
-    1: f"{Emoji.objects.get(name='second invalid').discord_tag}",
-    2: f"{Emoji.objects.get(name='third invalid').discord_tag}",
-    "above_average": f"{Emoji.objects.get(name='above average invalid').discord_tag}".replace(
-        "average", settings.MEAN_OR_MEDIAN
-    ),
-    "below_average": f"{Emoji.objects.get(name='below average invalid').discord_tag}".replace(
-        "average", settings.MEAN_OR_MEDIAN
-    ),
-    "average": f"{Emoji.objects.get(name='average invalid').discord_tag}".replace("average", settings.MEAN_OR_MEDIAN),
-    "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
-}
+
+def create_rank_emote_dict(custom_emoji_name: bool, invalid: bool):
+    tag = "discord_tag"
+    if custom_emoji_name:
+        tag = "discord_tag_custom_name"
+
+    invalid_str = ""
+    if invalid:
+        invalid_str = " invalid"
+
+    d = {
+        0: f"{getattr(Emoji.objects.get(name=f'first{invalid_str}'),tag)}",
+        1: f"{getattr(Emoji.objects.get(name=f'second{invalid_str}'), tag)}",
+        2: f"{getattr(Emoji.objects.get(name=f'third{invalid_str}'), tag)}",
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+    }
+    return d
+
+
+RANK_EMOTES = create_rank_emote_dict(custom_emoji_name=False, invalid=False)
+RANK_EMOTES_INVALID = create_rank_emote_dict(custom_emoji_name=False, invalid=True)
+RANK_EMOTES_CUSTOM = create_rank_emote_dict(custom_emoji_name=True, invalid=False)
+RANK_EMOTES_CUSTOM_INVALID = create_rank_emote_dict(custom_emoji_name=True, invalid=True)
+
+
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
 # Combine raids and strikes into the same group.
 
@@ -161,7 +169,7 @@ def get_emboldened_wing(log_date: datetime.datetime):
     return current_wing
 
 
-def get_rank_emote(indiv, group, core_minimum: int):
+def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     """Find the rank of the indiv in the group.
 
     Parameters
@@ -169,6 +177,9 @@ def get_rank_emote(indiv, group, core_minimum: int):
     indiv: [DpsLog, InstanceClear, InstanceClearGroup]
     group: list[[DpsLog, InstanceClear, InstanceClearGroup]]
     core_minimum : (int)
+    custom_emoji_name: Bool
+        Return emoji with a format option for the emoji. The returned rank_str
+        should be formatted e.g.; rank_str.format("custom_name").
     """
     if indiv.success:
         rank = group.index(indiv)
@@ -177,18 +188,19 @@ def get_rank_emote(indiv, group, core_minimum: int):
 
     # When amount of players is below the minimum it will still show rank but with a different emote.
     if indiv.core_player_count < core_minimum:
-        emote_dict = RANK_EMOTES_INVALID
+        if custom_emoji_name:
+            emote_dict = RANK_EMOTES_CUSTOM_INVALID
+        else:
+            emote_dict = RANK_EMOTES_INVALID
     else:
-        emote_dict = RANK_EMOTES
+        if custom_emoji_name:
+            emote_dict = RANK_EMOTES_CUSTOM
+        else:
+            emote_dict = RANK_EMOTES
 
     # Ranks 1, 2 and 3.
     if rank in emote_dict:
         rank_str = emote_dict[rank]
-
-        # Strikes as an instance dont have cleartimes.
-        if indiv.__class__.__name__ == "InstanceClear":
-            if indiv.instance.type == "strike":
-                rank_str = emote_dict["average"]
 
     # Other ranks
     else:
@@ -236,9 +248,7 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
     duration_str = get_duration_str(indiv.duration.seconds, add_space=True)
 
     rank_str = get_rank_emote(
-        indiv=indiv,
-        group=list(group),
-        core_minimum=settings.CORE_MINIMUM[itype],
+        indiv=indiv, group=list(group), core_minimum=settings.CORE_MINIMUM[itype], custom_emoji_name=pretty_time
     )
 
     if pretty_time:
@@ -247,7 +257,7 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
         elif hasattr(indiv, "dps_logs"):
             replace_str = indiv.dps_logs.first().pretty_time.replace(" ", "_")
 
-        rank_str = rank_str.replace(re.findall(r":(.*?):", rank_str)[0], replace_str)
+        rank_str = rank_str.format(replace_str)
 
     return f"{rank_str}`{duration_str}` "
 

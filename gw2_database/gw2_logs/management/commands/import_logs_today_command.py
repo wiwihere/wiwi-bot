@@ -69,12 +69,13 @@ class Command(BaseCommand):
                 # Skip upload if log is not in itype_group
                 try:
                     if itype_groups is not None:
-                        boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("/")[1]
+                        boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                         if boss_name not in folder_names:
                             print(f"Skipped {log_path}")
                             log_paths_done.append(log_path)
                             continue
-                except IndexError:
+                except IndexError as e:
+                    print("Failed to find bossname, will use log.")
                     pass
 
                 # Upload log
@@ -110,7 +111,7 @@ class Command(BaseCommand):
                                 )
                                 self.iclear_group.save()
 
-                        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+                        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
                         grp_lst = [icgi.iclear_group]
                         if icgi.iclear_group.discord_message is not None:
                             grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
