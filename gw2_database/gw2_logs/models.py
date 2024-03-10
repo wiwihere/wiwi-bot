@@ -263,13 +263,6 @@ class DpsLog(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    # group_clear = models.ForeignKey(
-    #     InstanceClearGroup,
-    #     related_name="dps_logs",
-    #     null=True,
-    #     blank=True,
-    #     on_delete=models.SET_NULL,
-    # )
     report_id = models.CharField(max_length=100, null=True, blank=True)
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
