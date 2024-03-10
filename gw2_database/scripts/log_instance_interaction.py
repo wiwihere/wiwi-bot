@@ -5,6 +5,7 @@ from itertools import chain
 
 import discord
 import numpy as np
+import pandas as pd
 from discord import SyncWebhook
 from django.db.models import Q
 
@@ -151,29 +152,52 @@ class InstanceClearGroupInteraction:
         """Get the total duration for raids and fractals
         Duration is saved in the iclear_group.
         """
-        if self.iclear_group.type == "raid":
-            # For raids we need to check multiple clears since they may not be done in one session.
+
+        # For raids and strikes we need to check multiple clears since they may not be done in one session.
+        if self.iclear_group.type in ["raid", "strike"]:
             week_start = self.iclear_group.start_time - datetime.timedelta(
                 days=self.iclear_group.start_time.weekday()
             )  # days are correct, but not hours and mins.
             week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
 
-            week_clears = InstanceClearGroup.objects.filter(type="raid").filter(
+            week_clears = InstanceClearGroup.objects.filter(type=self.iclear_group.type).filter(
                 Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
             )
-            successes = list(
-                chain(*[j.instance_clears.filter(instance__type="raid", success=True) for j in week_clears])
+
+            week_logs = DpsLog.objects.filter(
+                id__in=[j.id for i in week_clears for j in i.dps_logs_all],
+                encounter__use_in_instance_group__name=self.iclear_group.type,
+            ).order_by("duration")
+            df_logs_duration = pd.DataFrame(
+                week_logs.values_list("encounter", "success", "duration"), columns=["encounter", "success", "duration"]
             )
 
-            if len(successes) == len(Instance.objects.filter(type=self.iclear_group.type)):
+            # Drop duplicate successes. Shouldnt happen too much anyway...
+            dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
+            df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
+
+            if len(df_logs_duration[df_logs_duration["success"]]) == len(
+                Encounter.objects.filter(use_in_instance_group__name=self.iclear_group.type)
+            ):
                 # if self.iclear_group.success is False:
                 print("Finished a whole instance group!")
                 self.iclear_group.success = True
-                self.iclear_group.duration = sum([ic.duration for ic in successes], datetime.timedelta())
+                self.iclear_group.duration = df_logs_duration["duration"].sum()
                 self.iclear_group.core_player_count = int(
-                    np.median([i.core_player_count for i in self.icg_iclears_all])
+                    np.median(
+                        [
+                            j.core_player_count
+                            for i in week_clears
+                            for j in i.instance_clears.all().order_by("start_time")
+                        ]
+                    )
                 )
 
+                self.iclear_group.save()
+            else:
+                self.iclear_group.success = False
+                self.iclear_group.duration = None
+                self.iclear_group.core_player_count = None
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
@@ -447,37 +471,39 @@ if __name__ == "__main__":
     itype_group = "strike"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+    if icgi is not None:
+        # Set the same discord message id when strikes and raids are combined.
+        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):
+            if self.iclear_group.discord_message is None:
+                group_names = [
+                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]
+                ]
+                self.iclear_group.discord_message_id = (
+                    InstanceClearGroup.objects.filter(name__in=group_names)
+                    .exclude(discord_message=None)
+                    .values_list("discord_message", flat=True)
+                    .first()
+                )
+                self.iclear_group.save()
 
-    # Set the same discord message id when strikes and raids are combined.
-    if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):
-        if self.iclear_group.discord_message is None:
-            group_names = ["__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]]
-            self.iclear_group.discord_message_id = (
-                InstanceClearGroup.objects.filter(name__in=group_names)
-                .exclude(discord_message=None)
-                .values_list("discord_message", flat=True)
-                .first()
-            )
-            self.iclear_group.save()
+        # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
+        grp_lst = [icgi.iclear_group]
+        if icgi.iclear_group.discord_message is not None:
+            grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
+        grp_lst = set(grp_lst)
 
-    # Find the clear groups. i.g. [raids__20240222, strikes__20240222]
-    grp_lst = [icgi.iclear_group]
-    if icgi.iclear_group.discord_message is not None:
-        grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-    grp_lst = set(grp_lst)
+        # combine embeds
+        embeds = {}
+        for icg in grp_lst:
+            icgi = InstanceClearGroupInteraction.from_name(icg.name)
 
-    # combine embeds
-    embeds = {}
-    for icg in grp_lst:
-        icgi = InstanceClearGroupInteraction.from_name(icg.name)
+            titles, descriptions = icgi.create_message()
+            icg_embeds = icgi.create_embeds(titles, descriptions)
+            embeds.update(icg_embeds)
+        embeds_mes = list(embeds.values())
 
-        titles, descriptions = icgi.create_message()
-        icg_embeds = icgi.create_embeds(titles, descriptions)
-        embeds.update(icg_embeds)
-    embeds_mes = list(embeds.values())
-
-    create_or_update_discord_message(
-        iclear_group=icgi.iclear_group,
-        hook=WEBHOOKS[icgi.iclear_group.type],
-        embeds_mes=embeds_mes,
-    )
+        create_or_update_discord_message(
+            group=icgi.iclear_group,
+            hook=WEBHOOKS[icgi.iclear_group.type],
+            embeds_mes=embeds_mes,
+        )

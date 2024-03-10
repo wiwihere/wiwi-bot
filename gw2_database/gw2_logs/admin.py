@@ -162,7 +162,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         "core_player_count",
         "instance_clear_id",
         # "instance__type",
-        "group_clear_id",
+        # "group_clear_id",
     )
     list_filter = ["encounter", "success", "cm"]
 

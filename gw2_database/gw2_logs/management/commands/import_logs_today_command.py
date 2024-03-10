@@ -127,7 +127,7 @@ class Command(BaseCommand):
                         embeds_mes = list(embeds.values())
 
                         create_or_update_discord_message(
-                            iclear_group=icgi.iclear_group,
+                            group=icgi.iclear_group,
                             hook=WEBHOOKS[icgi.iclear_group.type],
                             embeds_mes=embeds_mes,
                         )

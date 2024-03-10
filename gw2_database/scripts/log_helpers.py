@@ -185,7 +185,6 @@ def get_rank_emote(indiv, group, core_minimum: int):
     if rank in emote_dict:
         rank_str = emote_dict[rank]
 
-        # FIXME remove this
         # Strikes as an instance dont have cleartimes.
         if indiv.__class__.__name__ == "InstanceClear":
             if indiv.instance.type == "strike":
