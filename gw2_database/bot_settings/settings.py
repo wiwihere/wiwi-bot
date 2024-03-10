@@ -1,4 +1,5 @@
 # %%
+import ast
 import logging  # noqa:F401
 import os
 from pathlib import Path
@@ -41,6 +42,10 @@ INCLUDE_NON_CORE_LOGS = get_env("INCLUDE_NON_CORE_LOGS") == "True"  # Include no
 
 DPS_REPORT_USERTOKEN = get_env("DPS_REPORT_USERTOKEN")
 MEAN_OR_MEDIAN = get_env("MEAN_OR_MEDIAN")
+MEDALS_PERCENTILE = get_env("MEDALS_PERCENTILE") == "True"  # if True use percentile bin medals
+RANK_BINS_PERCENTILE = ast.literal_eval(get_env("RANK_BINS_PERCENTILE"))  # Distribution of percentile bins.
+# Defaults to [20, 40, 50, 60, 70, 80, 90, 100]. This means if a log is faster than
+# 90% to 100% of other logs, it will be assigned to the last bin.
 
 DEBUG = get_env("DEBUG") == "True"
 
