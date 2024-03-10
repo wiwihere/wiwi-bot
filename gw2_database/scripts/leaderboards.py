@@ -187,7 +187,8 @@ def create_leaderboard(itype: str):
         if len(iclear_success_all) > 0:
             # Add average clear times
             avg_duration_str = get_avg_duration_str(iclear_success_all)
-            description += f"{avg_duration_str}\n"
+            description += f"{avg_duration_str}"
+        description += "\n"
 
     # List the top 3 of the instance group clear time #
     description += "\n"
@@ -233,7 +234,8 @@ def create_leaderboard(itype: str):
 if __name__ == "__main__":
     for itype in [
         # "raid",
-        # "strike",
-        "fractal",
+        "strike",
+        # "fractal",
     ]:
-        create_leaderboard(itype=itype)
+        pass
+        # create_leaderboard(itype=itype)

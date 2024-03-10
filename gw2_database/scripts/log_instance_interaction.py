@@ -166,6 +166,7 @@ class InstanceClearGroupInteraction:
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
+                encounter__use_in_instance_group__name=self.iclear_group.type,
             ).order_by("duration")
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list("encounter", "success", "duration"), columns=["encounter", "success", "duration"]
