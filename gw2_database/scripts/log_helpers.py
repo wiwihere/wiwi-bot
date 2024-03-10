@@ -202,11 +202,6 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     if rank in emote_dict:
         rank_str = emote_dict[rank]
 
-        # Strikes as an instance dont have cleartimes.
-        if indiv.__class__.__name__ == "InstanceClear":
-            if indiv.instance.type == "strike":
-                rank_str = emote_dict["average"]
-
     # Other ranks
     else:
         rank_str = emote_dict["average"]

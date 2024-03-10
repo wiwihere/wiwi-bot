@@ -29,7 +29,7 @@ from scripts.log_helpers import (
 
 # TODO remove ITYPE_GROUPS
 if __name__ == "__main__":
-    itype = "fractal"
+    itype = "strike"
     min_core_count = 0  # select all logs when including non core
 
 
