@@ -104,6 +104,12 @@ RANK_EMOTES_INVALID = rank_func(custom_emoji_name=False, invalid=True)
 RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
 RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
+RANK_EMOTES_CUPS = {
+    0: f"{getattr(Emoji.objects.get(name='first'), 'discord_tag')}",
+    1: f"{getattr(Emoji.objects.get(name='second'), 'discord_tag')}",
+    2: f"{getattr(Emoji.objects.get(name='third'), 'discord_tag')}",
+}
+
 
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
 # Combine raids and strikes into the same group.
@@ -244,8 +250,9 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     if emboldened:
         rank_str = emote_dict["emboldened"]
     # Ranks 1, 2 and 3.
-    elif rank in [0, 1, 2]:
-        rank_str = emote_dict[rank]
+    # elif rank in [0, 1, 2]:
+    #     rank_str = RANK_EMOTES_CUPS[rank]
+
     else:
         rank_str = emote_dict["average"]
         if indiv.success:
@@ -261,7 +268,7 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
 
             else:
                 inverse_rank = group[::-1].index(indiv)
-                percentile_rank = inverse_rank / len(group) * 100
+                percentile_rank = (inverse_rank + 1) / len(group) * 100
                 rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
                 rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
 

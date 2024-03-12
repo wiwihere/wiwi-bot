@@ -13,7 +13,7 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-from bot_settings import settings
+# from bot_settings import settings
 from gw2_logs.models import (
     DiscordMessage,
     DpsLog,
@@ -24,17 +24,18 @@ from gw2_logs.models import (
     InstanceClearGroup,
     Player,
 )
-from scripts.log_helpers import (
-    EMBED_COLOR,
-    ITYPE_GROUPS,
-    WEBHOOKS,
-    WIPE_EMOTES,
-    create_discord_time,
-    create_or_update_discord_message,
-    get_duration_str,
-    get_rank_emote,
-    zfill_y_m_d,
-)
+
+# from scripts.log_helpers import (
+#     EMBED_COLOR,
+#     ITYPE_GROUPS,
+#     WEBHOOKS,
+#     WIPE_EMOTES,
+#     create_discord_time,
+#     create_or_update_discord_message,
+#     get_duration_str,
+#     get_rank_emote,
+#     zfill_y_m_d,
+# )
 
 """
 \:1_junk:
@@ -62,8 +63,10 @@ for b in a.split(">"):
         name = b.split(":")[1]
         ids = b.split(":")[2]
         print(ids)
-    emoji = Emoji.objects.update_or_create(
+    emoji, up = Emoji.objects.update_or_create(
         name=name,
         defaults={"discord_id": ids, "type": "medal"},
     )
     emoji.save()
+
+# %%
