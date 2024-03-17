@@ -22,9 +22,9 @@ from gw2_logs.models import (
     Instance,
     InstanceClear,
     InstanceClearGroup,
-    InstanceClearGroupInteraction,
     Player,
 )
+from log_instance_interaction import InstanceClearGroupInteraction
 
 # %%
 
@@ -38,6 +38,7 @@ for icg in icgs:
         icg.save()
 
         # Create strike counterpart
-        InstanceClearGroupInteraction.create_from_date(
+        icgi = InstanceClearGroupInteraction.create_from_date(
             y=icg.start_time.year, m=icg.start_time.month, d=icg.start_time.day, itype_group="strike"
         )
+        icgi.clear_group

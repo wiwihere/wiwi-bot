@@ -22,7 +22,8 @@ _+1:07_ Time between the end of the previous kill run and the start of the curre
 Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
 <img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
 <img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all encounters have been successfully killed. Works for fractals and raids. For raids the whole week is checked. Fractals need to be cleared on the same day.\
+<img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
+_*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
@@ -129,7 +130,7 @@ See http://127.0.0.1:8000/admin/gw2_logs/encounter/ to change the behaviour\
 ![leaderboard_selection](img/leaderboard_selection.png)
 
 
-#### Selecting encounters that will be added to the total clear time
+#### Selecting encounters for total clear time
 Not all groups clear everything. It is possible to select the encounters you want to include in 
 the total clear time. The total clear time will be displayed in the leaderboard and on
 the top-right of the discord message.

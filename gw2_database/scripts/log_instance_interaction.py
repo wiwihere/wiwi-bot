@@ -167,9 +167,10 @@ class InstanceClearGroupInteraction:
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
                 encounter__use_in_instance_group__name=self.iclear_group.type,
-            ).order_by("duration")
+            ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
-                week_logs.values_list("encounter", "success", "duration"), columns=["encounter", "success", "duration"]
+                week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
+                columns=["encounter", "success", "duration", "start_time", "start_day"],
             )
 
             # Drop duplicate successes. Shouldnt happen too much anyway...
@@ -180,9 +181,20 @@ class InstanceClearGroupInteraction:
                 Encounter.objects.filter(use_in_instance_group__name=self.iclear_group.type)
             ):
                 # if self.iclear_group.success is False:
-                print("Finished a whole instance group!")
+                print(f"Finished {self.iclear_group.type}s for this week!")
+                # Duration is the difference between first and last log for each day.
+                # If there is only one log (e.g. strikes), that duration should be added.
+                day_grouped_logs = df_logs_duration.groupby("start_day")
+                time_diff = day_grouped_logs["start_time"].max() - day_grouped_logs["start_time"].min()
+                if any(day_grouped_logs["start_time"].count() == 1):
+                    time_one_log = (
+                        day_grouped_logs["duration"].first()[day_grouped_logs["start_time"].count() == 1]
+                    ).sum()
+                else:
+                    time_one_log = pd.Timedelta(seconds=0)
+
                 self.iclear_group.success = True
-                self.iclear_group.duration = df_logs_duration["duration"].sum()
+                self.iclear_group.duration = time_diff.sum() + time_one_log
                 self.iclear_group.core_player_count = int(
                     np.median(
                         [
@@ -469,7 +481,7 @@ class InstanceClearGroupInteraction:
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 2, 22
+    y, m, d = 2024, 3, 14
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
