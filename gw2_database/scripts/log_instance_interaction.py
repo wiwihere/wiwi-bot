@@ -492,13 +492,13 @@ if __name__ == "__main__":
         grp_lst = [icgi.iclear_group]
         if icgi.iclear_group.discord_message is not None:
             grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-        grp_lst = set(grp_lst)
+        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
 
         # combine embeds
         embeds = {}
         for icg in grp_lst:
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
-
+            print(icg.name)
             titles, descriptions = icgi.create_message()
             icg_embeds = icgi.create_embeds(titles, descriptions)
             embeds.update(icg_embeds)
@@ -590,6 +590,3 @@ if __name__ == "__main__":
 # percentile_rank = inverse_rank / len(group) * 100
 # rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
 # RANK_EMOTES_CUSTOM[rank_binned]
-
-
-# # %%

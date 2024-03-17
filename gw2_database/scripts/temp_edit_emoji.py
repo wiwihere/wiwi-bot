@@ -38,17 +38,18 @@ from gw2_logs.models import (
 # )
 
 """
-\:1_junk:
-\:2_basic:
-\:3_fine:
-\:4_masterwork:
-\:5_rare:
-\:6_exotic:
-\:7_ascended:
-\:8_legendary:
+\:junkmedal:
+\:basicmedal:
+\:finemedal:
+\:masterworkmedal:
+\:raremedal:
+\:exoticmedal2:
+\:ascmedal2:
+\:legendarymedal2:
 """
 
-a = """<:1_junk:1216411751688699994>
+the_old_ones = """
+<:1_junk:1216411751688699994>
 <:2_basic:1216411752992866395>
 <:3_fine:1216411754959995081>
 <:4_masterwork:1216411757413662810>
@@ -58,13 +59,33 @@ a = """<:1_junk:1216411751688699994>
 <:8_legendary:1216411763172708395>"""
 
 
+medalnames = {
+    "junkmedal": "1_junk",
+    "basicmedal": "2_basic",
+    "finemedal": "3_fine",
+    "masterworkmedal": "4_masterwork",
+    "raremedal": "5_rare",
+    "exoticmedal2": "6_exotic",
+    "ascmedal2": "7_ascended",
+    "legendarymedal2": "8_legendary",
+}
+
+a = """<:junkmedal:1218317392627765450>
+<:basicmedal:1218317391260287006>
+<:finemedal:1218307650580647976>
+<:masterworkmedal:1218309092477767810>
+<:raremedal:1218309546636742727>
+<:exoticmedal2:1218317136628285460>
+<:ascmedal2:1218317135214805072>
+<:legendarymedal2:1218314286783533157>"""
+
 for b in a.split(">"):
     if ":" in b:
         name = b.split(":")[1]
         ids = b.split(":")[2]
         print(ids)
     emoji, up = Emoji.objects.update_or_create(
-        name=name,
+        name=medalnames[name],
         defaults={"discord_id": ids, "type": "medal"},
     )
     emoji.save()
