@@ -1,5 +1,6 @@
 # %%
 import datetime
+import json
 import shutil
 from dataclasses import dataclass
 from itertools import chain
@@ -92,11 +93,14 @@ class LogUploader:
             return False
         if r.status_code == 403:
             print(f"ERROR 403: Failed uploading {self.log_source_view}")
-            print(r.json()["error"])
+            try:
+                print(r.json()["error"])
 
-            # Move perma fail upload so it wont bother us again.
-            if r.json()["error"] == "Encounter is too short for a useful report to be made":
-                self.move_failed_upload()
+                # Move perma fail upload so it wont bother us again.
+                if r.json()["error"] == "Encounter is too short for a useful report to be made":
+                    self.move_failed_upload()
+            except json.decoder.JSONDecodeError:
+                pass
 
             return False
 

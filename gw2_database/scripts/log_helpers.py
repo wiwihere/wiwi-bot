@@ -62,10 +62,53 @@ def create_rank_emote_dict(custom_emoji_name: bool, invalid: bool):
     return d
 
 
-RANK_EMOTES = create_rank_emote_dict(custom_emoji_name=False, invalid=False)
-RANK_EMOTES_INVALID = create_rank_emote_dict(custom_emoji_name=False, invalid=True)
-RANK_EMOTES_CUSTOM = create_rank_emote_dict(custom_emoji_name=True, invalid=False)
-RANK_EMOTES_CUSTOM_INVALID = create_rank_emote_dict(custom_emoji_name=True, invalid=True)
+def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
+    tag = "discord_tag"
+    if custom_emoji_name:
+        tag = "discord_tag_custom_name"
+
+    invalid_str = ""
+    if invalid:
+        invalid_str = " invalid"
+
+    d = {
+        0: f"{getattr(Emoji.objects.get(name='1_junk'),tag)}".format("bin20_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='2_basic'),tag)}".format("bin40_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='3_fine'),tag)}".format("bin50_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='4_masterwork'),tag)}".format("bin60_percrank{}"),
+        4: f"{getattr(Emoji.objects.get(name='5_rare'),tag)}".format("bin70_percrank{}"),
+        5: f"{getattr(Emoji.objects.get(name='6_exotic'),tag)}".format("bin80_percrank{}"),
+        6: f"{getattr(Emoji.objects.get(name='7_ascended'),tag)}".format("bin90_percrank{}"),
+        7: f"{getattr(Emoji.objects.get(name='8_legendary'),tag)}".format("bin100_percrank{}"),
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+    }
+    return d
+
+
+if settings.MEDALS_PERCENTILE:
+    rank_func = create_rank_emote_dict_percentiles
+else:
+    rank_func = create_rank_emote_dict
+
+RANK_EMOTES = rank_func(custom_emoji_name=False, invalid=False)
+RANK_EMOTES_INVALID = rank_func(custom_emoji_name=False, invalid=True)
+RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
+RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
+
+RANK_EMOTES_CUPS = {
+    0: f"{getattr(Emoji.objects.get(name='first'), 'discord_tag')}",
+    1: f"{getattr(Emoji.objects.get(name='second'), 'discord_tag')}",
+    2: f"{getattr(Emoji.objects.get(name='third'), 'discord_tag')}",
+}
 
 
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
@@ -181,7 +224,12 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
         Return emoji with a format option for the emoji. The returned rank_str
         should be formatted e.g.; rank_str.format("custom_name").
     """
-    if indiv.success:
+
+    emboldened = False
+    if hasattr(indiv, "emboldened"):
+        emboldened = indiv.emboldened
+
+    if indiv.success and not emboldened:
         rank = group.index(indiv)
     else:
         rank = None
@@ -198,26 +246,31 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
         else:
             emote_dict = RANK_EMOTES
 
-    # Ranks 1, 2 and 3.
-    if rank in emote_dict:
-        rank_str = emote_dict[rank]
-
     # Other ranks
+    if emboldened:
+        rank_str = emote_dict["emboldened"]
+    # Ranks 1, 2 and 3.
+    # elif rank in [0, 1, 2]:
+    #     rank_str = RANK_EMOTES_CUPS[rank]
+
     else:
         rank_str = emote_dict["average"]
         if indiv.success:
-            if indiv.duration.seconds < (
-                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
-            ):
-                rank_str = emote_dict["above_average"]
-            elif indiv.duration.seconds > (
-                getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
-            ):
-                rank_str = emote_dict["below_average"]
+            if not settings.MEDALS_PERCENTILE:
+                if indiv.duration.seconds < (
+                    getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+                ):
+                    rank_str = emote_dict["above_average"]
+                elif indiv.duration.seconds > (
+                    getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+                ):
+                    rank_str = emote_dict["below_average"]
 
-    if hasattr(indiv, "emboldened"):
-        if indiv.emboldened:
-            rank_str = emote_dict["emboldened"]
+            else:
+                inverse_rank = group[::-1].index(indiv)
+                percentile_rank = (inverse_rank + 1) / len(group) * 100
+                rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
+                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
 
     return rank_str
 

@@ -115,7 +115,7 @@ class Command(BaseCommand):
                         grp_lst = [icgi.iclear_group]
                         if icgi.iclear_group.discord_message is not None:
                             grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-                        grp_lst = set(grp_lst)
+                        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
 
                         # combine embeds
                         embeds = {}

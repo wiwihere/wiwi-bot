@@ -167,9 +167,10 @@ class InstanceClearGroupInteraction:
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
                 encounter__use_in_instance_group__name=self.iclear_group.type,
-            ).order_by("duration")
+            ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
-                week_logs.values_list("encounter", "success", "duration"), columns=["encounter", "success", "duration"]
+                week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
+                columns=["encounter", "success", "duration", "start_time", "start_day"],
             )
 
             # Drop duplicate successes. Shouldnt happen too much anyway...
@@ -180,9 +181,20 @@ class InstanceClearGroupInteraction:
                 Encounter.objects.filter(use_in_instance_group__name=self.iclear_group.type)
             ):
                 # if self.iclear_group.success is False:
-                print("Finished a whole instance group!")
+                print(f"Finished {self.iclear_group.type}s for this week!")
+                # Duration is the difference between first and last log for each day.
+                # If there is only one log (e.g. strikes), that duration should be added.
+                day_grouped_logs = df_logs_duration.groupby("start_day")
+                time_diff = day_grouped_logs["start_time"].max() - day_grouped_logs["start_time"].min()
+                if any(day_grouped_logs["start_time"].count() == 1):
+                    time_one_log = (
+                        day_grouped_logs["duration"].first()[day_grouped_logs["start_time"].count() == 1]
+                    ).sum()
+                else:
+                    time_one_log = pd.Timedelta(seconds=0)
+
                 self.iclear_group.success = True
-                self.iclear_group.duration = df_logs_duration["duration"].sum()
+                self.iclear_group.duration = time_diff.sum() + time_one_log
                 self.iclear_group.core_player_count = int(
                     np.median(
                         [
@@ -287,7 +299,7 @@ class InstanceClearGroupInteraction:
             iclear_success_all = None
             if iclear.success:
                 iclear_success_all = list(
-                    iclear.instance.instance_clears.filter(success=True)
+                    iclear.instance.instance_clears.filter(success=True, emboldened=False)
                     .filter(
                         Q(start_time__gte=iclear.start_time - datetime.timedelta(days=9999))
                         & Q(start_time__lte=iclear.start_time)
@@ -345,7 +357,7 @@ class InstanceClearGroupInteraction:
                 encounter_success_all = None
                 if log.success:
                     encounter_success_all = list(
-                        log.encounter.dps_logs.filter(success=True, cm=log.cm)
+                        log.encounter.dps_logs.filter(success=True, cm=log.cm, emboldened=False)
                         .filter(
                             Q(start_time__gte=log.start_time - datetime.timedelta(days=9999))
                             & Q(start_time__lte=log.start_time)
@@ -469,8 +481,8 @@ class InstanceClearGroupInteraction:
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 2, 22
-    itype_group = "strike"
+    y, m, d = 2024, 3, 14
+    itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     if icgi is not None:
@@ -492,13 +504,13 @@ if __name__ == "__main__":
         grp_lst = [icgi.iclear_group]
         if icgi.iclear_group.discord_message is not None:
             grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-        grp_lst = set(grp_lst)
+        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
 
         # combine embeds
         embeds = {}
         for icg in grp_lst:
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
-
+            print(icg.name)
             titles, descriptions = icgi.create_message()
             icg_embeds = icgi.create_embeds(titles, descriptions)
             embeds.update(icg_embeds)
@@ -510,4 +522,83 @@ if __name__ == "__main__":
             embeds_mes=embeds_mes,
         )
 
-# %%
+# # %%
+# from log_helpers import RANK_EMOTES, RANK_EMOTES_CUSTOM, RANK_EMOTES_CUSTOM_INVALID, RANK_EMOTES_INVALID
+
+# # from gw2_logs.models import DpsLog
+# log = DpsLog.objects.get(url='https://dps.report/s5ZG-20240216-192127_skor')
+
+# encounter_success_all = list(
+#     log.encounter.dps_logs.filter(success=True, cm=log.cm, emboldened=False)
+#     .filter(Q(start_time__gte=log.start_time - datetime.timedelta(days=9999)) & Q(start_time__lte=log.start_time))
+#     .order_by("duration")
+# )
+
+# indiv = log
+# group = encounter_success_all
+# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.type]
+# custom_emoji_name = False
+
+# MEDAL_TYPE = "percentiles"
+# if True:
+#     emboldened = False
+#     if hasattr(indiv, "emboldened"):
+#         emboldened = indiv.emboldened
+
+#     if indiv.success and not emboldened:
+#         rank = group.index(indiv)
+#     else:
+#         rank = None
+
+#     # When amount of players is below the minimum it will still show rank but with a different emote.
+#     if indiv.core_player_count < core_minimum:
+#         if custom_emoji_name:
+#             emote_dict = RANK_EMOTES_CUSTOM_INVALID
+#         else:
+#             emote_dict = RANK_EMOTES_INVALID
+#     else:
+#         if custom_emoji_name:
+#             emote_dict = RANK_EMOTES_CUSTOM
+#         else:
+#             emote_dict = RANK_EMOTES
+
+#     rank = 5
+#     # Ranks 1, 2 and 3.
+#     # if rank in emote_dict:
+#     #     rank_str = emote_dict[rank]
+
+#     # Other ranks
+#     if emboldened:
+#         rank_str = emote_dict["emboldened"]
+#     else:
+#         if MEDAL_TYPE == "avg":
+#             rank_str = emote_dict["average"]
+#             if indiv.success:
+#                 if indiv.duration.seconds < (
+#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+#                 ):
+#                     rank_str = emote_dict["above_average"]
+#                 elif indiv.duration.seconds > (
+#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+#                 ):
+#                     rank_str = emote_dict["below_average"]
+#         if MEDAL_TYPE == "percentiles":
+#             inverse_rank = group[::-1].index(indiv)
+#             percentile_rank = (inverse_rank+1)/ len(group) * 100
+#             rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
+#             rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
+
+
+# print(rank_str)
+
+# # %%
+# from scipy.stats import percentileofscore
+
+# # Calculate percentile of duration
+# # Rank '0' is better than 100% of logs. We need to invert the groups to say this log is
+# # better than 100% of logs.
+
+# inverse_rank = group[::-1].index(indiv)
+# percentile_rank = inverse_rank / len(group) * 100
+# rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
+# RANK_EMOTES_CUSTOM[rank_binned]
