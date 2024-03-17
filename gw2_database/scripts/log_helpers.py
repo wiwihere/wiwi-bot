@@ -32,6 +32,7 @@ EMBED_COLOR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
+    "cerus_cm": 7930903,
 }
 
 
@@ -114,15 +115,10 @@ RANK_EMOTES_CUPS = {
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
 # Combine raids and strikes into the same group.
 
-WEBHOOKS = {
-    "raid": settings.WEBHOOK_BOT_CHANNEL_RAID,
-    "strike": settings.WEBHOOK_BOT_CHANNEL_STRIKE,
-    "fractal": settings.WEBHOOK_BOT_CHANNEL_FRACTAL,
-    "leaderboard": settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD,
-}
+WEBHOOKS = settings.WEBHOOKS
 
 # Strikes and raids are combined in the same message when they are posted to the same channel
-if settings.WEBHOOK_BOT_CHANNEL_RAID == settings.WEBHOOK_BOT_CHANNEL_STRIKE:
+if WEBHOOKS["raid"] == WEBHOOKS["strike"]:
     ITYPE_GROUPS = {
         "raid": ["raid", "strike"],
         "strike": ["raid", "strike"],
