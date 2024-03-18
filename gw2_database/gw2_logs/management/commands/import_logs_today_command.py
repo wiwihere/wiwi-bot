@@ -19,6 +19,7 @@ from scripts.log_helpers import (
 from scripts.log_instance_interaction import (
     InstanceClearGroup,
     InstanceClearGroupInteraction,
+    create_embeds,
     create_or_update_discord_message,
 )
 from scripts.log_uploader import LogUploader
@@ -123,7 +124,7 @@ class Command(BaseCommand):
                             icgi = InstanceClearGroupInteraction.from_name(icg.name)
 
                             titles, descriptions = icgi.create_message()
-                            icg_embeds = icgi.create_embeds(titles, descriptions)
+                            icg_embeds = create_embeds(titles, descriptions)
                             embeds.update(icg_embeds)
                         embeds_mes = list(embeds.values())
 

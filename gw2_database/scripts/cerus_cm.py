@@ -1,6 +1,7 @@
 # %%
 import datetime
 from dataclasses import dataclass
+from distutils.command import upload
 from itertools import chain
 
 import discord
@@ -90,8 +91,35 @@ if True:
             pass
 
         # Upload log
-        # log_upload = LogUploader.from_path(log_path)
-        # uploaded_log = log_upload.run()
+        log_upload = LogUploader.from_path(log_path)
+        uploaded_log = log_upload.run()
+
+        # if not uploaded_log:
+        #     continue
+
+        if uploaded_log.phasetime_str is None:
+            print(f"Request detailed {uploaded_log.id}")
+            data = log_upload.request_detailed_info()["phases"]
+            filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
+            df = pd.DataFrame(filtered_data)
+            if not df.empty:
+                df["time"] = df["end"].apply(
+                    lambda x: datetime.timedelta(minutes=10) - datetime.timedelta(milliseconds=x)
+                )
+
+                phasetime_lst = [
+                    get_duration_str(i.astype("timedelta64[s]").astype(np.int32)) for i in df["time"].to_numpy()
+                ]
+            else:
+                phasetime_lst = []
+
+            while len(phasetime_lst) < 3:
+                phasetime_lst.append(" -- ")
+
+            phasetime_str = " | ".join(phasetime_lst)
+
+            uploaded_log.phasetime_str = phasetime_str
+            uploaded_log.save()
 
         titles = {"cerus_cm": {"main": "Sat 16 Mar 2024"}}
 
@@ -105,6 +133,7 @@ if True:
 
         health_df.reset_index(inplace=True)
         health_df["rank"] = BLANK_EMOTE
+        health_df["rank"] = "⠀⠀"
         emote_cups = pd.Series(RANK_EMOTES_CUPS.values(), name="rank")
         health_df.loc[:2, "rank"] = emote_cups
 
@@ -112,7 +141,7 @@ if True:
         health_df.set_index(["index"], inplace=True)
 
         field_id = 0
-        field_value = f"{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
+        field_value = f"{Emoji.objects.get(name='Cerus').discord_tag_cm} {create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
 <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414>\n"
         descriptions = {"cerus_cm": {"main": field_value}}
 
@@ -127,7 +156,7 @@ if True:
                 diff_time = log.start_time - (
                     health_df.loc[idx - 1, "log"].start_time + health_df.loc[idx - 1, "log"].duration
                 )
-                if diff_time.seconds > 60:
+                if diff_time.seconds > 120:
                     duration_str = f"_+{get_duration_str(diff_time.seconds)}_"
                 else:
                     duration_str = ""
@@ -141,7 +170,12 @@ if True:
             rank_str = f"`{str(idx+1).zfill(2)}`{row['rank']}{rank_emo}`[ {health_str}% ]` "
 
             mins, secs = divmod(log.duration.seconds, 60)
-            log_tag = f"{rank_str}[Cerus CM]({log.url}) (**{mins}:{str(secs).zfill(2)}**)"
+            if log.phasetime_str != "":
+                phasetime_str = f"`( {log.phasetime_str} )`"
+            else:
+                phasetime_str = ""
+
+            log_tag = f"{rank_str}[Cerus CM]({log.url}) {phasetime_str}"
 
             log_str = f"{log_tag}{duration_str}\n"
 
@@ -175,6 +209,10 @@ if True:
 
 # %%
 
+titles["cerus_cm"]["field_2"] = titles["cerus_cm"]["field_1"]
+descriptions["cerus_cm"]["field_2"] = descriptions["cerus_cm"]["field_1"]
+
+# %%
 # titles = {"cerus_cm": {"main": "Sat 16 Mar 2024"}}
 # descriptions = {"cerus_cm": {"main": field_value}}
 embeds = create_embeds(titles=titles, descriptions=descriptions)
@@ -199,3 +237,12 @@ group = InstanceClearGroup.objects.get(name="cerus_cm__20240316")
 create_or_update_discord_message(group=group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=embeds_mes)
 
 # %%
+
+
+data = a["phases"]
+filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
+df = pd.DataFrame(filtered_data)
+df["time"] = df["end"].apply(lambda x: datetime.timedelta(minutes=10) - datetime.timedelta(milliseconds=x))
+phasetime_str = "|".join(
+    [get_duration_str(i.astype("timedelta64[s]").astype(np.int32)) for i in df["time"].to_numpy()]
+)
