@@ -48,6 +48,12 @@ from gw2_logs.models import (
 \:legendarymedal2:
 """
 
+"""
+\:perfectbronzetrophyglow:
+\:perfectsilvertrophyglow:
+\:perfectgoldtrophyglow:
+"""
+
 the_old_ones = """
 <:1_junk:1216411751688699994>
 <:2_basic:1216411752992866395>
@@ -68,16 +74,25 @@ medalnames = {
     "exoticmedal2": "6_exotic",
     "ascmedal2": "7_ascended",
     "legendarymedal2": "8_legendary",
+    "perfectgoldtrophyglow": "trophy_gold",
+    "perfectsilvertrophyglow": "trophy_silver",
+    "perfectbronzetrophyglow": "trophy_bronze",
 }
 
-a = """<:junkmedal:1218317392627765450>
-<:basicmedal:1218317391260287006>
-<:finemedal:1218307650580647976>
-<:masterworkmedal:1218309092477767810>
-<:raremedal:1218309546636742727>
-<:exoticmedal2:1218317136628285460>
-<:ascmedal2:1218317135214805072>
-<:legendarymedal2:1218314286783533157>"""
+# a = """<:junkmedal:1218317392627765450>
+# <:basicmedal:1218317391260287006>
+# <:finemedal:1218307650580647976>
+# <:masterworkmedal:1218309092477767810>
+# <:raremedal:1218309546636742727>
+# <:exoticmedal2:1218317136628285460>
+# <:ascmedal2:1218317135214805072>
+# <:legendarymedal2:1218314286783533157>"""
+a = """
+<:perfectbronzetrophyglow:1220499344013267045>
+<:perfectsilvertrophyglow:1220500728481710181>
+<:perfectgoldtrophyglow:1220500180898680833> 
+"""
+
 
 for b in a.split(">"):
     if ":" in b:
@@ -90,4 +105,4 @@ for b in a.split(">"):
     )
     emoji.save()
 
-#
+# %%

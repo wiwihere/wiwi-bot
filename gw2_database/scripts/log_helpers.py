@@ -106,9 +106,9 @@ RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
 RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
 RANK_EMOTES_CUPS = {
-    0: f"{getattr(Emoji.objects.get(name='first'), 'discord_tag')}",
-    1: f"{getattr(Emoji.objects.get(name='second'), 'discord_tag')}",
-    2: f"{getattr(Emoji.objects.get(name='third'), 'discord_tag')}",
+    0: f"{getattr(Emoji.objects.get(name='trophy_gold'), 'discord_tag')}",
+    1: f"{getattr(Emoji.objects.get(name='trophy_silver'), 'discord_tag')}",
+    2: f"{getattr(Emoji.objects.get(name='trophy_bronze'), 'discord_tag')}",
 }
 
 
@@ -246,8 +246,8 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     if emboldened:
         rank_str = emote_dict["emboldened"]
     # Ranks 1, 2 and 3.
-    # elif rank in [0, 1, 2]:
-    #     rank_str = RANK_EMOTES_CUPS[rank]
+    elif rank in [0, 1, 2]:
+        rank_str = RANK_EMOTES_CUPS[rank]
 
     else:
         rank_str = emote_dict["average"]
@@ -305,6 +305,8 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
             replace_str = indiv.instance_clears.first().dps_logs.first().pretty_time.replace(" ", "_")
         elif hasattr(indiv, "dps_logs"):
             replace_str = indiv.dps_logs.first().pretty_time.replace(" ", "_")
+        else:
+            replace_str = indiv.pretty_time.replace(" ", "_")
 
         rank_str = rank_str.format(replace_str)
 

@@ -24,52 +24,55 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+import datetime
 import importlib
+import os
+import time
+from itertools import chain
+from pathlib import Path
 
-import log_uploader
+import scripts.leaderboards as leaderboards
 from bot_settings import settings
-from gw2_logs.models import (
-    DpsLog,
-    Emoji,
-    Encounter,
-    Instance,
-    InstanceClear,
-    InstanceClearGroup,
-    Player,
-)
-from log_helpers import (
-    EMBED_COLOR,
+from django.core.management.base import BaseCommand
+from scripts import leaderboards
+from scripts.log_helpers import (
     ITYPE_GROUPS,
-    RANK_EMOTES,
-    WIPE_EMOTES,
-    create_discord_time,
+    WEBHOOKS,
     create_folder_names,
-    create_unix_time,
     find_log_by_date,
-    get_duration_str,
-    get_emboldened_wing,
-    get_rank_emote,
     today_y_m_d,
     zfill_y_m_d,
 )
-from log_instance_interaction import InstanceClearGroupInteraction, InstanceClearInteraction
-from log_uploader import LogUploader
-from scripts import leaderboards
+from scripts.log_instance_interaction import (
+    InstanceClearGroup,
+    InstanceClearGroupInteraction,
+    create_embeds,
+    create_or_update_discord_message,
+)
+from scripts.log_uploader import LogUploader
 
-importlib.reload(log_uploader)
+# importlib.reload(log_uploader)
 
 
 # %%
 
 
 y, m, d = today_y_m_d()
-y, m, d = 2024, 2, 22
+# y, m, d = 2024, 4, 1
+itype_groups = ["raid", "strike", "fractal"]
 
 if True:
     print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
 
     # y, m, d = 2023, 12, 11
     if True:
+        print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
+        print(f"Selected instance types: {itype_groups}")
+        # y, m, d = 2023, 12, 11
+
+        # possible folder names for selected itype_groups
+        folder_names = create_folder_names(itype_groups=itype_groups)
+
         log_dir1 = Path(settings.DPS_LOGS_DIR)
         log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
         log_dirs = [log_dir1, log_dir2]
@@ -79,67 +82,110 @@ if True:
         MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
         SLEEPTIME = 30
         current_sleeptime = MAXSLEEPTIME
+        # while True:
         if True:
-            print(f"Run {run_count}")
-            # WEBHOOK_BOT_CHANNEL_STRIKE='https://discord.com/api/webhooks/1210730645953974312/stSp-bvSQsCu5_ZOSWmuVIG47yXMf3VGb8-Asi7oxFKbRd0HaPVa7sgUfNf3fX1a4ebo'
-
             icgi = None
 
             # Find logs in directory
             log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
             log_paths = sorted(log_paths, key=os.path.getmtime)
-
+            i = 0
             # Process each log
-            success = {"raid": False, "strike": False, "fractal": False}
-
             for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-                log_upload = LogUploader.from_path(log_path)
-                break
-                # %%
-                upload_success = log_upload.run()
+                # Skip upload if log is not in itype_group
+                try:
+                    if itype_groups is not None:
+                        boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
+                        if boss_name not in folder_names:
+                            print(f"Skipped {log_path}")
+                            log_paths_done.append(log_path)
+                            continue
+                except IndexError as e:
+                    print("Failed to find bossname, will use log.")
+                    pass
 
-                # instance clear group interaction 's
-                icgi = None
-                if upload_success is not False:
+                # Upload log
+                log_upload = LogUploader.from_path(log_path)
+                uploaded_log = log_upload.run()
+
+                if uploaded_log is False:
+                    i += 1
+                    if i == 2:
+                        break
+
+                # Create ICGI and update discord message
+                fractal_success = False
+                if uploaded_log is not False:
                     log_paths_done.append(log_path)
 
-                    log_itype = log_upload.log.encounter.instance.type
+                    if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
+                        continue
 
-                    if log_itype in ITYPE_GROUPS:
-                        if not success[log_itype]:
-                            self = icgi = InstanceClearGroupInteraction.create_from_date(
-                                y=y, m=m, d=d, itype_group=log_itype
-                            )
-
+                    self = icgi = InstanceClearGroupInteraction.create_from_date(
+                        y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
+                    )
                     if icgi is not None:
-                        titles, descriptions = icgi.create_message()
-                        embeds = icgi.create_embeds(titles, descriptions)
+                        # Set the same discord message id when strikes and raids are combined.
+                        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
+                            icgi.iclear_group.type in ["raid", "strike"]
+                        ):
+                            if self.iclear_group.discord_message is None:
+                                group_names = [
+                                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
+                                    for j in ITYPE_GROUPS["raid"]
+                                ]
+                                self.iclear_group.discord_message_id = (
+                                    InstanceClearGroup.objects.filter(name__in=group_names)
+                                    .exclude(discord_message=None)
+                                    .values_list("discord_message", flat=True)
+                                    .first()
+                                )
+                                self.iclear_group.save()
 
-                        icgi.create_or_update_discord_message(embeds=embeds)
+                        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
+                        grp_lst = [icgi.iclear_group]
+                        if icgi.iclear_group.discord_message is not None:
+                            grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
+                        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
+
+                        # combine embeds
+                        embeds = {}
+                        for icg in grp_lst:
+                            icgi = InstanceClearGroupInteraction.from_name(icg.name)
+
+                            titles, descriptions = icgi.create_message()
+                            icg_embeds = create_embeds(titles, descriptions)
+                            embeds.update(icg_embeds)
+                        embeds_mes = list(embeds.values())
+
+                        create_or_update_discord_message(
+                            group=icgi.iclear_group,
+                            hook=WEBHOOKS[icgi.iclear_group.type],
+                            embeds_mes=embeds_mes,
+                        )
 
                         if icgi.iclear_group.success:
-                            success[log_itype] = True
                             if icgi.iclear_group.type == "fractal":
-                                # leaderboards.create_leaderboard(itype="fractal")
-                                pass
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
 
-            # Reset sleep timer
-            current_sleeptime = MAXSLEEPTIME
+                # Reset sleep timer
+                current_sleeptime = MAXSLEEPTIME
 
-            # %%
             # Stop when its not today, not expecting more logs anyway.
             # Or stop when more than MAXSLEEPTIME no logs.
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+                leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
-                leaderboards.create_leaderboard(itype="fractal")
                 print("Finished run")
                 # return
             current_sleeptime -= SLEEPTIME
-            time.sleep(SLEEPTIME)
+            print(f"Run {run_count} done")
+
+            # time.sleep(SLEEPTIME)
             run_count += 1
 
-            # break
 
 # %% Just update or create discord message, dont upload logs.
 

@@ -15,5 +15,6 @@ class Command(BaseCommand):
         print(log_urls)
 
         for log_url in log_urls:
-            self = log_upload = log_uploader.LogUploader.from_url(log_url=log_url)
-            log_upload.run()
+            if log_url != "":
+                self = log_upload = log_uploader.LogUploader.from_url(log_url=log_url)
+                log_upload.run()

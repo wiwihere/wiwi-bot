@@ -256,6 +256,7 @@ class DpsLog(models.Model):
     )
     boss_name = models.CharField(max_length=100, null=True, blank=True)
     cm = models.BooleanField(null=True, blank=True)
+    legendary = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info

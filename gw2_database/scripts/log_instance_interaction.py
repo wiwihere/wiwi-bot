@@ -31,6 +31,7 @@ from scripts.log_helpers import (
     WIPE_EMOTES,
     create_discord_time,
     create_or_update_discord_message,
+    find_log_by_date,
     get_duration_str,
     get_rank_emote,
     zfill_y_m_d,
@@ -480,7 +481,7 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 3, 14
+    y, m, d = 2024, 4, 1
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
@@ -520,6 +521,7 @@ if __name__ == "__main__":
             hook=WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )
+
 
 # # %%
 # from log_helpers import RANK_EMOTES, RANK_EMOTES_CUSTOM, RANK_EMOTES_CUSTOM_INVALID, RANK_EMOTES_INVALID

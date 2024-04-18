@@ -1,24 +1,25 @@
 # %%
-import datetime
-from dataclasses import dataclass
-from distutils.command import upload
-from itertools import chain
 
-import discord
-import numpy as np
-import pandas as pd
-from discord import SyncWebhook
-from django.db.models import Q
 
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+
+import datetime
 import os
 import time
+from dataclasses import dataclass
+from distutils.command import upload
+from itertools import chain
 from pathlib import Path
 
+import discord
+import numpy as np
+import pandas as pd
 from bot_settings import settings
+from discord import SyncWebhook
+from django.db.models import Q
 from gw2_logs.models import (
     DiscordMessage,
     DpsLog,
@@ -49,10 +50,12 @@ from scripts.log_helpers import (
 from scripts.log_instance_interaction import InstanceClearGroupInteraction, create_embeds
 from scripts.log_uploader import LogUploader
 
+from gw2_database.scripts import log_uploader
+
 # %%
 
 y, m, d = today_y_m_d()
-y, m, d = 2024, 3, 16
+# y, m, d = 2024, 3, 20
 
 print(f"Starting Cerus log import for {zfill_y_m_d(y,m,d)}")
 # y, m, d = 2023, 12, 11
@@ -69,14 +72,20 @@ run_count = 0
 MAXSLEEPTIME = 60 * 30  # Number of seconds without a log until we stop looking.
 SLEEPTIME = 30
 current_sleeptime = MAXSLEEPTIME
-# while True:
-if True:
+while True:
+    # if True:
     icgi = None
+
+    iclear_group, created = InstanceClearGroup.objects.update_or_create(
+        name=f"cerus_cm__{zfill_y_m_d(y,m,d)}", type="strike"
+    )
 
     # Find logs in directory
     log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
     log_paths = sorted(log_paths, key=os.path.getmtime)
 
+    titles = None
+    descriptions = None
     # Process each log
     for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
         # Skip upload if log is not in itype_group
@@ -94,12 +103,18 @@ if True:
         log_upload = LogUploader.from_path(log_path)
         uploaded_log = log_upload.run()
 
-        # if not uploaded_log:
-        #     continue
+        # skip on fail
+        if not uploaded_log:
+            continue
+        log_paths_done.append(log_path)
 
-        if uploaded_log.phasetime_str is None:
+        if uploaded_log.phasetime_str is None or uploaded_log.legendary is None:
             print(f"Request detailed {uploaded_log.id}")
-            data = log_upload.request_detailed_info()["phases"]
+            r = log_upload.request_detailed_info()
+            data = r["phases"]
+
+            uploaded_log.legendary = r["isLegendaryCM"]
+
             filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
             df = pd.DataFrame(filtered_data)
             if not df.empty:
@@ -121,11 +136,23 @@ if True:
             uploaded_log.phasetime_str = phasetime_str
             uploaded_log.save()
 
-        titles = {"cerus_cm": {"main": "Sat 16 Mar 2024"}}
-
         cm_logs = DpsLog.objects.filter(
-            encounter__name="Temple of Febe", start_time__year=y, start_time__month=m, start_time__day=d, cm=True
+            encounter__name="Temple of Febe",
+            start_time__year=y,
+            start_time__month=m,
+            start_time__day=d,
+            cm=True,
+            # final_health_percentage__lt=100,
         ).order_by("start_time")
+
+        titles = {"cerus_cm": {"main": iclear_group.pretty_time}}
+
+        # Set start time of clear
+        if cm_logs:
+            start_time = min([i.start_time for i in cm_logs])
+            if iclear_group.start_time != start_time:
+                iclear_group.start_time = start_time
+                iclear_group.save()
 
         health_df = pd.DataFrame(cm_logs.values_list("id", "final_health_percentage"), columns=["id", "health"])
         health_df["log"] = cm_logs
@@ -134,15 +161,24 @@ if True:
         health_df.reset_index(inplace=True)
         health_df["rank"] = BLANK_EMOTE
         health_df["rank"] = "⠀⠀"
+        health_df["rank"] = health_df["index"].apply(lambda x: f"`{str(x+1).zfill(2)}`")  # FIXME v1
+
         emote_cups = pd.Series(RANK_EMOTES_CUPS.values(), name="rank")
-        health_df.loc[:2, "rank"] = emote_cups
+        health_df["cups"] = ""
+        health_df.loc[:2, "cups"] = emote_cups
 
         health_df.sort_values("index", inplace=True)
         health_df.set_index(["index"], inplace=True)
 
         field_id = 0
-        field_value = f"{Emoji.objects.get(name='Cerus').discord_tag_cm} {create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
+        field_value = f"{Emoji.objects.get(name='Cerus').discord_tag_cm} **Cerus CM**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
 <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414>\n"
+        # field_value += f"`nr`{BLANK_EMOTE}⠀⠀ `( health | 80%  | 50%  | 10%  )`\n"
+        # field_value += f"\n`##`⠀⠀**log** `( health |  80% |  50% |  10% )`+delay\n\n"
+        # field_value += f"\n`##`⠀⠀**log** `(health| 80% | 50% | 10% )`+delay\n\n"
+        # field_value += f"\n`##`{BLANK_EMOTE}**★** `(health| 80% | 50% | 10% )`+_delay_\n\n"
+        table_header = f"\n`##`{RANK_EMOTES[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
+        field_value += table_header
         descriptions = {"cerus_cm": {"main": field_value}}
 
         titles["cerus_cm"]["field_0"] = ""
@@ -165,17 +201,32 @@ if True:
             rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
             rank_emo = RANK_EMOTES[rank_binned].format(int(percentile_rank))
 
-            health_str = "{:.2f}".format(log.final_health_percentage)
+            health_str = ".".join(
+                [str(int(i)).zfill(2) for i in str(round(log.final_health_percentage, 2)).split(".")]
+            )  # makes 02.20
+            if health_str == "100.00":
+                health_str = "100.0"
 
             rank_str = f"`{str(idx+1).zfill(2)}`{row['rank']}{rank_emo}`[ {health_str}% ]` "
+            rank_str = f"{row['rank']}{rank_emo}` {health_str}% ` "  # FIXME v1
+            rank_str = f"{row['rank']}{rank_emo}"  # FIXME v2
 
             mins, secs = divmod(log.duration.seconds, 60)
             if log.phasetime_str != "":
                 phasetime_str = f"`( {log.phasetime_str} )`"
+                phasetime_str = f"` {health_str}% | {log.phasetime_str} `{row['cups']}"  # FIXME v2
+                # phasetime_str = f"`( {health_str}% | {log.phasetime_str} )`{row['cups']}".replace(" ", "")  # FIXME v2
+                # phasetime_str = f"`( {health_str}`[%]({log.url})` | {log.phasetime_str} )`{row['cups']}".replace(" ", "")  # FIXME v3
+                # phasetime_str = phasetime_str.replace("--", "--- ")  # FIXME v3
+                # phasetime_str = phasetime_str.replace("|", " | ")  # FIXME v3
             else:
                 phasetime_str = ""
 
-            log_tag = f"{rank_str}[Cerus CM]({log.url}) {phasetime_str}"
+            log_tag = f"{rank_str}[log]({log.url}) {phasetime_str}"
+            if log.legendary:
+                log_tag = f"{rank_str}[★]({log.url}) {phasetime_str}"  # FIXME v4
+            else:
+                log_tag = f"{rank_str}[☆]({log.url}) {phasetime_str}"  # FIXME v4
 
             log_str = f"{log_tag}{duration_str}\n"
 
@@ -195,15 +246,24 @@ if True:
         # # create message
         # group = InstanceClearGroup.objects.get(name="cerus_cm__20240316")
 
-    # create_or_update_discord_message(group=group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=[embed])
-    embeds = create_embeds(titles=titles, descriptions=descriptions)
-    embeds_mes = list(embeds.values())
+    if titles is not None:
+        # create_or_update_discord_message(group=group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=[embed])
+        embeds = create_embeds(titles=titles, descriptions=descriptions)
+        embeds_mes = list(embeds.values())
 
-    group = InstanceClearGroup.objects.get(name="cerus_cm__20240316")
+        day_count = len(InstanceClearGroup.objects.filter(name__contains="cerus_cm__"))
+        embeds_mes[0] = embeds_mes[0].set_author(name=f"#{str(day_count).zfill(2)}")
+        if len(embeds_mes) > 0:
+            for i, _ in enumerate(embeds_mes):
+                if i > 0:
+                    embeds_mes[i].description = table_header + embeds_mes[i].description
 
-    create_or_update_discord_message(group=group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=embeds_mes)
+        create_or_update_discord_message(group=iclear_group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=embeds_mes)
 
-
+    print(f"Run {run_count} done")
+    time.sleep(SLEEPTIME)
+    run_count += 1
+    # break
 # InstanceClearGroupInteraction.from_name(icg.name)
 
 
@@ -246,3 +306,8 @@ df["time"] = df["end"].apply(lambda x: datetime.timedelta(minutes=10) - datetime
 phasetime_str = "|".join(
     [get_duration_str(i.astype("timedelta64[s]").astype(np.int32)) for i in df["time"].to_numpy()]
 )
+
+
+# %%
+log = DpsLog.objects.get(url="https://dps.report/5VML-20240330-225308_cerus")
+log_upload = LogUploader.from_log(log)
