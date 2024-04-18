@@ -357,8 +357,10 @@ class InstanceClearGroupInteraction:
                         diff_time = (
                             log.start_time
                             + log.duration
-                            - self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
-                            + self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
+                            - (
+                                self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
+                                + self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].duration
+                            )
                         )
 
                         duration_str = get_duration_str(diff_time.seconds)
@@ -615,3 +617,5 @@ if __name__ == "__main__":
 # percentile_rank = inverse_rank / len(group) * 100
 # rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
 # RANK_EMOTES_CUSTOM[rank_binned]
+
+# %%
