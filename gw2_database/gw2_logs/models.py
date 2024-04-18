@@ -246,6 +246,7 @@ class DpsLog(models.Model):
     url = models.URLField(max_length=100)
     duration = models.DurationField(null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True, unique=True)
+    end_time = models.DateTimeField(null=True, blank=True, unique=True)
     player_count = models.IntegerField(null=True, blank=True)
     encounter = models.ForeignKey(
         Encounter,

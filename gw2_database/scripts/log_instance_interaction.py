@@ -351,6 +351,18 @@ class InstanceClearGroupInteraction:
                             + all_success_logs[all_success_logs_idx - 1].duration
                         )
                         duration_str = get_duration_str(diff_time.seconds)
+
+                    # If we dont have a success, we still need to calculate difference with previous log.
+                    elif len(encounter_wipes) > 0:
+                        diff_time = (
+                            log.start_time
+                            + log.duration
+                            - self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
+                            + self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
+                        )
+
+                        duration_str = get_duration_str(diff_time.seconds)
+
                 if log.success:
                     first_boss = False  # Only after a successful log the first_boss is cleared.
 
@@ -481,8 +493,8 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 4, 1
-    itype_group = "raid"
+    y, m, d = 2024, 4, 11
+    itype_group = "strike"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     if icgi is not None:
