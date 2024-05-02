@@ -35,6 +35,8 @@ if __name__ == "__main__":
 
 # %%
 def create_leaderboard(itype: str):
+    """"""
+    # %%
     if settings.INCLUDE_NON_CORE_LOGS:
         min_core_count = 0  # select all logs when including non core
     else:
@@ -121,7 +123,7 @@ def create_leaderboard(itype: str):
 
                 for idx, encounter_log in enumerate(encounter_success_all[:3]):
                     rank_duration_str = get_rank_duration_str(
-                        encounter_log, encounter_success_all, itype, pretty_time=True
+                        encounter_log, encounter_success_all, itype, pretty_time=True, url=encounter_log.url
                     )
                     field_value += rank_duration_str
 

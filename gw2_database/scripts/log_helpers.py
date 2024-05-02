@@ -288,7 +288,7 @@ def create_folder_names(itype_groups: list):
         return folder_names
 
 
-def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
+def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url = None):
     """Find rank of indiv instance in group. And add duration to string.
 
     pretty_time (bool):
@@ -310,6 +310,8 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False):
 
         rank_str = rank_str.format(replace_str)
 
+    if url:
+        return f"[{rank_str}]({url})`{duration_str}` "
     return f"{rank_str}`{duration_str}` "
 
 
