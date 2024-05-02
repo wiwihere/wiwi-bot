@@ -246,6 +246,7 @@ class DpsLog(models.Model):
     url = models.URLField(max_length=100)
     duration = models.DurationField(null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True, unique=True)
+    end_time = models.DateTimeField(null=True, blank=True, unique=True)
     player_count = models.IntegerField(null=True, blank=True)
     encounter = models.ForeignKey(
         Encounter,
@@ -256,6 +257,7 @@ class DpsLog(models.Model):
     )
     boss_name = models.CharField(max_length=100, null=True, blank=True)
     cm = models.BooleanField(null=True, blank=True)
+    legendary = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
@@ -272,6 +274,7 @@ class DpsLog(models.Model):
     report_id = models.CharField(max_length=100, null=True, blank=True)
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
+    phasetime_str = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return f"{self.boss_name} {self.start_time}"

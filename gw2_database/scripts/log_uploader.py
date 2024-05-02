@@ -13,18 +13,17 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+import time
+
 from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from scripts.log_helpers import (
-    create_unix_time,
-    get_emboldened_wing,
-)
+from scripts.log_helpers import create_unix_time, get_emboldened_wing, today_y_m_d, zfill_y_m_d
 
 
 @dataclass
 class LogUploader:
-    """Upload log to dps.report and save results in django database.
-    Sometimes dps.report doesnt report correctly, will get detailed info then.
+    """Upload log to b.dps.report and save results in django database.
+    Sometimes b.dps.report doesnt report correctly, will get detailed info then.
     """
 
     log_path: str = None
@@ -73,8 +72,8 @@ class LogUploader:
         return self.log_source
 
     def upload_log(self):
-        """Upload log to dps.report"""
-        base_url = "https://dps.report/uploadContent"
+        """Upload log to b.dps.report"""
+        base_url = "https://b.dps.report/uploadContent"
 
         data = {
             "json": 1,
@@ -86,13 +85,18 @@ class LogUploader:
         with open(self.log_path, "rb") as f:
             files = {"file": f}
 
+            time.sleep(1)
             self.r_raw = r = requests.post(base_url, files=files, data=data)
 
         if r.status_code == 503:
-            print(f"ERROR 503: Failed uploading {self.log_source_view}")
+            print(f"{datetime.datetime.now()} ERROR 503: Failed uploading {self.log_source_view}")
+            try:
+                print(f"ERROR: {self.r_raw.error}")
+            except:
+                pass
             return False
         if r.status_code == 403:
-            print(f"ERROR 403: Failed uploading {self.log_source_view}")
+            print(f"{datetime.datetime.now()} ERROR 403: Failed uploading {self.log_source_view}")
             try:
                 print(r.json()["error"])
 
@@ -101,13 +105,23 @@ class LogUploader:
                     self.move_failed_upload()
             except json.decoder.JSONDecodeError:
                 pass
-
+            try:
+                print(f"{datetime.datetime.now()} ERROR Reason: {self.r_raw.reason}")
+                if str(self.r_raw.reason) == "Forbidden":
+                    self.move_forbidden_upload()
+            except:
+                if str(self.r_raw.reason) == "Forbidden":
+                    self.move_forbidden_upload()
+                pass
             return False
 
         if hasattr(r, "status_code"):
             if r.status_code == 200:
                 return r.json()
-        print(f"ERROR: Failed uploading log for unknown reason {self.log_source_view}")
+
+        print(
+            f"{datetime.datetime.now()} ERROR: Failed uploading log for unknown reason {r.status_code} {self.log_source_view}"
+        )
         return False
 
     def move_failed_upload(self):
@@ -118,9 +132,19 @@ class LogUploader:
         print(out_path)
         shutil.move(src=self.log_path, dst=out_path)
 
+    def move_forbidden_upload(self):
+        """The API throws exceptions regularly. Upload these by hand ;("""  # noqa
+        out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath(
+            "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
+        )
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+        print(f"Moved forbidden log from {self.log_source_view} to")
+        print(out_path)
+        shutil.move(src=self.log_path, dst=out_path)
+
     def request_metadata(self, report_id=None, url=None):
-        """Get metadata from dps.report if an url is available."""
-        json_url = "https://dps.report/getUploadMetadata"
+        """Get metadata from b.dps.report if an url is available."""
+        json_url = "https://b.dps.report/getUploadMetadata"
         data = {"id": report_id, "permalink": url}
         self.r = r = requests.get(json_url, params=data)
 
@@ -131,7 +155,7 @@ class LogUploader:
 
     def request_detailed_info(self, report_id=None, url=None):
         """Upload can have corrupt metadata. We then have to request the fill log info.
-        More info of the output can be found here: https://baaron4.github.io/GW2-Elite-Insights-Parser/Json
+        More info of the output can be found here: https://baaron4.github.io/GW2-Elite-Insights-Parser/Json/index.html
         """
         # Dont have to request info twice.
         if self.r2 is not None:
@@ -144,7 +168,7 @@ class LogUploader:
             report_id = self.log.report_id
             url = self.log.url
 
-        json_url = "https://dps.report/getJson"
+        json_url = "https://b.dps.report/getJson"
         data = {"id": report_id, "permalink": url}
         r2 = requests.get(json_url, params=data)
         return r2.json()
@@ -157,13 +181,13 @@ class LogUploader:
         """Get log from database, if not there, upload it."""
 
         if len(self.get_django_log()) == 0:
-            print("    Uploading log")
+            print(f"{datetime.datetime.now()}    Uploading log")
             if self.log_path:
                 r = self.upload_log()
             if self.log_url:
                 r = self.request_metadata(url=self.log_url)
         else:
-            print("    Already in database")
+            print(f"{datetime.datetime.now()}    Already in database")
             r = self.get_django_log().first().json_dump
         return r
 
@@ -200,7 +224,7 @@ class LogUploader:
         False on fail
         DpsLog.object on success
         """
-        print(f"Start processing: {self.log_source_view}")
+        print(f"{datetime.datetime.now()} Start processing: {self.log_source_view}")
         self.r = r = self.get_or_upload_log()
 
         if r is False:
@@ -226,12 +250,12 @@ ERROR
                 raise Encounter.DoesNotExist
 
         # Check wrong metadata, sometimes the normal json response has empty
-        # or plain wrong data. This has to do with some memory issues on dps.report.
+        # or plain wrong data. This has to do with some memory issues on b.dps.report.
         # Can be fixed by requesting the detailed info.
         if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
             print(f"Log seems broken. Requesting more info {self.log_source_view}")
 
-            self.r2 = r2 = self.request_detailed_info()
+            self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
             # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
             start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
 
@@ -263,7 +287,7 @@ ERROR
         # Update final health percentage
         if log.final_health_percentage is None:
             if log.success is False:
-                print("    Requesting final boss health")
+                print(f"{datetime.datetime.now()}    Requesting final boss health")
                 self.r2 = r2 = self.request_detailed_info()
                 log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
 
@@ -295,6 +319,15 @@ ERROR
                 log.emboldened = False
 
             log.save()
-        print(f"Finished processing: {self.log_source_view}")
+        print(f"{datetime.datetime.now()} Finished processing: {self.log_source_view}")
 
         return log
+
+
+# %%
+if __name__ == "__main__":
+    self = LogUploader.from_path(
+        r"C:/Users/Wietse/Documents/Guild Wars 2/addons/arcdps/arcdps.cbtlogs/Deimos/Wiwi Tormentini/20240401-212048.zevtc"
+    )
+
+    self.run()

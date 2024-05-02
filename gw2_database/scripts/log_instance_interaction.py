@@ -31,6 +31,7 @@ from scripts.log_helpers import (
     WIPE_EMOTES,
     create_discord_time,
     create_or_update_discord_message,
+    find_log_by_date,
     get_duration_str,
     get_rank_emote,
     zfill_y_m_d,
@@ -350,6 +351,20 @@ class InstanceClearGroupInteraction:
                             + all_success_logs[all_success_logs_idx - 1].duration
                         )
                         duration_str = get_duration_str(diff_time.seconds)
+
+                    # If we dont have a success, we still need to calculate difference with previous log.
+                    elif len(encounter_wipes) > 0:
+                        diff_time = (
+                            log.start_time
+                            + log.duration
+                            - (
+                                self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].start_time
+                                + self.all_logs[self.all_logs.index(log) - len(encounter_wipes)].duration
+                            )
+                        )
+
+                        duration_str = get_duration_str(diff_time.seconds)
+
                 if log.success:
                     first_boss = False  # Only after a successful log the first_boss is cleared.
 
@@ -407,82 +422,81 @@ class InstanceClearGroupInteraction:
 
         return titles, descriptions
 
-    def create_embeds(self, titles, descriptions):
-        """Create discord embed from description."""
-        embeds = {}
-        has_title = False
-        for instance_type in titles:
-            use_fields = True  # max 1024 per field
-            field_characters = np.array([len(i) for i in descriptions[instance_type].values()])
-            # Check field length. If more than 1024 it cannot go to a field and should instead
-            # go to description
-            if np.any(field_characters > 1024):
-                print("Cannot use fields because one has more than 1024 chars")
-                use_fields = False
 
-                # field characters actually change here because the titles are included in
-                # the description.
-                field_characters += np.array([len(i) for i in titles[instance_type].values()])
+def create_embeds(titles, descriptions):
+    """Create discord embed from description."""
+    embeds = {}
+    has_title = False
+    for instance_type in titles:
+        use_fields = True  # max 1024 per field
+        field_characters = np.array([len(i) for i in descriptions[instance_type].values()])
+        # Check field length. If more than 1024 it cannot go to a field and should instead
+        # go to description
+        if np.any(field_characters > 1024):
+            print("Cannot use fields because one has more than 1024 chars")
+            use_fields = False
 
-            # If we go over 4096 characters, a new embed should be created.
-            # Just find per field which embed they should be in:
+            # field characters actually change here because the titles are included in
+            # the description.
+            field_characters += np.array([len(i) for i in titles[instance_type].values()])
 
-            embed_ids = np.floor(np.cumsum(field_characters) / 4096).astype(int)
+        # If we go over 4096 characters, a new embed should be created.
+        # Just find per field which embed they should be in:
 
-            # Loop over every unique embed for this instance.
-            for embed_id in np.unique(embed_ids):
-                title = ""
-                description = ""
-                # The first embed gets a title and title  description.
-                if int(embed_id) == 0:
-                    title = titles[instance_type]["main"]
-                    description = descriptions[instance_type]["main"]
-                    if ("raid" in titles) and ("strike" in titles):
-                        if not has_title:
-                            has_title = True
-                        else:
-                            title = ""
-                            description = ""
+        embed_ids = np.floor(np.cumsum(field_characters) / 4096).astype(int)
 
-                if not use_fields:
-                    # Loop the encounters
-                    for embed_id_instance, encounter_key in zip(embed_ids, descriptions[instance_type].keys()):
-                        if encounter_key == "main":  # Main is already in title.
-                            continue
-                        if embed_id_instance != embed_id:  # Should go to different embed.
-                            print(len(description))
+        # Loop over every unique embed for this instance.
+        for embed_id in np.unique(embed_ids):
+            title = ""
+            description = ""
+            # The first embed gets a title and title  description.
+            if int(embed_id) == 0:
+                title = titles[instance_type]["main"]
+                description = descriptions[instance_type]["main"]
+                if ("raid" in titles) and ("strike" in titles):
+                    if not has_title:
+                        has_title = True
+                    else:
+                        title = ""
+                        description = ""
 
-                            continue
+            if not use_fields:
+                # Loop the encounters
+                for embed_id_instance, encounter_key in zip(embed_ids, descriptions[instance_type].keys()):
+                    if encounter_key == "main":  # Main is already in title.
+                        continue
+                    if embed_id_instance != embed_id:  # Should go to different embed.
+                        print(len(description))
 
-                        description += titles[instance_type][encounter_key]
-                        description += descriptions[instance_type][encounter_key] + "\n"
+                        continue
 
-                embeds[f"{instance_type}_{embed_id}"] = discord.Embed(
-                    title=title,
-                    description=description,
-                    colour=EMBED_COLOR[instance_type],
-                )
+                    description += titles[instance_type][encounter_key]
+                    description += descriptions[instance_type][encounter_key] + "\n"
 
-                if use_fields:
-                    for embed_id_instance, encounter_key in zip(embed_ids, descriptions[instance_type].keys()):
-                        if encounter_key == "main":  # Main is already in title.
-                            continue
-                        if embed_id_instance != embed_id:  # Should go to different embed.
-                            continue
-                        field_name = titles[instance_type][encounter_key]
-                        field_value = descriptions[instance_type][encounter_key]
-                        embeds[f"{instance_type}_{embed_id}"].add_field(
-                            name=field_name, value=field_value, inline=False
-                        )
+            embeds[f"{instance_type}_{embed_id}"] = discord.Embed(
+                title=title,
+                description=description,
+                colour=EMBED_COLOR[instance_type],
+            )
 
-        return embeds
+            if use_fields:
+                for embed_id_instance, encounter_key in zip(embed_ids, descriptions[instance_type].keys()):
+                    if encounter_key == "main":  # Main is already in title.
+                        continue
+                    if embed_id_instance != embed_id:  # Should go to different embed.
+                        continue
+                    field_name = titles[instance_type][encounter_key]
+                    field_value = descriptions[instance_type][encounter_key]
+                    embeds[f"{instance_type}_{embed_id}"].add_field(name=field_name, value=field_value, inline=False)
+
+    return embeds
 
 
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 3, 14
-    itype_group = "raid"
+    y, m, d = 2024, 4, 11
+    itype_group = "strike"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     if icgi is not None:
@@ -512,7 +526,7 @@ if __name__ == "__main__":
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
             print(icg.name)
             titles, descriptions = icgi.create_message()
-            icg_embeds = icgi.create_embeds(titles, descriptions)
+            icg_embeds = create_embeds(titles, descriptions)
             embeds.update(icg_embeds)
         embeds_mes = list(embeds.values())
 
@@ -521,6 +535,7 @@ if __name__ == "__main__":
             hook=WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )
+
 
 # # %%
 # from log_helpers import RANK_EMOTES, RANK_EMOTES_CUSTOM, RANK_EMOTES_CUSTOM_INVALID, RANK_EMOTES_INVALID
@@ -602,3 +617,5 @@ if __name__ == "__main__":
 # percentile_rank = inverse_rank / len(group) * 100
 # rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
 # RANK_EMOTES_CUSTOM[rank_binned]
+
+# %%

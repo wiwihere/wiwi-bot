@@ -109,13 +109,21 @@ def create_leaderboard(itype: str):
 
                 # Go through top 3 logs and add this to the message
                 field_value += f"{emote}"
+
+                # FIXME
+                # for idx, encounter_log in enumerate(encounter_success_all[:3]):
+                #     duration_str = get_duration_str(encounter_log.duration.seconds, add_space=True)
+                #     if encounter_log.core_player_count < settings.CORE_MINIMUM[itype]:
+                #         rank_emote = RANK_EMOTES_INVALID[idx]
+                #     else:
+                #         rank_emote = RANK_EMOTES[idx]
+                #     field_value += f"""[{rank_emote}]({encounter_log.url})`{duration_str}` """
+
                 for idx, encounter_log in enumerate(encounter_success_all[:3]):
-                    duration_str = get_duration_str(encounter_log.duration.seconds, add_space=True)
-                    if encounter_log.core_player_count < settings.CORE_MINIMUM[itype]:
-                        rank_emote = RANK_EMOTES_INVALID[idx]
-                    else:
-                        rank_emote = RANK_EMOTES[idx]
-                    field_value += f"""[{rank_emote}]({encounter_log.url})`{duration_str}` """
+                    rank_duration_str = get_rank_duration_str(
+                        encounter_log, encounter_success_all, itype, pretty_time=True
+                    )
+                    field_value += rank_duration_str
 
                 # Add average cleartime of encounter.
                 avg_duration_str = get_avg_duration_str(encounter_success_all)
