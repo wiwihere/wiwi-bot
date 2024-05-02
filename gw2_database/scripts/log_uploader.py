@@ -17,10 +17,7 @@ import time
 
 from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from scripts.log_helpers import (
-    create_unix_time,
-    get_emboldened_wing,
-)
+from scripts.log_helpers import create_unix_time, get_emboldened_wing, today_y_m_d, zfill_y_m_d
 
 
 @dataclass
@@ -110,7 +107,11 @@ class LogUploader:
                 pass
             try:
                 print(f"{datetime.datetime.now()} ERROR Reason: {self.r_raw.reason}")
+                if str(self.r_raw.reason) == "Forbidden":
+                    self.move_forbidden_upload()
             except:
+                if str(self.r_raw.reason) == "Forbidden":
+                    self.move_forbidden_upload()
                 pass
             return False
 
@@ -128,6 +129,16 @@ class LogUploader:
         out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(self.log_path).name)
         out_path.parent.mkdir(exist_ok=True)
         print(f"Moved failing log from {self.log_source_view} to")
+        print(out_path)
+        shutil.move(src=self.log_path, dst=out_path)
+
+    def move_forbidden_upload(self):
+        """The API throws exceptions regularly. Upload these by hand ;("""  # noqa
+        out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath(
+            "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
+        )
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+        print(f"Moved forbidden log from {self.log_source_view} to")
         print(out_path)
         shutil.move(src=self.log_path, dst=out_path)
 
@@ -244,7 +255,7 @@ ERROR
         if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
             print(f"Log seems broken. Requesting more info {self.log_source_view}")
 
-            self.r2 = r2 = self.request_detailed_info()
+            self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
             # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
             start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
 
