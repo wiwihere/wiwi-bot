@@ -79,6 +79,13 @@ medalnames = {
     "perfectbronzetrophyglow": "trophy_bronze",
 }
 
+
+medalnames = {
+"red_full_medal" : "red_full_medal",
+"red_line_medal" : "red_line_medal",
+"green_line_medal" : "green_line_medal",
+"green_full_medal" : "green_full_medal",
+}
 # a = """<:junkmedal:1218317392627765450>
 # <:basicmedal:1218317391260287006>
 # <:finemedal:1218307650580647976>
@@ -91,6 +98,19 @@ a = """
 <:perfectbronzetrophyglow:1220499344013267045>
 <:perfectsilvertrophyglow:1220500728481710181>
 <:perfectgoldtrophyglow:1220500180898680833> 
+
+\:red_full_medal:
+\:red_line_medal:
+\:green_line_medal:
+\:green_full_medal:
+
+"""
+
+a = """
+<:red_full_medal:1240399926962163722>
+<:red_line_medal:1240399928728223804>
+<:green_line_medal:1240399925502545930>
+<:green_full_medal:1240399924198379621>
 """
 
 
