@@ -22,8 +22,8 @@ from scripts.log_helpers import create_unix_time, get_emboldened_wing, today_y_m
 
 @dataclass
 class LogUploader:
-    """Upload log to b.dps.report and save results in django database.
-    Sometimes b.dps.report doesnt report correctly, will get detailed info then.
+    """Upload log to dps.report and save results in django database.
+    Sometimes dps.report doesnt report correctly, will get detailed info then.
     """
 
     log_path: str = None
@@ -72,8 +72,8 @@ class LogUploader:
         return self.log_source
 
     def upload_log(self):
-        """Upload log to b.dps.report"""
-        base_url = "https://b.dps.report/uploadContent"
+        """Upload log to dps.report, a.dps.report or b.dps.report"""
+        base_url = "https://dps.report/uploadContent"
 
         data = {
             "json": 1,
@@ -143,8 +143,8 @@ class LogUploader:
         shutil.move(src=self.log_path, dst=out_path)
 
     def request_metadata(self, report_id=None, url=None):
-        """Get metadata from b.dps.report if an url is available."""
-        json_url = "https://b.dps.report/getUploadMetadata"
+        """Get metadata from dps.report if an url is available."""
+        json_url = "https://dps.report/getUploadMetadata"
         data = {"id": report_id, "permalink": url}
         self.r = r = requests.get(json_url, params=data)
 
@@ -168,7 +168,7 @@ class LogUploader:
             report_id = self.log.report_id
             url = self.log.url
 
-        json_url = "https://b.dps.report/getJson"
+        json_url = "https://dps.report/getJson"
         data = {"id": report_id, "permalink": url}
         r2 = requests.get(json_url, params=data)
         return r2.json()
@@ -263,7 +263,13 @@ ERROR
             r["encounter"]["isCm"] = r2["isCM"]
             r["encounterTime"] = create_unix_time(start_time)
 
-        players = [i["display_name"] for i in r["players"].values()]
+        # Arcdps error 'File had invalid agents. Please update arcdps' would return some
+        # empty jsons. This makes sure the log is still processed
+        if self.r["players"] != []:
+            players = [i["display_name"] for i in r["players"].values()]
+        else:
+            players = []
+
         self.log, created = log, created = DpsLog.objects.update_or_create(
             defaults={
                 "encounter": encounter,
@@ -326,8 +332,6 @@ ERROR
 
 # %%
 if __name__ == "__main__":
-    self = LogUploader.from_path(
-        r"C:/Users/Wietse/Documents/Guild Wars 2/addons/arcdps/arcdps.cbtlogs/Deimos/Wiwi Tormentini/20240401-212048.zevtc"
-    )
+    self = LogUploader.from_path(r"")
 
     self.run()

@@ -185,11 +185,15 @@ class InstanceClearGroupInteraction:
                 print(f"Finished {self.iclear_group.type}s for this week!")
                 # Duration is the difference between first and last log for each day.
                 # If there is only one log (e.g. strikes), that duration should be added.
-                time_diff=datetime.timedelta(0)
+                time_diff = datetime.timedelta(0)
                 day_grouped_logs = df_logs_duration.groupby("start_day")
                 for idx, day_group in day_grouped_logs:
                     maxidx = day_group["start_time"].idxmax()
-                    time_diff += day_group.loc[maxidx, "start_time"] + day_group.loc[maxidx, "duration"] - day_group["start_time"].min()
+                    time_diff += (
+                        day_group.loc[maxidx, "start_time"]
+                        + day_group.loc[maxidx, "duration"]
+                        - day_group["start_time"].min()
+                    )
 
                 if any(day_grouped_logs["start_time"].count() == 1):
                     time_one_log = (
@@ -499,8 +503,8 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 5, 16
-    itype_group = "strike"
+    y, m, d = 2024, 6, 13
+    itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     if icgi is not None:
