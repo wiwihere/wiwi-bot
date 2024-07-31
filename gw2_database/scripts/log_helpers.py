@@ -2,7 +2,6 @@
 """Helper functions and variables"""
 
 import datetime
-import re
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -71,6 +70,7 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
     invalid_str = ""
     if invalid:
         invalid_str = " invalid"
+    # RANK_BINS_PERCENTILE=[20, 40, 50, 60, 70, 80, 90, 100] # in .env
 
     d = {
         0: f"{getattr(Emoji.objects.get(name='1_junk'),tag)}".format("bin20_percrank{}"),
@@ -95,10 +95,43 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
     return d
 
 
-if settings.MEDALS_PERCENTILE:
-    rank_func = create_rank_emote_dict_percentiles
-else:
+def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
+    """4 rank bins, green + red and filled + line."""
+    tag = "discord_tag"
+    if custom_emoji_name:
+        tag = "discord_tag_custom_name"
+
+    invalid_str = ""
+    if invalid:
+        invalid_str = " invalid"
+
+    d = {
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'),tag)}".format("bin25_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'),tag)}".format("bin50_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'),tag)}".format("bin75_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'),tag)}".format("bin100_percrank{}"),
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+            settings.MEAN_OR_MEDIAN
+        ),
+        "average": f"{Emoji.objects.get(name='blank').discord_tag_custom_name}".format(settings.MEAN_OR_MEDIAN),
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+    }
+    return d
+
+
+if settings.MEDALS_TYPE == "original":
     rank_func = create_rank_emote_dict
+elif settings.MEDALS_TYPE == "percentile":
+    rank_func = create_rank_emote_dict_percentiles
+elif settings.MEDALS_TYPE == "newgame":
+    rank_func = create_rank_emote_dict_newgame
+else:
+    raise ValueError(
+        f"MEDALS_TYPE = {settings.MEDALS_TYPE} in .env is unknown. Choose from ['original', 'percentile', 'newgame']"
+    )
 
 RANK_EMOTES = rank_func(custom_emoji_name=False, invalid=False)
 RANK_EMOTES_INVALID = rank_func(custom_emoji_name=False, invalid=True)
@@ -252,7 +285,7 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     else:
         rank_str = emote_dict["average"]
         if indiv.success:
-            if not settings.MEDALS_PERCENTILE:
+            if settings.MEDALS_TYPE == "original":
                 if indiv.duration.seconds < (
                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
                 ):
@@ -288,7 +321,7 @@ def create_folder_names(itype_groups: list):
         return folder_names
 
 
-def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url = None):
+def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=None):
     """Find rank of indiv instance in group. And add duration to string.
 
     pretty_time (bool):
