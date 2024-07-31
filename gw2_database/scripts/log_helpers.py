@@ -2,8 +2,6 @@
 """Helper functions and variables"""
 
 import datetime
-from multiprocessing import Value
-import re
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -98,6 +96,7 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
 
 
 def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
+    """4 rank bins, green + red and filled + line."""
     tag = "discord_tag"
     if custom_emoji_name:
         tag = "discord_tag_custom_name"
@@ -117,22 +116,22 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "average": f"{Emoji.objects.get(name=f'blank').discord_tag_custom_name}".format(
-            settings.MEAN_OR_MEDIAN
-        ),
+        "average": f"{Emoji.objects.get(name='blank').discord_tag_custom_name}".format(settings.MEAN_OR_MEDIAN),
         "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
     }
     return d
 
 
-if settings.MEDALS_TYPE =="percentile":
-    rank_func = create_rank_emote_dict_percentiles
-elif settings.MEDALS_TYPE =="original":
+if settings.MEDALS_TYPE == "original":
     rank_func = create_rank_emote_dict
-elif settings.MEDALS_TYPE =="newgame":
+elif settings.MEDALS_TYPE == "percentile":
+    rank_func = create_rank_emote_dict_percentiles
+elif settings.MEDALS_TYPE == "newgame":
     rank_func = create_rank_emote_dict_newgame
 else:
-    raise ValueError(f"MEDALS_TYPE = {settings.MEDALS_TYPE} in .env is unknown. Choose from ['original', 'percentile', 'newgame']")
+    raise ValueError(
+        f"MEDALS_TYPE = {settings.MEDALS_TYPE} in .env is unknown. Choose from ['original', 'percentile', 'newgame']"
+    )
 
 RANK_EMOTES = rank_func(custom_emoji_name=False, invalid=False)
 RANK_EMOTES_INVALID = rank_func(custom_emoji_name=False, invalid=True)
@@ -286,7 +285,7 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     else:
         rank_str = emote_dict["average"]
         if indiv.success:
-            if settings.MEDALS_TYPE=="original":
+            if settings.MEDALS_TYPE == "original":
                 if indiv.duration.seconds < (
                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
                 ):
@@ -322,7 +321,7 @@ def create_folder_names(itype_groups: list):
         return folder_names
 
 
-def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url = None):
+def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=None):
     """Find rank of indiv instance in group. And add duration to string.
 
     pretty_time (bool):
