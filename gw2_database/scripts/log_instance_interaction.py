@@ -261,11 +261,12 @@ class InstanceClearGroupInteraction:
             pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
         except TypeError:
             core_count = 0
-            pug_count = 0
+            pug_count = 10
 
         # Nina's space, add space after 5 ducks for better readability.
         pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
-        pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
+        if len(pug_split_str) > 5:
+            pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
         pug_str = ">".join(pug_split_str)
 
         # title description with start - end time and colored ducks for core/pugs
