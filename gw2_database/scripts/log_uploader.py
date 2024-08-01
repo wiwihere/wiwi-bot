@@ -17,7 +17,10 @@ import time
 
 from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from scripts.ei_parser import EliteInisghtsParser
 from scripts.log_helpers import create_unix_time, get_emboldened_wing, today_y_m_d, zfill_y_m_d
+
+from gw2_database.scripts.ei_parser import EliteInisghtsParser
 
 
 @dataclass
@@ -330,8 +333,76 @@ ERROR
         return log
 
 
+@dataclass
+class DpsLogInteraction:
+    dpslog: DpsLog = None
+
+    @classmethod
+    def from_local_ei_parser(cls, log_path, parsed_path):
+        json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
+
+        # TODO find log in database
+
+        dpslog = cls.from_detailed_logs(log_path, json_detailed)
+        return cls(dpslog=dpslog)
+
+    @classmethod
+    def from_detailed_logs(self, log_path, json_detailed):
+        r2 = json_detailed
+        try:
+            dpslog = DpsLog.objects.get(local_path=log_path)
+        except DpsLog.DoesNotExist:
+            dpslog = None
+
+        if dpslog is None:
+            players = [player["account"] for player in r2["players"]]
+            final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+
+            encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+
+            if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
+                self.move_failed_upload()
+
+            dpslog, created = DpsLog.objects.update_or_create(
+                defaults={
+                    # "url": r["permalink"],
+                    "duration": datetime.timedelta(seconds=r2["duration"]),
+                    "start_time": datetime.datetime.strptime(r2["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
+                        datetime.timezone.utc
+                    ),
+                    # "end_time"=,
+                    "player_count": len(players),
+                    "encounter": encounter,
+                    "boss_name": r2["fightName"],
+                    "cm": r2["isCM"],
+                    "legendary": r2["isLegendaryCM"],
+                    "emboldened": "b68087" in r2["buffMap"],
+                    "success": r2["success"],
+                    "final_health_percentage": final_health_percentage,
+                    "gw2_build": r2["gW2Build"],
+                    "players": players,
+                    "core_player_count": len(Player.objects.filter(gw2_id__in=players)),
+                    # "report_id": r["id"],
+                    "local_path": log_path,
+                    # "json_dump": r,
+                },
+            )
+        print("hi")
+        return dpslog
+
+    def from_normal_logs():
+        pass
+
+        # dpslog = DpsLog.objects.filter()
+
+        # return cls(dpslog=dpslog)
+
+
 # %%
 if __name__ == "__main__":
-    self = LogUploader.from_path(r"")
-
-    self.run()
+    #     self = LogUploader.from_path(r"")
+    log_path = Path()
+    log = Path()
+    #     self.run()
+    a = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=log)
+a

@@ -18,9 +18,7 @@ class EliteInisghtsParser:
         self.out_dir = None  # Set in .make_settings
         self.settings = None  # Set in .make_settings
 
-    def make_settings(
-        self, out_dir, setting_in_path=EI_SETTINGS_DEFAULT, create_html=False
-    ):
+    def make_settings(self, out_dir, setting_in_path=EI_SETTINGS_DEFAULT, create_html=False):
         """
         ei_settings: str
             Path to ei settings to use. Will be edited based on inputs
@@ -31,13 +29,15 @@ class EliteInisghtsParser:
         """
 
         self.out_dir = out_dir
-        setting_out_path = out_dir.full_path("gw2ei_settings.conf")
+        setting_out_path = out_dir.joinpath("gw2ei_settings.conf")
 
+        # Load default settings and format them with the variables.
         with open(setting_in_path, "r") as f:
             set_default = f.read()
 
             set_str = set_default.format(create_html=create_html, out_dir=out_dir)
 
+        # Create settigns in output folder
         with open(setting_out_path, "w") as f:
             f.write(set_str)
 
@@ -72,20 +72,21 @@ class EliteInisghtsParser:
 
             # Call the parser
             subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])
+            js_path = self.find_parsed_json(evtc_path=evtc_path)
 
-        json_data = self.load_json_gz(js_path=js_path)
-        return json_data
+        return js_path
 
     def find_parsed_json(self, evtc_path):
-        """The output gets a bit of a different name, find it."""
+        """Output gets a bit of a different name, find it."""
         evtc_path = Path(evtc_path)
 
-        files = [i for i in self.out_dir.glob(f"{evtc_path.stem}*.gz")]
+        files = list(self.out_dir.glob(f"{evtc_path.stem}*.gz"))
         if len(files) > 0:
             file = files[0]
             return file
 
-    def load_json_gz(self, js_path):
+    @staticmethod
+    def load_json_gz(js_path):
         """Load zipped json"""
 
         with gzip.open(js_path, "r") as fin:
@@ -98,10 +99,13 @@ class EliteInisghtsParser:
 
 # %%
 
-if __name__ == "__main__":
-    ei_parser = EliteInisghtsParser()
-    ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20240729"), create_html=False)
+# if __name__ == "__main__":
+# ei_parser = EliteInisghtsParser()
+# ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20240729"), create_html=False)
 
-    d = ei_parser.parse_log(
-        evtc_path=
-    )
+# d = ei_parser.parse_log(
+#     evtc_path=
+# )
+# r2 = EliteInisghtsParser.load_json_gz(js_path=d)
+# r2['eiEncounterID']
+# %%

@@ -115,6 +115,7 @@ class Encounter(models.Model):
     name = models.CharField(max_length=30)
     shortname = models.CharField(max_length=30, null=True, blank=True)
     dpsreport_boss_id = models.IntegerField(null=True, blank=True)
+    ei_encounter_id = models.IntegerField(null=True, blank=True)  # eiEncounterID
     folder_names = models.CharField(max_length=100, null=True, blank=True)
     emoji = models.ForeignKey(
         Emoji,

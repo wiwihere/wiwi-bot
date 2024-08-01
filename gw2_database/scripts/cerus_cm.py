@@ -9,48 +9,31 @@ if __name__ == "__main__":
 import datetime
 import os
 import time
-from dataclasses import dataclass
-from distutils.command import upload
 from itertools import chain
 from pathlib import Path
 
-import discord
 import numpy as np
 import pandas as pd
 from bot_settings import settings
-from discord import SyncWebhook
 from django.db.models import Q
 from gw2_logs.models import (
-    DiscordMessage,
     DpsLog,
     Emoji,
-    Encounter,
-    Instance,
-    InstanceClear,
     InstanceClearGroup,
-    Player,
 )
 from scripts.log_helpers import (
     BLANK_EMOTE,
-    EMBED_COLOR,
-    ITYPE_GROUPS,
     RANK_EMOTES,
     RANK_EMOTES_CUPS,
-    WEBHOOKS,
-    WIPE_EMOTES,
     create_discord_time,
-    create_folder_names,
     create_or_update_discord_message,
     find_log_by_date,
     get_duration_str,
-    get_rank_emote,
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_instance_interaction import InstanceClearGroupInteraction, create_embeds
+from scripts.log_instance_interaction import create_embeds
 from scripts.log_uploader import LogUploader
-
-from gw2_database.scripts import log_uploader
 
 # %%
 
