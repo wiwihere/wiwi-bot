@@ -6,7 +6,6 @@ from itertools import chain
 import discord
 import numpy as np
 import pandas as pd
-from discord import SyncWebhook
 from django.db.models import Q
 
 if __name__ == "__main__":
@@ -15,14 +14,12 @@ if __name__ == "__main__":
     init_django_from_commands("gw2_database")
 from bot_settings import settings
 from gw2_logs.models import (
-    DiscordMessage,
     DpsLog,
     Emoji,
     Encounter,
     Instance,
     InstanceClear,
     InstanceClearGroup,
-    Player,
 )
 from scripts.log_helpers import (
     EMBED_COLOR,
@@ -31,7 +28,6 @@ from scripts.log_helpers import (
     WIPE_EMOTES,
     create_discord_time,
     create_or_update_discord_message,
-    find_log_by_date,
     get_duration_str,
     get_rank_emote,
     zfill_y_m_d,
