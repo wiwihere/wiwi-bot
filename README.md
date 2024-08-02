@@ -7,6 +7,8 @@ For any questions or feature requests feel free to slide into the discord server
 # Features
 It is a local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs while raiding every time there is one available. Or just upload the full run afterwards.
 
+Apart from uploading the logs to dps.report, they will be processed locally first using the https://github.com/baaron4/GW2-Elite-Insights-Parser.
+
 ### Static clears
 ![Raid message](img/raid_message.png)
 ![Fractal message](img/fractal_message.png)
@@ -25,11 +27,26 @@ Clicking the skull icon will also open the log of that run. Does sadly not work 
 <img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
 _*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
+
+
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
 <img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
 <img src="gw2_database/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
 of the run.
+
+
+### Cerus Legendary CM
+Track Cerus LCM progression. Same could be set up for HT.
+
+The link to dps.report is found by clicking the ★ (LCM) or ☆ (normal cm).
+Time left on the clock when breakbar phase starts is logged, to give indication if the run would have even be possible.
+
+When more than 120s delay between two logs, the delay will be shown. To indicate where breaks were taken.
+
+The top 3 logs are indicated with trophies. The title number (#11) indicates the day of progression. 
+
+![](img/cerus_cm.png)
 
 
 # Installation
