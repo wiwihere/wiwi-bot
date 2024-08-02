@@ -258,15 +258,15 @@ def run_cerus_cm(y, m, d):
                     group=iclear_group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=embeds_mes
                 )
 
-            if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
-                print("Finished run")
-                return
+        if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+            print("Finished run")
+            return
 
-            current_sleeptime -= SLEEPTIME
-            print(f"Run {run_count} done")
+        current_sleeptime -= SLEEPTIME
+        print(f"Run {run_count} done")
 
-            time.sleep(SLEEPTIME)
-            run_count += 1
-            # break
+        time.sleep(SLEEPTIME)
+        run_count += 1
+        # break
 
     # %%
