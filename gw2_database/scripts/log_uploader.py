@@ -2,10 +2,13 @@
 import datetime
 import json
 import shutil
+import time
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import requests
 from dateutil.parser import parse
 
@@ -13,11 +16,11 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
-import time
 
 from bot_settings import settings
 from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from scripts.log_helpers import create_unix_time, get_emboldened_wing, today_y_m_d, zfill_y_m_d
+from scripts.ei_parser import EliteInisghtsParser
+from scripts.log_helpers import create_unix_time, get_duration_str, get_emboldened_wing, today_y_m_d, zfill_y_m_d
 
 
 @dataclass
@@ -330,8 +333,111 @@ ERROR
         return log
 
 
-# %%
-if __name__ == "__main__":
-    self = LogUploader.from_path(r"")
+@dataclass
+class DpsLogInteraction:
+    """Create a dpslog from detailed logs in EI parser or the
+    shorter json from dps.report."""
 
-    self.run()
+    dpslog: DpsLog = None
+
+    @classmethod
+    def from_local_ei_parser(cls, log_path, parsed_path):
+        try:
+            dpslog = DpsLog.objects.get(local_path=log_path)
+        except DpsLog.DoesNotExist:
+            dpslog = None
+
+        if dpslog is None:
+            json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
+            dpslog = cls.from_detailed_logs(log_path, json_detailed)
+
+        return cls(dpslog=dpslog)
+
+    @classmethod
+    def from_detailed_logs(cls, log_path, json_detailed):
+        print("Processing detailed log")
+        r2 = json_detailed
+
+        players = [player["account"] for player in r2["players"]]
+        final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+
+        encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+
+        if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
+            cls.move_failed_upload()
+
+        if encounter.name == "Temple of Febe":
+            phasetime_str = cls._get_phasetime_str(json_detailed=json_detailed)
+        else:
+            phasetime_str = None
+
+        dpslog, created = DpsLog.objects.update_or_create(
+            defaults={
+                # "url": r["permalink"],
+                "duration": datetime.timedelta(seconds=r2["durationMS"] / 1000),
+                # "end_time"=,
+                "player_count": len(players),
+                "encounter": encounter,
+                "boss_name": r2["fightName"],
+                "cm": r2["isCM"],
+                "legendary": r2["isLegendaryCM"],
+                "emboldened": "b68087" in r2["buffMap"],
+                "success": r2["success"],
+                "final_health_percentage": final_health_percentage,
+                "gw2_build": r2["gW2Build"],
+                "players": players,
+                "core_player_count": len(Player.objects.filter(gw2_id__in=players)),
+                # "report_id": r["id"],
+                "local_path": log_path,
+                # "json_dump": r,
+                "phasetime_str": phasetime_str,
+            },
+            start_time=datetime.datetime.strptime(r2["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
+                datetime.timezone.utc
+            ),
+        )
+        return dpslog
+
+    def from_normal_logs(self):
+        pass
+
+        # dpslog = DpsLog.objects.filter()
+
+        # return cls(dpslog=dpslog)
+
+    @staticmethod
+    def _get_phasetime_str(json_detailed):
+        """For Cerus LCM the time breakbar phases are reached is calculated from detailed logs."""
+        # Get information on phase timings
+        r2 = json_detailed
+
+        data = r2["phases"]
+
+        filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
+        df = pd.DataFrame(filtered_data)
+        if not df.empty:
+            df["time"] = df["end"].apply(lambda x: datetime.timedelta(minutes=10) - datetime.timedelta(milliseconds=x))
+
+            phasetime_lst = [
+                get_duration_str(i.astype("timedelta64[s]").astype(np.int32)) for i in df["time"].to_numpy()
+            ]
+        else:
+            phasetime_lst = []
+
+        while len(phasetime_lst) < 3:
+            phasetime_lst.append(" -- ")
+
+        phasetime_str = " | ".join(phasetime_lst)
+
+        return phasetime_str
+
+
+# %%
+# if __name__ == "__main__":
+#     #     self = LogUploader.from_path(r"")
+#     log_path = Path(
+#     )
+#     log = Path(
+#     )
+#     #     self.run()
+#     a = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=log)

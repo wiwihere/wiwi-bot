@@ -115,6 +115,7 @@ class Encounter(models.Model):
     name = models.CharField(max_length=30)
     shortname = models.CharField(max_length=30, null=True, blank=True)
     dpsreport_boss_id = models.IntegerField(null=True, blank=True)
+    ei_encounter_id = models.IntegerField(null=True, blank=True)  # eiEncounterID
     folder_names = models.CharField(max_length=100, null=True, blank=True)
     emoji = models.ForeignKey(
         Emoji,
@@ -274,7 +275,7 @@ class DpsLog(models.Model):
     report_id = models.CharField(max_length=100, null=True, blank=True)
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
-    phasetime_str = models.CharField(max_length=100, null=True, blank=True)
+    phasetime_str = models.CharField(max_length=100, null=True, blank=True)  # cerus cm
 
     def __str__(self):
         return f"{self.boss_name} {self.start_time}"
@@ -291,7 +292,12 @@ class DpsLog(models.Model):
         cm_str = ""
         if self.cm:
             cm_str = " CM"
-        return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
+
+        if self.url == "":
+            return f"{self.emoji_tag}{{rank_str}}{self.encounter.name}{cm_str} \
+(**{mins}:{str(secs).zfill(2)}**)"
+        else:
+            return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"
 
     @property

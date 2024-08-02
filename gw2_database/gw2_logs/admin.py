@@ -77,6 +77,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "nr",
         "emoji",
         "dpsreport_boss_id",
+        "ei_encounter_id",
         "folder_names",
         "instance__type",
         "has_cm",
