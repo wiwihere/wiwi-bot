@@ -7,6 +7,8 @@ For any questions or feature requests feel free to slide into the discord server
 # Features
 It is a local tool that uses dps logs from arc-dps and uploads them to dps.report. The log manager will create a discord message for a raiding or fractal session. It will post new logs while raiding every time there is one available. Or just upload the full run afterwards.
 
+Apart from uploading the logs to dps.report, they will be processed locally first using the https://github.com/baaron4/GW2-Elite-Insights-Parser.
+
 ### Static clears
 ![Raid message](img/raid_message.png)
 ![Fractal message](img/fractal_message.png)
@@ -25,11 +27,26 @@ Clicking the skull icon will also open the log of that run. Does sadly not work 
 <img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
 _*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
 <img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
+
+
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
 <img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
 <img src="gw2_database/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
 of the run.
+
+
+### Cerus Legendary CM
+Track Cerus LCM progression. Same could be set up for HT.
+
+The link to dps.report is found by clicking the ★ (LCM) or ☆ (normal cm).
+Time left on the clock when breakbar phase starts is logged, to give indication if the run would have even be possible.
+
+When more than 120s delay between two logs, the delay will be shown. To indicate where breaks were taken.
+
+The top 3 logs are indicated with trophies. The title number (#11) indicates the day of progression. 
+
+![](img/cerus_cm.png)
 
 
 # Installation
@@ -38,13 +55,14 @@ to use any other python distribution to your liking.
 
 ## Software
 <!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
-1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip.
+1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip. 
+-- optional -- To later be able to update easily, install https://github.com/apps/desktop and use that to download this repo. 
 2. Install the python environment. Download [miniforge](https://github.com/conda-forge/miniforge). Make sure to tick the option to add python 3.10 to system path.
 3. Run `Miniforge Prompt` as **admin**. And run the following code;
 ```
 mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #Change to download location
 ```
-4. Use the IDE of your choice if you need to debug errors or want a bit more control. I use [vs-code-insiders](https://code.visualstudio.com/insiders):\
+4. -- optional -- Use the IDE of your choice if you need to debug errors or want a bit more control. I use [vs-code-insiders](https://code.visualstudio.com/insiders):\
     a. Install the python and jupyter extensions.\
     b. File -> Open Folder ->  select the folder with the unpacked zip from 1.\
     c. Open the file `wiwi-bot/gw2_database/scripts/import_dps_report.py`\
@@ -62,6 +80,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
     - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal/first_invalid.png" width="20"/>)
     - .env\MEAN_OR_MEDIAN -> [mean or median] Choose what unranked runs are compared with, the median or mean of all runs.
+    - .env\MEDALS_TYPE -> Choose which medals are used. options are ['original', 'percentile', 'newgame']
 
 2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
 
