@@ -36,7 +36,7 @@ from scripts.log_instance_interaction import (
     create_embeds,
     create_or_update_discord_message,
 )
-from scripts.log_uploader import LogUploader
+from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # importlib.reload(log_uploader)
 
@@ -81,89 +81,100 @@ if True:
         log_paths = sorted(log_paths, key=os.path.getmtime)
 
         # Process each log
-        for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-            # Skip upload if log is not in itype_group
-            try:
-                if itype_groups is not None:
-                    boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
-                    if boss_name not in folder_names:
-                        print(f"Skipped {log_path}")
+
+        for processing_type in ["local", "upload"]:
+            print(processing_type)
+
+            create_message = False
+
+            for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
+                # Skip upload if log is not in itype_group
+                try:
+                    if itype_groups is not None:
+                        boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
+                        if boss_name not in folder_names:
+                            print(f"Skipped {log_path}")
+                            log_paths_done.append(log_path)
+                            continue
+                except IndexError as e:
+                    print("Failed to find bossname, will use log.")
+                    pass
+
+                if processing_type == "local":
+                    # Local processing
+                    parsed_path = ei_parser.parse_log(evtc_path=log_path)
+                    dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
+                    uploaded_log = dli.dpslog
+                elif processing_type == "upload":
+                    # Upload log
+                    log_upload = LogUploader.from_path(log_path)
+                    uploaded_log = log_upload.run()
+
+                # Create ICGI and update discord message
+                fractal_success = False
+
+                if uploaded_log is not False:
+                    if processing_type == "upload":
                         log_paths_done.append(log_path)
-                        continue
-            except IndexError as e:
-                print("Failed to find bossname, will use log.")
-                pass
 
-            # Local processing
-            log = ei_parser.parse_log(evtc_path=log_path)
-            break
-            # %%
-            # Upload log
-            # log_upload = LogUploader.from_path(log_path)
-            # uploaded_log = log_upload.run()
-            uploaded_log = False
+                    # if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
+                    #     continue  #TODO uncomment
 
-            # Create ICGI and update discord message
-            fractal_success = False
-            if uploaded_log is not False:
-                log_paths_done.append(log_path)
-
-                # if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
-                #     continue
-
-                self = icgi = InstanceClearGroupInteraction.create_from_date(
-                    y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
-                )
-                if icgi is not None:
-                    # Set the same discord message id when strikes and raids are combined.
-                    if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
-                        icgi.iclear_group.type in ["raid", "strike"]
-                    ):
-                        if self.iclear_group.discord_message is None:
-                            group_names = [
-                                "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
-                                for j in ITYPE_GROUPS["raid"]
-                            ]
-                            self.iclear_group.discord_message_id = (
-                                InstanceClearGroup.objects.filter(name__in=group_names)
-                                .exclude(discord_message=None)
-                                .values_list("discord_message", flat=True)
-                                .first()
-                            )
-                            self.iclear_group.save()
-
-                    # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
-                    grp_lst = [icgi.iclear_group]
-                    if icgi.iclear_group.discord_message is not None:
-                        grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-                    grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
-
-                    # combine embeds
-                    embeds = {}
-                    for icg in grp_lst:
-                        icgi = InstanceClearGroupInteraction.from_name(icg.name)
-
-                        titles, descriptions = icgi.create_message()
-                        icg_embeds = create_embeds(titles, descriptions)
-                        embeds.update(icg_embeds)
-                    embeds_mes = list(embeds.values())
-
-                    create_or_update_discord_message(
-                        group=icgi.iclear_group,
-                        hook=WEBHOOKS[icgi.iclear_group.type],
-                        embeds_mes=embeds_mes,
+                    self = icgi = InstanceClearGroupInteraction.create_from_date(
+                        y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
                     )
 
-                    if icgi.iclear_group.success:
-                        if icgi.iclear_group.type == "fractal":
-                            leaderboards.create_leaderboard(itype="fractal")
-                            fractal_success = True
-            break
+                    if icgi is not None:
+                        # Set the same discord message id when strikes and raids are combined.
+                        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
+                            icgi.iclear_group.type in ["raid", "strike"]
+                        ):
+                            if self.iclear_group.discord_message is None:
+                                group_names = [
+                                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
+                                    for j in ITYPE_GROUPS["raid"]
+                                ]
+                                self.iclear_group.discord_message_id = (
+                                    InstanceClearGroup.objects.filter(name__in=group_names)
+                                    .exclude(discord_message=None)
+                                    .values_list("discord_message", flat=True)
+                                    .first()
+                                )
+                                self.iclear_group.save()
+
+                        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
+                        grp_lst = [icgi.iclear_group]
+                        if icgi.iclear_group.discord_message is not None:
+                            grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
+                        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
+
+                        # combine embeds
+                        embeds = {}
+                        for icg in grp_lst:
+                            icgi = InstanceClearGroupInteraction.from_name(icg.name)
+
+                            titles, descriptions = icgi.create_message()
+                            icg_embeds = create_embeds(titles, descriptions)
+                            embeds.update(icg_embeds)
+                        embeds_mes = list(embeds.values())
+
+                        create_or_update_discord_message(
+                            group=icgi.iclear_group,
+                            hook=WEBHOOKS[icgi.iclear_group.type],
+                            embeds_mes=embeds_mes,
+                        )
+
+                        if icgi.iclear_group.success:
+                            if icgi.iclear_group.type == "fractal":
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
 
 
 # %%
 
-r2 = EliteInisghtsParser.load_json_gz(js_path=log)
+DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=log)
+
+# r2 = EliteInisghtsParser.load_json_gz(js_path=log)
 
 # %% Just update or create discord message, dont upload logs.
 

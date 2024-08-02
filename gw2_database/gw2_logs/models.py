@@ -292,7 +292,12 @@ class DpsLog(models.Model):
         cm_str = ""
         if self.cm:
             cm_str = " CM"
-        return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
+
+        if self.url == "":
+            return f"{self.emoji_tag}{{rank_str}}{self.encounter.name}{cm_str} \
+(**{mins}:{str(secs).zfill(2)}**)"
+        else:
+            return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"
 
     @property

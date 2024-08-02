@@ -45,7 +45,7 @@ class EliteInisghtsParser:
 
         self.out_dir.mkdir(exist_ok=True)
 
-    def parse_log(self, evtc_path):
+    def parse_log(self, evtc_path) -> Path:
         """Parse to json locally. Uploading to dpsreport is not implemented.
 
         evtc_path: str
@@ -53,7 +53,7 @@ class EliteInisghtsParser:
 
         Returns
         -------
-        Parsed log as json
+        Parsed log path
         """
         evtc_path = Path(evtc_path)
 

@@ -398,7 +398,10 @@ class InstanceClearGroupInteraction:
                         wipe_emote = WIPE_EMOTES[np.ceil(wipe.final_health_percentage / 12.5)].format(
                             f"wipe_at_{int(wipe.final_health_percentage)}"
                         )
-                        wipe_str += f" [{wipe_emote}]({wipe.url})"
+                        if wipe.url == "":
+                            wipe_str += f" {wipe_emote}"
+                        else:
+                            wipe_str += f" [{wipe_emote}]({wipe.url})"
 
                 # Add encounter to field
                 if log.success:
