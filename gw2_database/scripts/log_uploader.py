@@ -22,8 +22,6 @@ from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, I
 from scripts.ei_parser import EliteInisghtsParser
 from scripts.log_helpers import create_unix_time, get_duration_str, get_emboldened_wing, today_y_m_d, zfill_y_m_d
 
-from gw2_database.scripts.ei_parser import EliteInisghtsParser
-
 
 @dataclass
 class LogUploader:
