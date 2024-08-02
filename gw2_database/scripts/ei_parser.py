@@ -29,6 +29,8 @@ class EliteInisghtsParser:
         """
 
         self.out_dir = out_dir
+        self.out_dir.mkdir(exist_ok=True)
+
         setting_out_path = out_dir.joinpath("gw2ei_settings.conf")
 
         # Load default settings and format them with the variables.
@@ -42,8 +44,6 @@ class EliteInisghtsParser:
             f.write(set_str)
 
         self.settings = setting_out_path
-
-        self.out_dir.mkdir(exist_ok=True)
 
     def parse_log(self, evtc_path) -> Path:
         """Parse to json locally. Uploading to dpsreport is not implemented.
@@ -100,12 +100,12 @@ class EliteInisghtsParser:
 # %%
 
 # if __name__ == "__main__":
-# ei_parser = EliteInisghtsParser()
-# ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20240729"), create_html=False)
+#     ei_parser = EliteInisghtsParser()
+#     ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20240729"), create_html=False)
 
-# d = ei_parser.parse_log(
-#     evtc_path=
-# )
-# r2 = EliteInisghtsParser.load_json_gz(js_path=d)
-# r2['eiEncounterID']
+#     d = ei_parser.parse_log(
+#         evtc_path=
+#     )
+#     r2 = EliteInisghtsParser.load_json_gz(js_path=d)
+#     r2["eiEncounterID"]
 # %%
