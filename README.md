@@ -55,7 +55,8 @@ to use any other python distribution to your liking.
 
 ## Software
 <!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
-1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip.
+1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip. 
+-- optional -- To later be able to update easily, install https://github.com/apps/desktop and use that to download this repo. 
 2. Install the python environment. Download [miniforge](https://github.com/conda-forge/miniforge). Make sure to tick the option to add python 3.10 to system path.
 3. Run `Miniforge Prompt` as **admin**. And run the following code;
 ```
