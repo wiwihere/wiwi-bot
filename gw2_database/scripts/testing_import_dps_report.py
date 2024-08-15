@@ -15,6 +15,7 @@ if __name__ == "__main__":
 
     init_django_from_commands("gw2_database")
 import os
+import time
 from itertools import chain
 from pathlib import Path
 
@@ -45,7 +46,7 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 
 y, m, d = today_y_m_d()
-y, m, d = 2024, 7, 29
+# y, m, d = 2024, 7, 29
 itype_groups = ["raid", "strike", "fractal"]
 
 if True:
@@ -64,6 +65,7 @@ if True:
     log_dirs = [log_dir1, log_dir2]
 
     log_paths_done = []
+    log_paths_local_done = []  # make sure we process log locally first.
     run_count = 0
     SLEEPTIME = 30
     MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
@@ -73,21 +75,25 @@ if True:
     ei_parser = EliteInisghtsParser()
     ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    if True:
+    while True:
         icgi = None
 
-        # Find logs in directory
-        log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-        log_paths = sorted(log_paths, key=os.path.getmtime)
-
-        # Process each log
-
-        for processing_type in ["local", "upload"]:
-            print(processing_type)
-
+        for processing_type in ["local", "upload"] + ["local"] * 9:
             create_message = False
 
-            for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
+            # Find logs in directory
+            log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
+            log_paths = sorted(log_paths, key=os.path.getmtime)
+
+            # check a different set when local or uploading.
+            if processing_type == "local":
+                log_paths_check = log_paths_local_done
+            elif processing_type == "upload":
+                log_paths_check = log_paths_done
+
+            log_paths_loop = sorted(set(log_paths).difference(set(log_paths_check)), key=os.path.getmtime)
+            # Process each log
+            for idx, log_path in enumerate(log_paths_loop):
                 # Skip upload if log is not in itype_group
                 try:
                     if itype_groups is not None:
@@ -106,14 +112,22 @@ if True:
                     dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
                     uploaded_log = dli.dpslog
                 elif processing_type == "upload":
-                    # Upload log
-                    log_upload = LogUploader.from_path(log_path)
-                    uploaded_log = log_upload.run()
+                    if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
+                        # Upload log
+                        log_upload = LogUploader.from_path(log_path, only_url=True)
+                        uploaded_log = log_upload.run()
+                    else:
+                        uploaded_log = False
 
                 # Create ICGI and update discord message
                 fractal_success = False
 
                 if uploaded_log is not False:
+                    if processing_type == "local":
+                        log_paths_local_done.append(log_path)
+                        if uploaded_log.url != "":
+                            log_paths_done.append(log_path)
+
                     if processing_type == "upload":
                         log_paths_done.append(log_path)
 
@@ -158,16 +172,34 @@ if True:
                             embeds.update(icg_embeds)
                         embeds_mes = list(embeds.values())
 
-                        create_or_update_discord_message(
-                            group=icgi.iclear_group,
-                            hook=WEBHOOKS[icgi.iclear_group.type],
-                            embeds_mes=embeds_mes,
-                        )
+                        # Update discord, only do it on the last log, so we dont spam the discord api too often.
+                        if idx == len(log_paths_loop) - 1:
+                            create_or_update_discord_message(
+                                group=icgi.iclear_group,
+                                hook=WEBHOOKS[icgi.iclear_group.type],
+                                embeds_mes=embeds_mes,
+                            )
 
                         if icgi.iclear_group.success:
                             if icgi.iclear_group.type == "fractal":
                                 leaderboards.create_leaderboard(itype="fractal")
                                 fractal_success = True
+
+                current_sleeptime = MAXSLEEPTIME
+            if processing_type == "local":
+                time.sleep(SLEEPTIME / 10)
+
+        if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+            leaderboards.create_leaderboard(itype="fractal")
+            leaderboards.create_leaderboard(itype="raid")
+            leaderboards.create_leaderboard(itype="strike")
+            print("Finished run")
+            break
+
+        current_sleeptime -= SLEEPTIME
+        print(f"Run {run_count} done")
+
+        run_count += 1
 
 
 # %%

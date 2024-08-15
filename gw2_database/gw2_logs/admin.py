@@ -159,6 +159,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         "success",
         "final_health_percentage",
         "duration",
+        "url",
         "start_time",
         "core_player_count",
         "instance_clear_id",
