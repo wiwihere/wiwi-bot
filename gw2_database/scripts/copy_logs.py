@@ -26,6 +26,7 @@ def copy_logs(y, m, d, itype_groups):
     log_dir_source = Path(settings.DPS_LOGS_DIR)
     log_dir_dst = Path(settings.ONEDRIVE_LOGS_DIR)
     print(f"Selected itype groups: {itype_groups}")
+    print(f"Src dir: {log_dir_source}")
     print(f"Dst dir: {log_dir_dst}")
 
     # Find logs in directory
