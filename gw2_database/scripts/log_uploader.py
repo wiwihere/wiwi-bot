@@ -214,7 +214,7 @@ class LogUploader:
             if r["encounter"]["boss"] == "Dark Ai":
                 r["encounter"]["bossId"] = -23254
 
-        if r["encounter"]["bossId"] in [25413, 25423]:
+        if r["encounter"]["bossId"] in [25413, 25423, 25416]:
             # OLC has different bossId's. We map all logs to one.
             r["encounter"]["bossId"] = 25414
 

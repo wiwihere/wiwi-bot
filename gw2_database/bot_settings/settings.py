@@ -61,7 +61,8 @@ DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtl
 DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
 ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
-
+if not Path(DPS_LOGS_DIR).exists():
+    print("WARNING: ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the bot_settings/.env")
 
 CMDS_DIR = BASE_DIR / "cmds"
 COGS_DIR = BASE_DIR / "cogs"

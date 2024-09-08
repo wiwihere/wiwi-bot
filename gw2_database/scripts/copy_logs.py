@@ -23,6 +23,7 @@ from scripts.log_helpers import (
 
 
 def copy_logs(y, m, d, itype_groups):
+    """Copy logs from a date to a folder"""
     log_dir_source = Path(settings.DPS_LOGS_DIR)
     log_dir_dst = Path(settings.ONEDRIVE_LOGS_DIR)
     print(f"Selected itype groups: {itype_groups}")
@@ -47,7 +48,7 @@ def copy_logs(y, m, d, itype_groups):
 
             dst = log_dir_dst.joinpath(log_path.name)
             print(log_path)
-            # shutil.copyfile(src=log_path, dst=dst)
+            shutil.copyfile(src=log_path, dst=dst)
 
         except IndexError as e:
             print(e)

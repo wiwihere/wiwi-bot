@@ -43,10 +43,10 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 
 # %%
-
+#TODO do something with Ethereal Barrier (47188)
 
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 7, 29
+# y, m, d = 2024, 8, 22
 itype_groups = ["raid", "strike", "fractal"]
 
 if True:
