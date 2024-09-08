@@ -1,5 +1,6 @@
 # %%
 """Dangerous! Only use if you wish to have a clean start."""
+
 import shutil
 import sys
 
@@ -8,7 +9,7 @@ if __name__ == "__main__":
 
     init_django_from_commands("gw2_database")
 
-from gw2_logs.models import DpsLog, Guild, Instance, InstanceClear, InstanceClearGroup, Player
+from gw2_logs.models import DpsLog, Instance, InstanceClear, InstanceClearGroup, Player
 from scripts.log_helpers import today_y_m_d
 
 from gw2_database.gw2_database import settings as django_settings
@@ -37,8 +38,6 @@ if res == "y":
         InstanceClearGroup.objects.all().delete()
         print("Deleting all: Player")
         Player.objects.all().delete()
-        print("Deleting all: Guild")
-        Guild.objects.all().delete()
 
         print("Deleting all: discord_leaderboard_message_id from Instance")
         for instance in Instance.objects.all():

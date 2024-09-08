@@ -31,6 +31,7 @@ class LogUploader:
 
     log_path: str = None
     log_url: str = None
+    only_url: bool = False
 
     def __post_init__(self):
         if self.log_path:
@@ -41,14 +42,18 @@ class LogUploader:
         self.r2 = None  # Detailed api response
 
     @classmethod
-    def from_path(cls, log_path):
-        """Get the log from a local file"""
-        return cls(log_path=log_path)
+    def from_path(cls, log_path, only_url=False):
+        """Get the log from a local file
+
+        only_url : (bool) default False
+            only update the url, nothing else. We want this when log is already parsed locally.
+        """
+        return cls(log_path=log_path, only_url=only_url)
 
     @classmethod
-    def from_url(cls, log_url):
+    def from_url(cls, log_url, only_url=False):
         """If log already uploaded can also get it from an url"""
-        return cls(log_url=str(log_url))
+        return cls(log_url=str(log_url), only_url=only_url)
 
     @classmethod
     def from_log(cls, log: DpsLog):
@@ -209,7 +214,7 @@ class LogUploader:
             if r["encounter"]["boss"] == "Dark Ai":
                 r["encounter"]["bossId"] = -23254
 
-        if r["encounter"]["bossId"] in [25413, 25423]:
+        if r["encounter"]["bossId"] in [25413, 25423, 25416]:
             # OLC has different bossId's. We map all logs to one.
             r["encounter"]["bossId"] = 25414
 
@@ -252,82 +257,94 @@ ERROR
             if settings.DEBUG:
                 raise Encounter.DoesNotExist
 
-        # Check wrong metadata, sometimes the normal json response has empty
-        # or plain wrong data. This has to do with some memory issues on b.dps.report.
-        # Can be fixed by requesting the detailed info.
-        if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
-            print(f"Log seems broken. Requesting more info {self.log_source_view}")
+        if not self.only_url:
+            # Check wrong metadata, sometimes the normal json response has empty
+            # or plain wrong data. This has to do with some memory issues on b.dps.report.
+            # Can be fixed by requesting the detailed info.
+            if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
+                print(f"Log seems broken. Requesting more info {self.log_source_view}")
 
-            self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
-            # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
-            start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
+                self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
+                # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
+                start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
 
-            r["encounter"]["duration"] = self.r2["durationMS"] / 1000
-            r["encounter"]["isCm"] = r2["isCM"]
-            r["encounterTime"] = create_unix_time(start_time)
+                r["encounter"]["duration"] = self.r2["durationMS"] / 1000
+                r["encounter"]["isCm"] = r2["isCM"]
+                r["encounterTime"] = create_unix_time(start_time)
 
-        # Arcdps error 'File had invalid agents. Please update arcdps' would return some
-        # empty jsons. This makes sure the log is still processed
-        if self.r["players"] != []:
-            players = [i["display_name"] for i in r["players"].values()]
-        else:
-            players = []
-
-        self.log, created = log, created = DpsLog.objects.update_or_create(
-            defaults={
-                "encounter": encounter,
-                "success": r["encounter"]["success"],
-                "duration": datetime.timedelta(seconds=r["encounter"]["duration"]),
-                "url": r["permalink"],
-                "player_count": r["encounter"]["numberOfPlayers"],
-                "boss_name": r["encounter"]["boss"],
-                "cm": r["encounter"]["isCm"],
-                "gw2_build": r["encounter"]["gw2Build"],
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players)),
-                "report_id": r["id"],
-                "local_path": self.log_source,
-                "json_dump": r,
-            },
-            # r["encounterTime"] format is 1702926477
-            start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
-        )
-
-        # Update final health percentage
-        if log.final_health_percentage is None:
-            if log.success is False:
-                print(f"{datetime.datetime.now()}    Requesting final boss health")
-                self.r2 = r2 = self.request_detailed_info()
-                log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
-
-                # Sometimes people get in combat at eyes which creates an uneccesary log.
-                if log.final_health_percentage == 100.0 and self.r["encounter"]["boss"] == "Eye of Fate":
-                    self.move_failed_upload()
-                    log.delete()
-                    return False
-
+            # Arcdps error 'File had invalid agents. Please update arcdps' would return some
+            # empty jsons. This makes sure the log is still processed
+            if self.r["players"] != []:
+                players = [i["display_name"] for i in r["players"].values()]
             else:
-                log.final_health_percentage = 0
-            log.save()
+                players = []
 
-        # Check emboldened
-        if (log.emboldened is None) and (log.encounter is not None):
-            emboldened_wing = get_emboldened_wing(log.start_time)
-            if (
-                (emboldened_wing == log.encounter.instance.nr)
-                and (log.encounter.instance.type == "raid")
-                and not (log.cm)
-            ):
-                print("    Checking for emboldened")
-                self.r2 = r2 = self.request_detailed_info()
-                if "presentInstanceBuffs" in r2:
-                    log.emboldened = 68087 in list(chain(*r2["presentInstanceBuffs"]))
+            self.log, created = log, created = DpsLog.objects.update_or_create(
+                defaults={
+                    "encounter": encounter,
+                    "success": r["encounter"]["success"],
+                    "duration": datetime.timedelta(seconds=r["encounter"]["duration"]),
+                    "url": r["permalink"],
+                    "player_count": r["encounter"]["numberOfPlayers"],
+                    "boss_name": r["encounter"]["boss"],
+                    "cm": r["encounter"]["isCm"],
+                    "gw2_build": r["encounter"]["gw2Build"],
+                    "players": players,
+                    "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                    "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+                    "report_id": r["id"],
+                    "local_path": self.log_source,
+                    "json_dump": r,
+                },
+                # r["encounterTime"] format is 1702926477
+                start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
+            )
+
+            # Update final health percentage
+            if log.final_health_percentage is None:
+                if log.success is False:
+                    print(f"{datetime.datetime.now()}    Requesting final boss health")
+                    self.r2 = r2 = self.request_detailed_info()
+                    log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+
+                    # Sometimes people get in combat at eyes which creates an uneccesary log.
+                    if log.final_health_percentage == 100.0 and self.r["encounter"]["boss"] == "Eye of Fate":
+                        self.move_failed_upload()
+                        log.delete()
+                        return False
+
+                else:
+                    log.final_health_percentage = 0
+                log.save()
+
+            # Check emboldened
+            if (log.emboldened is None) and (log.encounter is not None):
+                emboldened_wing = get_emboldened_wing(log.start_time)
+                if (
+                    (emboldened_wing == log.encounter.instance.nr)
+                    and (log.encounter.instance.instance_group.name == "raid")
+                    and not (log.cm)
+                ):
+                    print("    Checking for emboldened")
+                    self.r2 = r2 = self.request_detailed_info()
+                    if "presentInstanceBuffs" in r2:
+                        log.emboldened = 68087 in list(chain(*r2["presentInstanceBuffs"]))
+                    else:
+                        log.emboldened = False
                 else:
                     log.emboldened = False
-            else:
-                log.emboldened = False
 
-            log.save()
+                log.save()
+
+        else:
+            self.log, created = log, created = DpsLog.objects.update_or_create(
+                defaults={
+                    "url": r["permalink"],
+                },
+                # r["encounterTime"] format is 1702926477
+                start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
+            )
+
         print(f"{datetime.datetime.now()} Finished processing: {self.log_source_view}")
 
         return log
@@ -336,7 +353,8 @@ ERROR
 @dataclass
 class DpsLogInteraction:
     """Create a dpslog from detailed logs in EI parser or the
-    shorter json from dps.report."""
+    shorter json from dps.report.
+    """
 
     dpslog: DpsLog = None
 
@@ -355,7 +373,7 @@ class DpsLogInteraction:
 
     @classmethod
     def from_detailed_logs(cls, log_path, json_detailed):
-        print("Processing detailed log")
+        print(f"Processing detailed log: {log_path}")
         r2 = json_detailed
 
         players = [player["account"] for player in r2["players"]]
@@ -364,7 +382,7 @@ class DpsLogInteraction:
         encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
 
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
-            cls.move_failed_upload()
+            move_failed_upload(log_path)
 
         if encounter.name == "Temple of Febe":
             phasetime_str = cls._get_phasetime_str(json_detailed=json_detailed)
@@ -380,13 +398,14 @@ class DpsLogInteraction:
                 "encounter": encounter,
                 "boss_name": r2["fightName"],
                 "cm": r2["isCM"],
-                "legendary": r2["isLegendaryCM"],
+                "lcm": r2["isLegendaryCM"],
                 "emboldened": "b68087" in r2["buffMap"],
                 "success": r2["success"],
                 "final_health_percentage": final_health_percentage,
                 "gw2_build": r2["gW2Build"],
                 "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players)),
+                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
                 # "report_id": r["id"],
                 "local_path": log_path,
                 # "json_dump": r,
@@ -409,9 +428,7 @@ class DpsLogInteraction:
     def _get_phasetime_str(json_detailed):
         """For Cerus LCM the time breakbar phases are reached is calculated from detailed logs."""
         # Get information on phase timings
-        r2 = json_detailed
-
-        data = r2["phases"]
+        data = json_detailed["phases"]
 
         filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
         df = pd.DataFrame(filtered_data)
@@ -430,6 +447,15 @@ class DpsLogInteraction:
         phasetime_str = " | ".join(phasetime_lst)
 
         return phasetime_str
+
+
+def move_failed_upload(log_path):
+    """Some logs are just broken. Lets remove them from the equation"""  # noqa
+    out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(log_path).name)
+    out_path.parent.mkdir(exist_ok=True)
+    # print(f"Moved failing log from {self.log_source_view} to")
+    print(out_path)
+    shutil.move(src=log_path, dst=out_path)
 
 
 # %%

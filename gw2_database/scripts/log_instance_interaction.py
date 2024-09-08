@@ -24,6 +24,7 @@ from gw2_logs.models import (
 from scripts.log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
+    PLAYER_EMOTES,
     WEBHOOKS,
     WIPE_EMOTES,
     create_discord_time,
@@ -75,6 +76,7 @@ class InstanceClearInteraction:
 
         if len(iclear.dps_logs.all()) > 0:
             iclear.core_player_count = int(np.median([log.core_player_count for log in iclear.dps_logs.all()]))
+            iclear.friend_player_count = int(np.median([log.friend_player_count for log in iclear.dps_logs.all()]))
 
         # Check if all encounters have been finished.
         encounter_count = max([i.nr for i in iclear.instance.encounters.all()])
@@ -110,8 +112,8 @@ class InstanceClearGroupInteraction:
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
-            encounter__instance__type=itype_group,
-        ).exclude(encounter__instance__type="golem")
+            encounter__instance__instance_group__name=itype_group,
+        ).exclude(encounter__instance__instance_group__name="golem")
 
         if len(logs_day) == 0:
             return None
@@ -163,7 +165,7 @@ class InstanceClearGroupInteraction:
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
-                encounter__use_in_instance_group__name=self.iclear_group.type,
+                encounter__leaderboard_instance_group__name=self.iclear_group.type,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
@@ -175,7 +177,7 @@ class InstanceClearGroupInteraction:
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
             if len(df_logs_duration[df_logs_duration["success"]]) == len(
-                Encounter.objects.filter(use_in_instance_group__name=self.iclear_group.type)
+                Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
             ):
                 # if self.iclear_group.success is False:
                 print(f"Finished {self.iclear_group.type}s for this week!")
@@ -209,18 +211,27 @@ class InstanceClearGroupInteraction:
                         ]
                     )
                 )
-
+                self.iclear_group.friend_player_count = int(
+                    np.median(
+                        [
+                            j.friend_player_count
+                            for i in week_clears
+                            for j in i.instance_clears.all().order_by("start_time")
+                        ]
+                    )
+                )
                 self.iclear_group.save()
             else:
                 self.iclear_group.success = False
                 self.iclear_group.duration = None
                 self.iclear_group.core_player_count = None
+                self.iclear_group.friend_player_count = None
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
             if sum(self.icg_iclears_all.values_list("success", flat=True)) == len(
-                Instance.objects.filter(type=self.iclear_group.type)
+                Instance.objects.filter(instance_group__name=self.iclear_group.type)
             ):
                 print("Finished all fractals!")
                 self.iclear_group.success = True
@@ -230,6 +241,9 @@ class InstanceClearGroupInteraction:
                 )
                 self.iclear_group.core_player_count = int(
                     np.median([i.core_player_count for i in self.icg_iclears_all])
+                )
+                self.iclear_group.friend_player_count = int(
+                    np.median([i.friend_player_count for i in self.icg_iclears_all])
                 )
                 self.iclear_group.save()
 
@@ -250,17 +264,20 @@ class InstanceClearGroupInteraction:
 
         # Put raid, strike, fractal in separate embeds.
         # for instance_type in instance_types:
-        core_emote = Emoji.objects.get(name="core").discord_tag
-        pug_emote = Emoji.objects.get(name="pug").discord_tag
+
         try:
             core_count = int(np.median([log.core_player_count for log in self.all_logs]))
-            pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
+            friend_count = int(np.median([log.friend_player_count for log in self.all_logs]))
+            pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count - friend_count
         except TypeError:
             core_count = 0
+            friend_count = 0
             pug_count = 10
 
         # Nina's space, add space after 5 ducks for better readability.
-        pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
+        pug_split_str = f"{PLAYER_EMOTES['core']*core_count}{PLAYER_EMOTES['friend']*friend_count}{PLAYER_EMOTES['pug']*pug_count}".split(
+            ">"
+        )
         if len(pug_split_str) > 5:
             pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
         pug_str = ">".join(pug_split_str)
@@ -298,8 +315,8 @@ class InstanceClearGroupInteraction:
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
         for iclear in self.icg_iclears_all:
-            titles[iclear.instance.type][iclear.name] = ""  # field title
-            descriptions[iclear.instance.type][iclear.name] = ""  # field description
+            titles[iclear.instance.instance_group.name][iclear.name] = ""  # field title
+            descriptions[iclear.instance.instance_group.name][iclear.name] = ""  # field description
 
             # Find rank of full instance on leaderboard
             iclear_success_all = None
@@ -315,15 +332,15 @@ class InstanceClearGroupInteraction:
             rank_str = get_rank_emote(
                 indiv=iclear,
                 group=iclear_success_all,
-                core_minimum=settings.CORE_MINIMUM[iclear.instance.type],
+                core_minimum=settings.CORE_MINIMUM[iclear.instance.instance_group.name],
             )
 
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
 
-            titles[iclear.instance.type][
+            titles[iclear.instance.instance_group.name][
                 iclear.name
-            ] = f"**__{iclear.instance.emoji.discord_tag}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
+            ] = f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
 ({duration_str})__**\n"
             field_value = ""
 
@@ -387,7 +404,7 @@ class InstanceClearGroupInteraction:
                 rank_str = get_rank_emote(
                     indiv=log,
                     group=encounter_success_all,
-                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.type],
+                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.instance_group.name],
                 )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
@@ -414,21 +431,47 @@ class InstanceClearGroupInteraction:
                     #   - Also should only add multiple wipes on same boss once.
                     if not encounter_success:
                         if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
-                            cm_str = ""
-                            if log.cm:
-                                cm_str = " CM"
-                            field_value += f"{log.emoji_tag}{rank_str}{log.encounter.name}{cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
+                            field_value += f"{log.encounter.emoji.discord_tag(self.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
 
             # Add the field text to the embed. Raids and strikes have a
             # larger chance that the field_value is larger than 1024 charcters.
             # This is sadly currently the limit on embed.field.value.
             # Descriptions can be 4096 characters, so instead of a field we just edit the description.
-            descriptions[iclear.instance.type][iclear.name] = field_value
+            descriptions[iclear.instance.instance_group.name][iclear.name] = field_value
 
         self.titles = titles
         self.descriptions = descriptions
 
         return titles, descriptions
+
+    def send_discord_message(self):
+        """Build the message from embeds and send to discord.
+        This will create embeds when there are multiple types linked to the same discord
+        message. So raids and strikes will be combined in one message.
+        """
+
+        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
+        grp_lst = [self.iclear_group]
+        if self.iclear_group.discord_message is not None:
+            grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
+        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
+
+        # combine embeds
+        embeds = {}
+        for icg in grp_lst:
+            icgi = InstanceClearGroupInteraction.from_name(icg.name)
+
+            titles, descriptions = icgi.create_message()
+            icg_embeds = create_embeds(titles, descriptions)
+            embeds.update(icg_embeds)
+        embeds_mes = list(embeds.values())
+
+        # Create/update the message
+        create_or_update_discord_message(
+            group=self.iclear_group,
+            hook=WEBHOOKS[self.iclear_group.type],
+            embeds_mes=embeds_mes,
+        )
 
 
 def create_embeds(titles, descriptions):
@@ -559,7 +602,7 @@ if __name__ == "__main__":
 
 # indiv = log
 # group = encounter_success_all
-# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.type]
+# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.instance_group.name]
 # custom_emoji_name = False
 
 # MEDAL_TYPE = "percentiles"

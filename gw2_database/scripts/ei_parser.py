@@ -87,7 +87,7 @@ class EliteInisghtsParser:
 
     @staticmethod
     def load_json_gz(js_path):
-        """Load zipped json"""
+        """Load zipped json as detailed json"""
 
         with gzip.open(js_path, "r") as fin:
             json_bytes = fin.read()

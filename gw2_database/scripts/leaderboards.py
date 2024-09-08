@@ -43,7 +43,7 @@ def create_leaderboard(itype: str):
         min_core_count = settings.CORE_MINIMUM[itype]
 
     # Instance leaderboards (wings/ strikes/ fractal scales)
-    instances = Instance.objects.filter(type=itype).order_by("nr")
+    instances = Instance.objects.filter(instance_group__name=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
         # INSTANCE LEADERBOARDS
         # ----------------
@@ -65,7 +65,7 @@ def create_leaderboard(itype: str):
 
         # Strikes dont have average clear time currently # FIXME
         if itype != "strike":
-            description += f"{instance.emoji.discord_tag}"
+            description += f"{instance.emoji.discord_tag()}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
                 rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype, pretty_time=True)
                 description += rank_duration_str
@@ -80,16 +80,24 @@ def create_leaderboard(itype: str):
         # For each encounter in the instance, add a new row to the embed.
         field_value = description
         for encounter in instance.encounters.all().order_by("nr"):
-            for cm in [False, True]:
-                if cm:
-                    emote = encounter.emoji.discord_tag_cm
-                    cont = encounter.lb_cm
-                else:
-                    emote = encounter.emoji.discord_tag
+            for difficulty in ["normal", "cm", "lcm"]:
+                if difficulty == "normal":
+                    cm = False
+                    lcm = False
                     cont = encounter.lb
+                if difficulty == "cm":
+                    cm = True
+                    lcm = False
+                    cont = encounter.lb_cm
+                if difficulty == "lcm":
+                    cm = True
+                    lcm = True
+                    cont = encounter.lb_lcm
+
+                emote = encounter.emoji.discord_tag(difficulty)
 
                 if not cont:
-                    continue  # skip if not
+                    continue  # skip if encounter is not selected to be on leaderboard
 
                 # Find encounter times
                 encounter_success_all = (
@@ -97,6 +105,7 @@ def create_leaderboard(itype: str):
                         success=True,
                         emboldened=False,
                         cm=cm,
+                        lcm=lcm,
                         core_player_count__gte=min_core_count,
                     )
                     .filter(
@@ -134,12 +143,12 @@ def create_leaderboard(itype: str):
         embed_title = f"{instance.name}"
         # TODO strike should have average too
         if itype == "strike":  # strike needs emoji because it doenst have instance average
-            embed_title = f"{instance.emoji.discord_tag} {instance.name}"
+            embed_title = f"{instance.emoji.discord_tag()} {instance.name}"
 
         embed = discord.Embed(
             title=embed_title,
             description=field_value,
-            colour=EMBED_COLOR[instance.type],
+            colour=EMBED_COLOR[instance.instance_group.name],
         )
 
         create_or_update_discord_message(
@@ -161,13 +170,13 @@ def create_leaderboard(itype: str):
     # fastes and average killtime
     for instance in instances:
         # Instance emote
-        description += f"{instance.emoji.discord_tag}"
+        description += f"{instance.emoji.discord_tag()}"
 
         # Loop over the encounters
         counter = 0
-        for ec in instance.encounters.filter(use_in_instance_group__name=itype).order_by("nr"):
+        for ec in instance.encounters.filter(leaderboard_instance_group__name=itype).order_by("nr"):
             # encounter emote
-            description += ec.emoji.discord_tag
+            description += ec.emoji.discord_tag()
             counter += 1
 
         # Add empty spaces to align.
@@ -227,7 +236,7 @@ def create_leaderboard(itype: str):
     embed = discord.Embed(
         title=f"Full {itype.capitalize()} Clear",
         description=description,
-        colour=EMBED_COLOR[instance.type],
+        colour=EMBED_COLOR[instance.instance_group.name],
     )
     embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
     embed.timestamp = datetime.datetime.now()

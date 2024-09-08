@@ -54,21 +54,21 @@ RANK_BINS_PERCENTILE = ast.literal_eval(get_env("RANK_BINS_PERCENTILE"))  # Dist
 
 DEBUG = get_env("DEBUG") == "True"
 
+
 BASE_DIR = Path(__file__).parent
 
 DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtlogs"
+DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
+ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
-ONEDRIVE_LOGS_DIR = rf"{Path.home()}\OneDrive\gw2_shared_logs"
+if not Path(DPS_LOGS_DIR).exists():
+    print("WARNING: ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the bot_settings/.env")
 
 CMDS_DIR = BASE_DIR / "cmds"
 COGS_DIR = BASE_DIR / "cogs"
 
 VIDEOCMDS_DIR = BASE_DIR / "videocmds"
 
-
-# GUILDS_ID = discord.Object(id=int(get_env("GUILD")))
-# FEEDBACK_CH = int(get_env("FEEDBACK_CH", 0))
-# GUILD_ID_INT = int(get_env("GUILD"))
 
 LOGGING_CONFIG = {
     "version": 1,
