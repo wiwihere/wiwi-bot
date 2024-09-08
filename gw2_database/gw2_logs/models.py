@@ -143,7 +143,7 @@ class Encounter(models.Model):
     lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
 
-    use_in_instance_group = models.ForeignKey(
+    leaderboard_instance_group = models.ForeignKey(
         InstanceGroup,
         related_name="encounters",
         null=True,

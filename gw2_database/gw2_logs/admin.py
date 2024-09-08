@@ -84,7 +84,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "lb",
         "lb_cm",
         "log_count",
-        "use_in_instance_group",
+        "leaderboard_instance_group",
     )
 
     # list_filter = "instance__type"

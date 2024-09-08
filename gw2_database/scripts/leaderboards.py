@@ -165,7 +165,7 @@ def create_leaderboard(itype: str):
 
         # Loop over the encounters
         counter = 0
-        for ec in instance.encounters.filter(use_in_instance_group__name=itype).order_by("nr"):
+        for ec in instance.encounters.filter(leaderboard_instance_group__name=itype).order_by("nr"):
             # encounter emote
             description += ec.emoji.discord_tag
             counter += 1
