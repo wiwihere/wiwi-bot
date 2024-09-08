@@ -426,9 +426,7 @@ class DpsLogInteraction:
     def _get_phasetime_str(json_detailed):
         """For Cerus LCM the time breakbar phases are reached is calculated from detailed logs."""
         # Get information on phase timings
-        r2 = json_detailed
-
-        data = r2["phases"]
+        data = json_detailed["phases"]
 
         filtered_data = [d for d in data if "Cerus Breakbar" in d["name"]]
         df = pd.DataFrame(filtered_data)
