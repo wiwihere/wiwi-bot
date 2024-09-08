@@ -65,7 +65,7 @@ def create_leaderboard(itype: str):
 
         # Strikes dont have average clear time currently # FIXME
         if itype != "strike":
-            description += f"{instance.emoji.discord_tag}"
+            description += f"{instance.emoji.discord_tag()}"
             for idx, instance_clear in enumerate(iclear_success_all[:3]):
                 rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype, pretty_time=True)
                 description += rank_duration_str
@@ -80,12 +80,12 @@ def create_leaderboard(itype: str):
         # For each encounter in the instance, add a new row to the embed.
         field_value = description
         for encounter in instance.encounters.all().order_by("nr"):
-            for cm in [False, True]:
+            for cm in [False, True]:  # FIXME add lcm
                 if cm:
-                    emote = encounter.emoji.discord_tag_cm
+                    emote = encounter.emoji.discord_tag("cm")
                     cont = encounter.lb_cm
                 else:
-                    emote = encounter.emoji.discord_tag
+                    emote = encounter.emoji.discord_tag()
                     cont = encounter.lb
 
                 if not cont:

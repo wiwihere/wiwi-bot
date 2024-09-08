@@ -250,8 +250,8 @@ class InstanceClearGroupInteraction:
 
         # Put raid, strike, fractal in separate embeds.
         # for instance_type in instance_types:
-        core_emote = Emoji.objects.get(name="core").discord_tag
-        pug_emote = Emoji.objects.get(name="pug").discord_tag
+        core_emote = Emoji.objects.get(name="core").discord_tag()
+        pug_emote = Emoji.objects.get(name="pug").discord_tag()
         try:
             core_count = int(np.median([log.core_player_count for log in self.all_logs]))
             pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
@@ -323,7 +323,7 @@ class InstanceClearGroupInteraction:
 
             titles[iclear.instance.instance_group.name][
                 iclear.name
-            ] = f"**__{iclear.instance.emoji.discord_tag}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
+            ] = f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
 ({duration_str})__**\n"
             field_value = ""
 
@@ -405,7 +405,7 @@ class InstanceClearGroupInteraction:
 
                 # Add encounter to field
                 if log.success:
-                    field_value += f"{log.discord_tag.format(rank_str=rank_str)}_+{duration_str}_{wipe_str}\n"
+                    field_value += f"{log.discord_tag().format(rank_str=rank_str)}_+{duration_str}_{wipe_str}\n"
                 else:
                     # If there are only wipes for an encounter, still add it to the field.
                     # This is a bit tricky, thats why we need to check a couple things.

@@ -17,12 +17,14 @@ class Emoji(models.Model):
     """Discord emoji"""
 
     name = models.CharField(max_length=30)
+    animated = models.BooleanField(null=True, blank=True, default=False)
+    type = models.CharField(null=True, max_length=10, choices=EMOJI_TYPES, default=None)
     discord_id = models.IntegerField(null=True, blank=True)
     url = models.URLField(null=True, blank=True)
-    animated = models.BooleanField(null=True, blank=True, default=False)
     discord_id_cm = models.IntegerField(null=True, blank=True)
     url_cm = models.URLField(null=True, blank=True)
-    type = models.CharField(null=True, max_length=10, choices=EMOJI_TYPES, default=None)
+    discord_id_lcm = models.IntegerField(null=True, blank=True)
+    url_lcm = models.URLField(null=True, blank=True)
     png_name = models.CharField(max_length=50, null=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -37,23 +39,32 @@ class Emoji(models.Model):
     def name_lower(self):
         return self.name.lower().replace(" ", "_")
 
-    @property
-    def discord_tag(self):
+    def discord_tag(self, difficulty="normal"):
+        discord_id = self.get_discord_id(difficulty)
         if not self.animated:
-            return f"<:{self.name_lower}:{self.discord_id}>"
-        return f"<a:{self.name_lower}:{self.discord_id}>"
+            return f"<:{self.name_lower}:{discord_id}>"
+        return f"<a:{self.name_lower}:{discord_id}>"
 
-    @property
-    def discord_tag_custom_name(self):
+    def discord_tag_custom_name(self, difficulty="normal"):
+        discord_id = self.get_discord_id(difficulty)
         if not self.animated:
-            return f"<:{{}}:{self.discord_id}>"
-        return f"<a:{{}}:{self.discord_id}>"
+            return f"<:{{}}:{discord_id}>"
+        return f"<a:{{}}:{discord_id}>"
 
-    @property
-    def discord_tag_cm(self):
-        if not self.animated:
-            return f"<:{self.name_lower}:{self.discord_id_cm}>"
-        return f"<a:{self.name_lower}:{self.discord_id_cm}>"
+    # @property
+    # def discord_tag_cm(self):
+    #     if not self.animated:
+    #         return f"<:{self.name_lower}:{self.discord_id_cm}>"
+    #     return f"<a:{self.name_lower}:{self.discord_id_cm}>"
+
+    def get_discord_id(self, difficulty):
+        if difficulty == "normal":
+            discord_id = self.discord_id
+        elif difficulty == "cm":
+            discord_id = self.discord_id_cm
+        elif difficulty == "lcm":
+            discord_id = self.discord_id_lcm
+        return discord_id
 
 
 class DiscordMessage(models.Model):
@@ -140,9 +151,12 @@ class Encounter(models.Model):
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of boss in instance
     has_cm = models.BooleanField(null=True, blank=True)
+    has_lcm = models.BooleanField(null=True, blank=True)
     lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
+    lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", null=True, blank=True)  # Include lcm in leaderboard
 
+    # TODO do we need this?
     leaderboard_instance_group = models.ForeignKey(
         InstanceGroup,
         related_name="encounters",
@@ -265,7 +279,7 @@ class DpsLog(models.Model):
     )
     boss_name = models.CharField(max_length=100, null=True, blank=True)
     cm = models.BooleanField(null=True, blank=True)
-    legendary = models.BooleanField(null=True, blank=True)
+    lcm = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info

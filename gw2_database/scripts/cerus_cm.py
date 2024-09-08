@@ -130,7 +130,7 @@ def run_cerus_cm(y, m, d):
                         iclear_group.save()
 
                 health_df = pd.DataFrame(
-                    cm_logs.values_list("id", "final_health_percentage", "legendary"), columns=["id", "health", "lcm"]
+                    cm_logs.values_list("id", "final_health_percentage", "lcm"), columns=["id", "health", "lcm"]
                 )
                 health_df["log"] = cm_logs
                 health_df.sort_values("health", inplace=True)
@@ -151,7 +151,7 @@ def run_cerus_cm(y, m, d):
                 if len(health_df) > 0:
                     if health_df["lcm"].mode().values[0]:
                         cerus_title = "Cerus Legendary CM"
-                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag_cm} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
+                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag('cm')} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
         <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414>\n"
                 # field_value += f"`nr`{BLANK_EMOTE}⠀⠀ `( health | 80%  | 50%  | 10%  )`\n"
                 # field_value += f"\n`##`⠀⠀**log** `( health |  80% |  50% |  10% )`+delay\n\n"
@@ -204,7 +204,7 @@ def run_cerus_cm(y, m, d):
                     else:
                         phasetime_str = ""
 
-                    if log.legendary:
+                    if log.lcm:
                         log_link_emote = "★"
                     else:
                         log_link_emote = "☆"

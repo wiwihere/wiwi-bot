@@ -397,7 +397,7 @@ class DpsLogInteraction:
                 "encounter": encounter,
                 "boss_name": r2["fightName"],
                 "cm": r2["isCM"],
-                "legendary": r2["isLegendaryCM"],
+                "lcm": r2["isLegendaryCM"],
                 "emboldened": "b68087" in r2["buffMap"],
                 "success": r2["success"],
                 "final_health_percentage": final_health_percentage,

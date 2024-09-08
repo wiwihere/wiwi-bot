@@ -21,15 +21,15 @@ from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
-    0: Emoji.objects.get(name="wipe 13").discord_tag_custom_name,  # OLC can still be bugged and give 0 health.
-    1: Emoji.objects.get(name="wipe 13").discord_tag_custom_name,  # Between 0 and 12.5%
-    2: Emoji.objects.get(name="wipe 25").discord_tag_custom_name,
-    3: Emoji.objects.get(name="wipe 38").discord_tag_custom_name,
-    4: Emoji.objects.get(name="wipe 50").discord_tag_custom_name,
-    5: Emoji.objects.get(name="wipe 63").discord_tag_custom_name,
-    6: Emoji.objects.get(name="wipe 75").discord_tag_custom_name,
-    7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name,
-    8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name,  # Full health
+    0: Emoji.objects.get(name="wipe 13").discord_tag_custom_name(),  # OLC can still be bugged and give 0 health.
+    1: Emoji.objects.get(name="wipe 13").discord_tag_custom_name(),  # Between 0 and 12.5%
+    2: Emoji.objects.get(name="wipe 25").discord_tag_custom_name(),
+    3: Emoji.objects.get(name="wipe 38").discord_tag_custom_name(),
+    4: Emoji.objects.get(name="wipe 50").discord_tag_custom_name(),
+    5: Emoji.objects.get(name="wipe 63").discord_tag_custom_name(),
+    6: Emoji.objects.get(name="wipe 75").discord_tag_custom_name(),
+    7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name(),
+    8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name(),  # Full health
 }
 EMBED_COLOR = {
     "raid": 7930903,
@@ -49,19 +49,19 @@ def create_rank_emote_dict(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name=f'first{invalid_str}'),tag)}",
-        1: f"{getattr(Emoji.objects.get(name=f'second{invalid_str}'), tag)}",
-        2: f"{getattr(Emoji.objects.get(name=f'third{invalid_str}'), tag)}",
-        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+        0: f"{getattr(Emoji.objects.get(name=f'first{invalid_str}'), tag)()}",
+        1: f"{getattr(Emoji.objects.get(name=f'second{invalid_str}'), tag)()}",
+        2: f"{getattr(Emoji.objects.get(name=f'third{invalid_str}'), tag)()}",
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name}".format(
+        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag()}",
     }
     return d
 
@@ -77,24 +77,24 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
     # RANK_BINS_PERCENTILE=[20, 40, 50, 60, 70, 80, 90, 100] # in .env
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='1_junk'),tag)}".format("bin20_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='2_basic'),tag)}".format("bin40_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='3_fine'),tag)}".format("bin50_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='4_masterwork'),tag)}".format("bin60_percrank{}"),
-        4: f"{getattr(Emoji.objects.get(name='5_rare'),tag)}".format("bin70_percrank{}"),
-        5: f"{getattr(Emoji.objects.get(name='6_exotic'),tag)}".format("bin80_percrank{}"),
-        6: f"{getattr(Emoji.objects.get(name='7_ascended'),tag)}".format("bin90_percrank{}"),
-        7: f"{getattr(Emoji.objects.get(name='8_legendary'),tag)}".format("bin100_percrank{}"),
-        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+        0: f"{getattr(Emoji.objects.get(name='1_junk'),tag)()}".format("bin20_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='2_basic'),tag)()}".format("bin40_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='3_fine'),tag)()}".format("bin50_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='4_masterwork'),tag)()}".format("bin60_percrank{}"),
+        4: f"{getattr(Emoji.objects.get(name='5_rare'),tag)()}".format("bin70_percrank{}"),
+        5: f"{getattr(Emoji.objects.get(name='6_exotic'),tag)()}".format("bin80_percrank{}"),
+        6: f"{getattr(Emoji.objects.get(name='7_ascended'),tag)()}".format("bin90_percrank{}"),
+        7: f"{getattr(Emoji.objects.get(name='8_legendary'),tag)()}".format("bin100_percrank{}"),
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name}".format(
+        "average": f"{Emoji.objects.get(name=f'average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag()}",
     }
     return d
 
@@ -110,18 +110,18 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'),tag)}".format("bin25_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'),tag)}".format("bin50_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'),tag)}".format("bin75_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'),tag)}".format("bin100_percrank{}"),
-        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name}".format(
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'),tag)()}".format("bin25_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'),tag)()}".format("bin50_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'),tag)()}".format("bin75_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'),tag)()}".format("bin100_percrank{}"),
+        "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name}".format(
+        "below_average": f"{Emoji.objects.get(name=f'below average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
-        "average": f"{Emoji.objects.get(name='blank').discord_tag_custom_name}".format(settings.MEAN_OR_MEDIAN),
-        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag}",
+        "average": f"{Emoji.objects.get(name='blank').discord_tag_custom_name()}".format(settings.MEAN_OR_MEDIAN),
+        "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag()}",
     }
     return d
 
@@ -143,13 +143,13 @@ RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
 RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
 RANK_EMOTES_CUPS = {
-    0: f"{getattr(Emoji.objects.get(name='trophy_gold'), 'discord_tag')}",
-    1: f"{getattr(Emoji.objects.get(name='trophy_silver'), 'discord_tag')}",
-    2: f"{getattr(Emoji.objects.get(name='trophy_bronze'), 'discord_tag')}",
+    0: Emoji.objects.get(name="trophy_gold").discord_tag(),
+    1: Emoji.objects.get(name="trophy_silver").discord_tag(),
+    2: Emoji.objects.get(name="trophy_bronze").discord_tag(),
 }
 
 
-BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag
+BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag()
 # Combine raids and strikes into the same group.
 
 WEBHOOKS = settings.WEBHOOKS
