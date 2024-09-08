@@ -63,11 +63,32 @@ class DiscordMessage(models.Model):
         return f"{self.message_id}"
 
 
+class InstanceGroup(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    discord_message = models.ForeignKey(
+        DiscordMessage,
+        related_name="instance_group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    def __str__(self):
+        return self.name
+
+
 class Instance(models.Model):
     """Group of encounters"""
 
     name = models.CharField(max_length=30)
-    type = models.CharField(max_length=10, choices=INSTANCE_TYPES, default="raid")
+    instance_group = models.ForeignKey(
+        InstanceGroup,
+        related_name="instance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
     emoji = models.ForeignKey(
         Emoji,
         related_name="instance",
@@ -92,21 +113,7 @@ class Instance(models.Model):
         return self.name.lower().replace(" ", "_")
 
     class Meta:
-        ordering = ["type", "nr"]
-
-
-class InstanceGroup(models.Model):
-    name = models.CharField(max_length=100, null=True, blank=True)
-    discord_message = models.ForeignKey(
-        DiscordMessage,
-        related_name="instance_group",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
-
-    def __str__(self):
-        return self.name
+        ordering = ["instance_group", "nr"]
 
 
 class Encounter(models.Model):

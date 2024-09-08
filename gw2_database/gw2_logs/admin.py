@@ -53,7 +53,7 @@ class PlayerInline(admin.TabularInline):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "emoji", "nr")
+    list_display = ("name", "instance_group", "emoji", "nr")
     inlines = [
         EncounterInline,
     ]
@@ -79,7 +79,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "dpsreport_boss_id",
         "ei_encounter_id",
         "folder_names",
-        "instance__type",
+        "instance__group",
         "has_cm",
         "lb",
         "lb_cm",
@@ -90,9 +90,9 @@ class EncounterAdmin(admin.ModelAdmin):
     # list_filter = "instance__type"
     inlines = [DpsLogInline]
 
-    def instance__type(self, obj):
+    def instance__group(self, obj):
         if obj.instance is not None:
-            return obj.instance.type
+            return obj.instance.instance_group
         else:
             return None
 
