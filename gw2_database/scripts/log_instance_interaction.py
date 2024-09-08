@@ -405,7 +405,7 @@ class InstanceClearGroupInteraction:
 
                 # Add encounter to field
                 if log.success:
-                    field_value += f"{log.discord_tag().format(rank_str=rank_str)}_+{duration_str}_{wipe_str}\n"
+                    field_value += f"{log.discord_tag.format(rank_str=rank_str)}_+{duration_str}_{wipe_str}\n"
                 else:
                     # If there are only wipes for an encounter, still add it to the field.
                     # This is a bit tricky, thats why we need to check a couple things.
@@ -414,10 +414,7 @@ class InstanceClearGroupInteraction:
                     #   - Also should only add multiple wipes on same boss once.
                     if not encounter_success:
                         if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
-                            cm_str = ""
-                            if log.cm:
-                                cm_str = " CM"
-                            field_value += f"{log.emoji_tag}{rank_str}{log.encounter.name}{cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
+                            field_value += f"{log.encounter.emoji.discord_tag(self.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
 
             # Add the field text to the embed. Raids and strikes have a
             # larger chance that the field_value is larger than 1024 charcters.

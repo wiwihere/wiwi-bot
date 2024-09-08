@@ -30,6 +30,7 @@ class Emoji(models.Model):
     def save(self, *args, **kwargs):
         self.url = f"https://cdn.discordapp.com/emojis/{self.discord_id}.webp?size=32&quality=lossless"
         self.url_cm = f"https://cdn.discordapp.com/emojis/{self.discord_id_cm}.webp?size=32&quality=lossless"
+        self.url_lcm = f"https://cdn.discordapp.com/emojis/{self.discord_id_lcm}.webp?size=32&quality=lossless"
         super(Emoji, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -50,12 +51,6 @@ class Emoji(models.Model):
         if not self.animated:
             return f"<:{{}}:{discord_id}>"
         return f"<a:{{}}:{discord_id}>"
-
-    # @property
-    # def discord_tag_cm(self):
-    #     if not self.animated:
-    #         return f"<:{self.name_lower}:{self.discord_id_cm}>"
-    #     return f"<a:{self.name_lower}:{self.discord_id_cm}>"
 
     def get_discord_id(self, difficulty):
         if difficulty == "normal":
@@ -256,7 +251,7 @@ class InstanceClear(models.Model):
 
     @property
     def discord_str(self):
-        return f"{self.instance.emoji.discord_tag} **{self.name_title}** {self.instance.emoji.discord_tag}"
+        return f"{self.instance.emoji.discord_tag()} **{self.name_title}** {self.instance.emoji.discord_tag()}"
 
     class Meta:
         ordering = ["-start_time"]
@@ -302,23 +297,33 @@ class DpsLog(models.Model):
         return f"{self.boss_name} {self.start_time}"
 
     @property
-    def emoji_tag(self):
+    def difficulty(self):
+        """Difficulty used in get the correct emote"""
+        difficulty = "normal"
         if self.cm:
-            return self.encounter.emoji.discord_tag_cm
-        return self.encounter.emoji.discord_tag
+            difficulty = "cm"
+        if self.lcm:
+            difficulty = "lcm"
+        return difficulty
+
+    @property
+    def cm_str(self):
+        cm_str = ""
+        if self.cm:
+            cm_str = " CM"
+        if self.lcm:
+            cm_str = " LCM"
+        return cm_str
 
     @property
     def discord_tag(self):
         mins, secs = divmod(self.duration.seconds, 60)
-        cm_str = ""
-        if self.cm:
-            cm_str = " CM"
 
         if self.url == "":
-            return f"{self.emoji_tag}{{rank_str}}{self.encounter.name}{cm_str} \
+            return f"{self.encounter.emoji.discord_tag(self.difficulty)}{{rank_str}}{self.encounter.name}{self.cm_str} \
 (**{mins}:{str(secs).zfill(2)}**)"
         else:
-            return f"{self.emoji_tag}{{rank_str}}[{self.encounter.name}{cm_str}]({self.url}) \
+            return f"{self.encounter.emoji.discord_tag(self.difficulty)}{{rank_str}}[{self.encounter.name}{self.cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"
 
     @property

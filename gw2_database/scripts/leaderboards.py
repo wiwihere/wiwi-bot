@@ -80,16 +80,24 @@ def create_leaderboard(itype: str):
         # For each encounter in the instance, add a new row to the embed.
         field_value = description
         for encounter in instance.encounters.all().order_by("nr"):
-            for cm in [False, True]:  # FIXME add lcm
-                if cm:
-                    emote = encounter.emoji.discord_tag("cm")
-                    cont = encounter.lb_cm
-                else:
-                    emote = encounter.emoji.discord_tag()
+            for difficulty in ["normal", "cm", "lcm"]:
+                if difficulty == "normal":
+                    cm = False
+                    lcm = False
                     cont = encounter.lb
+                if difficulty == "cm":
+                    cm = True
+                    lcm = False
+                    cont = encounter.lb_cm
+                if difficulty == "lcm":
+                    cm = True
+                    lcm = True
+                    cont = encounter.lb_lcm
+
+                emote = encounter.emoji.discord_tag(difficulty)
 
                 if not cont:
-                    continue  # skip if not
+                    continue  # skip if encounter is not selected to be on leaderboard
 
                 # Find encounter times
                 encounter_success_all = (
@@ -97,6 +105,7 @@ def create_leaderboard(itype: str):
                         success=True,
                         emboldened=False,
                         cm=cm,
+                        lcm=lcm,
                         core_player_count__gte=min_core_count,
                     )
                     .filter(
@@ -134,7 +143,7 @@ def create_leaderboard(itype: str):
         embed_title = f"{instance.name}"
         # TODO strike should have average too
         if itype == "strike":  # strike needs emoji because it doenst have instance average
-            embed_title = f"{instance.emoji.discord_tag} {instance.name}"
+            embed_title = f"{instance.emoji.discord_tag()} {instance.name}"
 
         embed = discord.Embed(
             title=embed_title,
@@ -161,13 +170,13 @@ def create_leaderboard(itype: str):
     # fastes and average killtime
     for instance in instances:
         # Instance emote
-        description += f"{instance.emoji.discord_tag}"
+        description += f"{instance.emoji.discord_tag()}"
 
         # Loop over the encounters
         counter = 0
         for ec in instance.encounters.filter(leaderboard_instance_group__name=itype).order_by("nr"):
             # encounter emote
-            description += ec.emoji.discord_tag
+            description += ec.emoji.discord_tag()
             counter += 1
 
         # Add empty spaces to align.

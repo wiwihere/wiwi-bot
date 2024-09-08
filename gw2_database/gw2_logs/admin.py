@@ -81,8 +81,10 @@ class EncounterAdmin(admin.ModelAdmin):
         "folder_names",
         "instance__group",
         "has_cm",
+        "has_lcm",
         "lb",
         "lb_cm",
+        "lb_lcm",
         "log_count",
         "leaderboard_instance_group",
     )
@@ -155,6 +157,7 @@ class DpsLogAdmin(admin.ModelAdmin):
     list_display = (
         "encounter",
         "cm",
+        "lcm",
         "emboldened",
         "success",
         "final_health_percentage",

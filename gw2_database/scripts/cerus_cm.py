@@ -148,10 +148,12 @@ def run_cerus_cm(y, m, d):
                 field_id = 0
 
                 cerus_title = "Cerus CM"
+                difficulty = "cm"
                 if len(health_df) > 0:
                     if health_df["lcm"].mode().values[0]:
                         cerus_title = "Cerus Legendary CM"
-                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag('cm')} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
+                        difficulty = "lcm"
+                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
         <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414>\n"
                 # field_value += f"`nr`{BLANK_EMOTE}⠀⠀ `( health | 80%  | 50%  | 10%  )`\n"
                 # field_value += f"\n`##`⠀⠀**log** `( health |  80% |  50% |  10% )`+delay\n\n"
