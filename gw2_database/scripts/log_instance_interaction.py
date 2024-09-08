@@ -110,8 +110,8 @@ class InstanceClearGroupInteraction:
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
-            encounter__instance__type=itype_group,
-        ).exclude(encounter__instance__type="golem")
+            encounter__instance__instance_group__name=itype_group,
+        ).exclude(encounter__instance__instance_group__name="golem")
 
         if len(logs_day) == 0:
             return None
@@ -163,7 +163,7 @@ class InstanceClearGroupInteraction:
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
-                encounter__use_in_instance_group__name=self.iclear_group.type,
+                encounter__leaderboard_instance_group__name=self.iclear_group.type,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
@@ -175,7 +175,7 @@ class InstanceClearGroupInteraction:
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
             if len(df_logs_duration[df_logs_duration["success"]]) == len(
-                Encounter.objects.filter(use_in_instance_group__name=self.iclear_group.type)
+                Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
             ):
                 # if self.iclear_group.success is False:
                 print(f"Finished {self.iclear_group.type}s for this week!")
@@ -298,8 +298,8 @@ class InstanceClearGroupInteraction:
         # Loop over the instance clears
         first_boss = True  # Tracks if a log is the first boss of all logs.
         for iclear in self.icg_iclears_all:
-            titles[iclear.instance.type][iclear.name] = ""  # field title
-            descriptions[iclear.instance.type][iclear.name] = ""  # field description
+            titles[iclear.instance.instance_group.name][iclear.name] = ""  # field title
+            descriptions[iclear.instance.instance_group.name][iclear.name] = ""  # field description
 
             # Find rank of full instance on leaderboard
             iclear_success_all = None
@@ -315,13 +315,13 @@ class InstanceClearGroupInteraction:
             rank_str = get_rank_emote(
                 indiv=iclear,
                 group=iclear_success_all,
-                core_minimum=settings.CORE_MINIMUM[iclear.instance.type],
+                core_minimum=settings.CORE_MINIMUM[iclear.instance.instance_group.name],
             )
 
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
 
-            titles[iclear.instance.type][
+            titles[iclear.instance.instance_group.name][
                 iclear.name
             ] = f"**__{iclear.instance.emoji.discord_tag}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
 ({duration_str})__**\n"
@@ -387,7 +387,7 @@ class InstanceClearGroupInteraction:
                 rank_str = get_rank_emote(
                     indiv=log,
                     group=encounter_success_all,
-                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.type],
+                    core_minimum=settings.CORE_MINIMUM[log.encounter.instance.instance_group.name],
                 )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
@@ -423,7 +423,7 @@ class InstanceClearGroupInteraction:
             # larger chance that the field_value is larger than 1024 charcters.
             # This is sadly currently the limit on embed.field.value.
             # Descriptions can be 4096 characters, so instead of a field we just edit the description.
-            descriptions[iclear.instance.type][iclear.name] = field_value
+            descriptions[iclear.instance.instance_group.name][iclear.name] = field_value
 
         self.titles = titles
         self.descriptions = descriptions
@@ -588,7 +588,7 @@ if __name__ == "__main__":
 
 # indiv = log
 # group = encounter_success_all
-# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.type]
+# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.instance_group.name]
 # custom_emoji_name = False
 
 # MEDAL_TYPE = "percentiles"

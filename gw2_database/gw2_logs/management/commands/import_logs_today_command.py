@@ -33,12 +33,15 @@ class Command(BaseCommand):
         parser.add_argument("--y", type=int, nargs="?", default=None)
         parser.add_argument("--m", type=int, nargs="?", default=None)
         parser.add_argument("--d", type=int, nargs="?", default=None)
-        parser.add_argument("--itype_groups", nargs="*", default=["raid", "strike", "fractal"])
+        parser.add_argument("--itype_groups", nargs="*")  # default doesnt work wtih nargs="*"
 
     def handle(self, *args, **options):
         y = options["y"]
         m = options["m"]
         d = options["d"]
+
+        if not options["itype_groups"]:
+            options["itype_groups"] = ["raid", "strike", "fractal"]
         itype_groups = options["itype_groups"]
 
         if y is None:
@@ -120,11 +123,14 @@ class Command(BaseCommand):
                         if processing_type == "upload":
                             log_paths_done.append(log_path)
 
-                        if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
+                        if (
+                            fractal_success is True
+                            and uploaded_log.encounter.instance.instance_group.name == "fractal"
+                        ):
                             continue
 
                         self = icgi = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
+                            y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.instance_group.name
                         )
 
                         if icgi is not None:

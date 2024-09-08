@@ -168,9 +168,9 @@ class DpsLogAdmin(admin.ModelAdmin):
     )
     list_filter = ["encounter", "success", "cm"]
 
-    def instance__type(self, obj):
+    def instance_group(self, obj):
         if obj.encounter.instance is not None:
-            return obj.encounter.instance.type
+            return obj.encounter.instance.instance_group
         else:
             return None
 

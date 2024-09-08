@@ -43,7 +43,7 @@ def create_leaderboard(itype: str):
         min_core_count = settings.CORE_MINIMUM[itype]
 
     # Instance leaderboards (wings/ strikes/ fractal scales)
-    instances = Instance.objects.filter(type=itype).order_by("nr")
+    instances = Instance.objects.filter(instance_group__name=itype).order_by("nr")
     for idx_instance, instance in enumerate(instances):
         # INSTANCE LEADERBOARDS
         # ----------------
@@ -139,7 +139,7 @@ def create_leaderboard(itype: str):
         embed = discord.Embed(
             title=embed_title,
             description=field_value,
-            colour=EMBED_COLOR[instance.type],
+            colour=EMBED_COLOR[instance.instance_group.name],
         )
 
         create_or_update_discord_message(
@@ -227,7 +227,7 @@ def create_leaderboard(itype: str):
     embed = discord.Embed(
         title=f"Full {itype.capitalize()} Clear",
         description=description,
-        colour=EMBED_COLOR[instance.type],
+        colour=EMBED_COLOR[instance.instance_group.name],
     )
     embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
     embed.timestamp = datetime.datetime.now()

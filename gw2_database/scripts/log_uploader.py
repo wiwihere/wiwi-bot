@@ -321,7 +321,7 @@ ERROR
                 emboldened_wing = get_emboldened_wing(log.start_time)
                 if (
                     (emboldened_wing == log.encounter.instance.nr)
-                    and (log.encounter.instance.type == "raid")
+                    and (log.encounter.instance.instance_group.name == "raid")
                     and not (log.cm)
                 ):
                     print("    Checking for emboldened")

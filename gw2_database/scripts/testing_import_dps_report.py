@@ -49,6 +49,7 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 y, m, d = today_y_m_d()
 y, m, d = 2024, 9, 5
 itype_groups = ["raid", "strike", "fractal"]
+itype_groups = []
 
 if True:
     if True:
@@ -131,11 +132,11 @@ if True:
                         if processing_type == "upload":
                             log_paths_done.append(log_path)
 
-                        # if fractal_success is True and uploaded_log.encounter.instance.type == "fractal":
+                        # if fractal_success is True and uploaded_log.encounter.instance.instance_group.name == "fractal":
                         #     continue  #TODO uncomment
 
                         self = icgi = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.type
+                            y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.instance_group.name
                         )
 
                         if icgi is not None:

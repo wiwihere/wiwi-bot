@@ -6,6 +6,10 @@ import time
 from dataclasses import dataclass
 from itertools import chain
 
+if __name__ == "__main__":
+    from django_for_jupyter import init_django_from_commands
+
+    init_django_from_commands("gw2_database")
 import discord
 import numpy as np
 import pandas as pd
@@ -13,7 +17,7 @@ import pytz
 from bot_settings import settings
 from discord import SyncWebhook
 from discord.utils import MISSING
-from gw2_logs.models import DiscordMessage, Emoji, Encounter
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
@@ -308,17 +312,19 @@ def create_folder_names(itype_groups: list):
     """Create list of possible folder names for the selected itype_group.
     This makes it possible to filter logs before uploading them.
     """
-    if itype_groups is None:
-        return
-    else:
-        # Create df of encounter foldernames and boss_ids
-        encounter_folders = Encounter.objects.all().values_list("folder_names", "dpsreport_boss_id", "instance__type")
-        enc_df = pd.DataFrame(encounter_folders, columns=["folder", "boss_id", "itype"])
+    if itype_groups in [None, []]:
+        itype_groups = [i[0] for i in InstanceGroup.objects.all().values_list("name")]
 
-        # Create a list of all possible folder names with selected itype_groups
-        folder_names = enc_df[enc_df["itype"].isin(itype_groups)][["folder", "boss_id"]].to_numpy().tolist()
-        folder_names = list(chain(*[str(i).split(";") for i in chain(*folder_names)]))
-        return folder_names
+    # Create df of encounter foldernames and boss_ids
+    encounter_folders = Encounter.objects.all().values_list(
+        "folder_names", "dpsreport_boss_id", "instance__instance_group__name"
+    )
+    enc_df = pd.DataFrame(encounter_folders, columns=["folder", "boss_id", "itype"])
+
+    # Create a list of all possible folder names with selected itype_groups
+    folder_names = enc_df[enc_df["itype"].isin(itype_groups)][["folder", "boss_id"]].to_numpy().tolist()
+    folder_names = list(chain(*[str(i).split(";") for i in chain(*folder_names)]))
+    return folder_names
 
 
 def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=None):
@@ -381,3 +387,6 @@ def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSI
         group.discord_message = disc_mess
         group.save()
         print(f"New discord message created: {group.name}")
+
+
+# %%
