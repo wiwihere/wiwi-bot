@@ -70,10 +70,6 @@ COGS_DIR = BASE_DIR / "cogs"
 VIDEOCMDS_DIR = BASE_DIR / "videocmds"
 
 
-# GUILDS_ID = discord.Object(id=int(get_env("GUILD")))
-# FEEDBACK_CH = int(get_env("FEEDBACK_CH", 0))
-# GUILD_ID_INT = int(get_env("GUILD"))
-
 LOGGING_CONFIG = {
     "version": 1,
     "disabled_existing_loggers": False,

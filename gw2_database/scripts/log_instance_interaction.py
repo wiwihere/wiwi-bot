@@ -24,6 +24,7 @@ from gw2_logs.models import (
 from scripts.log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
+    PLAYER_EMOTES,
     WEBHOOKS,
     WIPE_EMOTES,
     create_discord_time,
@@ -75,6 +76,7 @@ class InstanceClearInteraction:
 
         if len(iclear.dps_logs.all()) > 0:
             iclear.core_player_count = int(np.median([log.core_player_count for log in iclear.dps_logs.all()]))
+            iclear.friend_player_count = int(np.median([log.friend_player_count for log in iclear.dps_logs.all()]))
 
         # Check if all encounters have been finished.
         encounter_count = max([i.nr for i in iclear.instance.encounters.all()])
@@ -209,18 +211,27 @@ class InstanceClearGroupInteraction:
                         ]
                     )
                 )
-
+                self.iclear_group.friend_player_count = int(
+                    np.median(
+                        [
+                            j.friend_player_count
+                            for i in week_clears
+                            for j in i.instance_clears.all().order_by("start_time")
+                        ]
+                    )
+                )
                 self.iclear_group.save()
             else:
                 self.iclear_group.success = False
                 self.iclear_group.duration = None
                 self.iclear_group.core_player_count = None
+                self.iclear_group.friend_player_count = None
                 self.iclear_group.save()
 
         if self.iclear_group.type == "fractal":
             # If success instances equals total number of instances
             if sum(self.icg_iclears_all.values_list("success", flat=True)) == len(
-                Instance.objects.filter(type=self.iclear_group.type)
+                Instance.objects.filter(instance_group__name=self.iclear_group.type)
             ):
                 print("Finished all fractals!")
                 self.iclear_group.success = True
@@ -230,6 +241,9 @@ class InstanceClearGroupInteraction:
                 )
                 self.iclear_group.core_player_count = int(
                     np.median([i.core_player_count for i in self.icg_iclears_all])
+                )
+                self.iclear_group.friend_player_count = int(
+                    np.median([i.friend_player_count for i in self.icg_iclears_all])
                 )
                 self.iclear_group.save()
 
@@ -250,17 +264,20 @@ class InstanceClearGroupInteraction:
 
         # Put raid, strike, fractal in separate embeds.
         # for instance_type in instance_types:
-        core_emote = Emoji.objects.get(name="core").discord_tag()
-        pug_emote = Emoji.objects.get(name="pug").discord_tag()
+
         try:
             core_count = int(np.median([log.core_player_count for log in self.all_logs]))
-            pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count
+            friend_count = int(np.median([log.friend_player_count for log in self.all_logs]))
+            pug_count = int(np.median([log.player_count for log in self.all_logs])) - core_count - friend_count
         except TypeError:
             core_count = 0
+            friend_count = 0
             pug_count = 10
 
         # Nina's space, add space after 5 ducks for better readability.
-        pug_split_str = f"{core_emote*core_count}{pug_emote*pug_count}".split(">")
+        pug_split_str = f"{PLAYER_EMOTES['core']*core_count}{PLAYER_EMOTES['friend']*friend_count}{PLAYER_EMOTES['pug']*pug_count}".split(
+            ">"
+        )
         if len(pug_split_str) > 5:
             pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
         pug_str = ">".join(pug_split_str)

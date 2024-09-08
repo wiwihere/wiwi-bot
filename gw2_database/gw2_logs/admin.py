@@ -13,8 +13,17 @@ class EncounterInline(admin.TabularInline):
 
 class DpsLogInline(admin.TabularInline):
     model = models.DpsLog
-    fields = ["id", "start_time", "duration", "encounter", "cm", "success", "core_player_count"]
-    readonly_fields = ["id", "start_time", "duration", "encounter", "cm", "success", "core_player_count"]
+    fields = ["id", "start_time", "duration", "encounter", "cm", "success", "core_player_count", "friend_player_count"]
+    readonly_fields = [
+        "id",
+        "start_time",
+        "duration",
+        "encounter",
+        "cm",
+        "success",
+        "core_player_count",
+        "friend_player_count",
+    ]
     extra = 0
     ordering = ("start_time",)
 
@@ -23,8 +32,26 @@ class DpsLogInline(admin.TabularInline):
 
 class InstanceClearInline(admin.TabularInline):
     model = models.InstanceClear
-    fields = ["name", "instance", "start_time", "duration", "success", "emboldened", "core_player_count"]
-    readonly_fields = ["name", "instance", "start_time", "duration", "success", "emboldened", "core_player_count"]
+    fields = [
+        "name",
+        "instance",
+        "start_time",
+        "duration",
+        "success",
+        "emboldened",
+        "core_player_count",
+        "friend_player_count",
+    ]
+    readonly_fields = [
+        "name",
+        "instance",
+        "start_time",
+        "duration",
+        "success",
+        "emboldened",
+        "core_player_count",
+        "friend_player_count",
+    ]
     extra = 0
     ordering = ("start_time",)
 
@@ -33,8 +60,8 @@ class InstanceClearInline(admin.TabularInline):
 
 class InstanceClearGroupInline(admin.TabularInline):
     model = models.InstanceClearGroup
-    fields = ["name", "type", "start_time", "duration", "success", "core_player_count"]
-    readonly_fields = ["name", "type", "start_time", "duration", "success", "core_player_count"]
+    fields = ["name", "type", "start_time", "duration", "success", "core_player_count", "friend_player_count"]
+    readonly_fields = ["name", "type", "start_time", "duration", "success", "core_player_count", "friend_player_count"]
     extra = 0
     ordering = ("start_time",)
 
@@ -122,6 +149,7 @@ class InstanceClearAdmin(admin.ModelAdmin):
         "emboldened",
         "instance_clear_group",
         "core_player_count",
+        "friend_player_count",
         "log_count",
     )
     list_filter = ["instance"]
@@ -142,6 +170,7 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "start_time",
         "discord_message",
         "core_player_count",
+        "friend_player_count",
         "log_count",
         "discord_message_id_old",
     )
@@ -165,6 +194,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         "url",
         "start_time",
         "core_player_count",
+        "friend_player_count",
         "instance_clear_id",
         # "instance__type",
         # "group_clear_id",
@@ -180,13 +210,7 @@ class DpsLogAdmin(admin.ModelAdmin):
 
 @admin.register(models.Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ("name", "gw2_id", "guild")
-
-
-@admin.register(models.Guild)
-class GuildAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    inlines = [PlayerInline]
+    list_display = ("name", "gw2_id", "role")
 
 
 @admin.register(models.DiscordMessage)

@@ -17,7 +17,7 @@ import pytz
 from bot_settings import settings
 from discord import SyncWebhook
 from discord.utils import MISSING
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup, Player
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {
@@ -36,6 +36,11 @@ EMBED_COLOR = {
     "strike": 6603422,
     "fractal": 5512822,
     "cerus_cm": 7930903,
+}
+PLAYER_EMOTES = {
+    "core": Emoji.objects.get(name="core").discord_tag(),
+    "friend": Emoji.objects.get(name="friend").discord_tag(),
+    "pug": Emoji.objects.get(name="pug").discord_tag(),
 }
 
 
@@ -387,6 +392,3 @@ def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSI
         group.discord_message = disc_mess
         group.save()
         print(f"New discord message created: {group.name}")
-
-
-# %%

@@ -6,6 +6,7 @@ from traitlets import default
 
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
 EMOJI_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("medal", "Medal"), ("other", "Other")]
+PLAYER_ROLES = [("core", "Core"), ("friend", "Friend")]
 
 # %%
 
@@ -188,6 +189,7 @@ class InstanceClearGroup(models.Model):
     )
     discord_message_id_old = models.IntegerField(null=True, blank=True)  # TODO remove
     core_player_count = models.IntegerField(null=True, blank=True)
+    friend_player_count = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -237,6 +239,7 @@ class InstanceClear(models.Model):
     success = models.BooleanField(null=True, blank=True, default=False)  # All encounters in instance cleared?
     emboldened = models.BooleanField(null=True, blank=True)
     core_player_count = models.IntegerField(null=True, blank=True)
+    friend_player_count = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -281,6 +284,7 @@ class DpsLog(models.Model):
     gw2_build = models.IntegerField(null=True, blank=True)
     players = models.JSONField(default=list)
     core_player_count = models.IntegerField(null=True, blank=True)
+    friend_player_count = models.IntegerField(null=True, blank=True)
     instance_clear = models.ForeignKey(
         InstanceClear,
         related_name="dps_logs",
@@ -334,23 +338,10 @@ class DpsLog(models.Model):
             return "No start time yet"
 
 
-class Guild(models.Model):
-    name = models.CharField(max_length=100, null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
 class Player(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     gw2_id = models.CharField(max_length=100, null=True, blank=True)
-    guild = models.ForeignKey(
-        Guild,
-        related_name="players",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
+    role = models.CharField(null=True, max_length=10, choices=PLAYER_ROLES, default=None)
 
     def __str__(self):
         return self.name

@@ -118,7 +118,6 @@ Everything can be customized. Easiest way to make edits to the database is by fi
 #### Add a core member:
 Add members to the players list to have them appear as a core member. 
 
-- Go to the Guilds page and make a guild; http://127.0.0.1:8000/admin/gw2_logs/guild/
 - Go to the Players page; http://127.0.0.1:8000/admin/gw2_logs/player/ and add a new player:\
 <img src="img/add_player.png" width="400"/>
 
