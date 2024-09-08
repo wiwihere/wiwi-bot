@@ -14,6 +14,7 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+import datetime
 import os
 import time
 from itertools import chain
@@ -43,10 +44,10 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 
 # %%
-#TODO do something with Ethereal Barrier (47188)
+# TODO do something with Ethereal Barrier (47188)
 
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 8, 22
+y, m, d = 2024, 8, 29
 itype_groups = ["raid", "strike", "fractal"]
 
 if True:
@@ -156,29 +157,9 @@ if True:
                                 )
                                 self.iclear_group.save()
 
-                        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
-                        grp_lst = [icgi.iclear_group]
-                        if icgi.iclear_group.discord_message is not None:
-                            grp_lst += icgi.iclear_group.discord_message.instance_clear_group.all()
-                        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
-
-                        # combine embeds
-                        embeds = {}
-                        for icg in grp_lst:
-                            icgi = InstanceClearGroupInteraction.from_name(icg.name)
-
-                            titles, descriptions = icgi.create_message()
-                            icg_embeds = create_embeds(titles, descriptions)
-                            embeds.update(icg_embeds)
-                        embeds_mes = list(embeds.values())
-
                         # Update discord, only do it on the last log, so we dont spam the discord api too often.
                         if idx == len(log_paths_loop) - 1:
-                            create_or_update_discord_message(
-                                group=icgi.iclear_group,
-                                hook=WEBHOOKS[icgi.iclear_group.type],
-                                embeds_mes=embeds_mes,
-                            )
+                            icgi.send_discord_message()
 
                         if icgi.iclear_group.success:
                             if icgi.iclear_group.type == "fractal":
@@ -225,6 +206,20 @@ embeds = icgi.create_embeds(titles, descriptions)
 
 # icgi.create_or_update_discord_message(embeds=embeds)
 # ici = InstanceClearInteraction.from_name("w7_the_key_of_ahdashim__20231211")
+
+
+# %% Update discord messages from a certain date onwards
+
+y, m, d = 2024, 8, 22
+
+if False:
+    icgs = InstanceClearGroup.objects.filter(
+        start_time__gte=datetime.datetime(year=y, month=m, day=d, tzinfo=datetime.timezone.utc)
+    ).order_by("start_time")
+    for icg in icgs:
+        icgi = InstanceClearGroupInteraction.from_name(name=icg.name)
+        icgi.send_discord_message()
+
 
 # %% Manual uploads without creating discord message
 

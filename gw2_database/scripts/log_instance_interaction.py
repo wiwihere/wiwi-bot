@@ -430,6 +430,35 @@ class InstanceClearGroupInteraction:
 
         return titles, descriptions
 
+    def send_discord_message(self):
+        """Build the message from embeds and send to discord.
+        This will create embeds when there are multiple types linked to the same discord
+        message. So raids and strikes will be combined in one message.
+        """
+
+        # Find the clear groups. e.g. [raids__20240222, strikes__20240222]
+        grp_lst = [self.iclear_group]
+        if self.iclear_group.discord_message is not None:
+            grp_lst += self.iclear_group.discord_message.instance_clear_group.all()
+        grp_lst = sorted(set(grp_lst), key=lambda x: x.start_time)
+
+        # combine embeds
+        embeds = {}
+        for icg in grp_lst:
+            icgi = InstanceClearGroupInteraction.from_name(icg.name)
+
+            titles, descriptions = icgi.create_message()
+            icg_embeds = create_embeds(titles, descriptions)
+            embeds.update(icg_embeds)
+        embeds_mes = list(embeds.values())
+
+        # Create/update the message
+        create_or_update_discord_message(
+            group=self.iclear_group,
+            hook=WEBHOOKS[self.iclear_group.type],
+            embeds_mes=embeds_mes,
+        )
+
 
 def create_embeds(titles, descriptions):
     """Create discord embed from description."""
