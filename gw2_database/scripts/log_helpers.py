@@ -2,6 +2,7 @@
 """Helper functions and variables"""
 
 import datetime
+import os
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -10,6 +11,8 @@ if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_database")
+from pathlib import Path
+
 import discord
 import numpy as np
 import pandas as pd
@@ -219,11 +222,13 @@ def zfill_y_m_d(y, m, d):
     return f"{y}{str(m).zfill(2)}{str(d).zfill(2)}"
 
 
-def find_log_by_date(log_dir, y, m, d):
+def find_log_by_date(log_dirs, y, m, d) -> list[Path]:
     """Find all log files on a specific date.
-    Returns generator
+    Returns sorted list on maketime
     """
-    return log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc")
+    # return log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc")
+    log_paths = list(chain(*(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc") for log_dir in [log_dirs])))
+    return sorted(log_paths, key=os.path.getmtime)
 
 
 def get_emboldened_wing(log_date: datetime.datetime):

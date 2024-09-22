@@ -74,8 +74,7 @@ class Command(BaseCommand):
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
-                log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-                log_paths = sorted(log_paths, key=os.path.getmtime)
+                log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
                 # check a different set when local or uploading.
                 if processing_type == "local":
