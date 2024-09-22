@@ -431,7 +431,7 @@ class InstanceClearGroupInteraction:
                     #   - Also should only add multiple wipes on same boss once.
                     if not encounter_success:
                         if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
-                            field_value += f"{log.encounter.emoji.discord_tag(self.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
+                            field_value += f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
 
             # Add the field text to the embed. Raids and strikes have a
             # larger chance that the field_value is larger than 1024 charcters.

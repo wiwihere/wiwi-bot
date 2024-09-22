@@ -1,10 +1,13 @@
 # %%
-
+import sys
+from pathlib import Path
 
 if __name__ == "__main__":
+    if str(Path(__file__).parents[1]) not in sys.path:
+        sys.path.append(str(Path(__file__).parents[1]))
     from django_for_jupyter import init_django_from_commands
 
-    init_django_from_commands("gw2_database")
+    init_django_from_commands("gw2_database", pwd=Path(__file__).parents[2])
 
 import datetime
 import os
