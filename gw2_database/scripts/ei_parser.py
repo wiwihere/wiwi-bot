@@ -47,6 +47,8 @@ class EliteInisghtsParser:
 
     def parse_log(self, evtc_path) -> Path:
         """Parse to json locally. Uploading to dpsreport is not implemented.
+        returns evtc_path=None when process doesnt parse the log. For instance due to
+        Program: Fight is too short: 0 < 2200
 
         evtc_path: str
             Path to log
@@ -71,7 +73,7 @@ class EliteInisghtsParser:
                 # TODO call download command
 
             # Call the parser
-            subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])
+            res = subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])
             js_path = self.find_parsed_json(evtc_path=evtc_path)
 
         return js_path

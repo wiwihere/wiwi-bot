@@ -110,7 +110,14 @@ if True:
                         # Local processing
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
+                        if dli is False:
+                            # Parsing didnt work, too short log maybe.
+                            log_paths_local_done.append(log_path)
+                            log_paths_done.append(log_path)
+                            continue
+
                         uploaded_log = dli.dpslog
+
                     elif processing_type == "upload":
                         if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
                             # Upload log

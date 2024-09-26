@@ -366,6 +366,10 @@ class DpsLogInteraction:
             dpslog = None
 
         if dpslog is None:
+            if parsed_path is None:
+                print(f"{log_path} was not parsed")
+                return False
+
             json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
             dpslog = cls.from_detailed_logs(log_path, json_detailed)
 
