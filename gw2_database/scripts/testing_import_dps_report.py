@@ -247,18 +247,19 @@ if False:
 
 
 # %% Update all discord messages.
-for icg in InstanceClearGroup.objects.all():
+for icg in InstanceClearGroup.objects.all().order_by("start_time"):
     ymd = icg.name.split("__")[-1]
     y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
     # y,m,d= 2024,2,6
 
-    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
+    if icg.type in ["raid", "strike"]:
+        icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
 
-    # icgi = InstanceClearGroupInteraction.from_name(icg.name)
-    titles, descriptions = icgi.create_message()
-    embeds = icgi.create_embeds(titles, descriptions)
-
-    icgi.create_or_update_discord_message(embeds=embeds)
+        # icgi = InstanceClearGroupInteraction.from_name(icg.name)
+        # titles, descriptions = icgi.create_message()
+        # embeds = icgi.create_embeds(titles, descriptions)
+        if icgi:
+            icgi.send_discord_message()
     # break
 
 # %% Updating emoji ids in bulk
