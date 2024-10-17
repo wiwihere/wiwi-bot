@@ -45,9 +45,8 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # %%
 # TODO do something with Ethereal Barrier (47188)
-
 y, m, d = today_y_m_d()
-# y, m, d = 2024, 9, 5
+# y, m, d = 2024, 9, 26
 itype_groups = ["raid", "strike", "fractal"]
 # itype_groups = []
 
@@ -100,6 +99,7 @@ if True:
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
                                 print(f"Skipped {log_path}")
+                                log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
@@ -301,3 +301,10 @@ if True:
 
 # %%
 import pandas as pd
+
+log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
+log.request_metadata(report_id=None, url=log.log_url)
+
+
+log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
+log.request_metadata(report_id=None, url=log.log_url)

@@ -63,6 +63,7 @@ else:
         # Unzip
         with ZipFile(EI_PARSER_FOLDER / "download.zip", "r") as zObject:
             zObject.extractall(path=EI_PARSER_FOLDER)
+    print("Update complete")
 
 
 # %%
