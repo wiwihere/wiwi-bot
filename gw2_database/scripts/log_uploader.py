@@ -384,7 +384,12 @@ class DpsLogInteraction:
         players = [player["account"] for player in r2["players"]]
         final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
 
-        encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+        try:
+            encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+        except Encounter.DoesNotExist:
+            print(f"{r2['fightName']} with id {r2['eiEncounterId']} doesnt exist")
+            move_failed_upload(log_path)
+            return False
 
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
             move_failed_upload(log_path)
