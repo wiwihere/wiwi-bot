@@ -14,7 +14,7 @@ EI_SETTINGS_DEFAULT = proj_path / "gw2_database" / "bot_settings" / "gw2ei_setti
 
 class EliteInisghtsParser:
     def __init__(self):
-        self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights.exe")
+        self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights-CLI.exe")
         self.out_dir = None  # Set in .make_settings
         self.settings = None  # Set in .make_settings
 
@@ -101,13 +101,11 @@ class EliteInisghtsParser:
 
 # %%
 
-# if __name__ == "__main__":
-#     ei_parser = EliteInisghtsParser()
-#     ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20240729"), create_html=False)
+if __name__ == "__main__":
+    self = ei_parser = EliteInisghtsParser()
+    ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20241125"), create_html=False)
 
-#     d = ei_parser.parse_log(
-#         evtc_path=
-#     )
-#     r2 = EliteInisghtsParser.load_json_gz(js_path=d)
-#     r2["eiEncounterID"]
+    d = ei_parser.parse_log(evtc_path=r"C:/Users/Wietse/OneDrive/gw2_shared_logs/20241125-200608.zevtc")
+    r2 = EliteInisghtsParser.load_json_gz(js_path=d)
+    r2["eiEncounterID"]
 # %%

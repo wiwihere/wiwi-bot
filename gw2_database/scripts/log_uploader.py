@@ -387,7 +387,7 @@ class DpsLogInteraction:
         try:
             encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
         except Encounter.DoesNotExist:
-            print(f"{r2['fightName']} with id {r2['eiEncounterId']} doesnt exist")
+            print(f"{r2['fightName']} with id {r2['eiEncounterID']} doesnt exist")
             move_failed_upload(log_path)
             return False
 

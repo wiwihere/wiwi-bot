@@ -80,8 +80,8 @@ if True:
         while True:
             icgi = None
 
-            # for processing_type in ["local", "upload"] + ["local"] * 9:
-            for processing_type in ["upload"]:
+            for processing_type in ["local", "upload"] + ["local"] * 9:
+                # for processing_type in ["upload"]:
                 # Find logs in directory
                 log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
@@ -97,6 +97,7 @@ if True:
                     # Skip upload if log is not in itype_group
                     try:
                         if itype_groups is not None:
+                            # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
                                 print(f"Skipped {log_path}")
@@ -176,7 +177,7 @@ if True:
                     current_sleeptime = MAXSLEEPTIME
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
-                time.sleep(10)
+                # time.sleep(10)
 
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
                 leaderboards.create_leaderboard(itype="fractal")
@@ -311,3 +312,6 @@ log.request_metadata(report_id=None, url=log.log_url)
 
 log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
 log.request_metadata(report_id=None, url=log.log_url)
+
+
+# %%

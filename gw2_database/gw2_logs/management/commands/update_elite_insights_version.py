@@ -17,6 +17,7 @@ class Command(BaseCommand):
 
 url = "https://api.github.com/repos/baaron4/GW2-Elite-Insights-Parser/releases/latest"
 
+
 proj_path = os.path.abspath(os.path.dirname(__file__))
 EI_PARSER_FOLDER = Path(proj_path).parents[3] / "GW2EI_parser"
 
@@ -44,7 +45,7 @@ else:
     # Get the zip download url
     dl_url = None
     for asset in r.json()["assets"]:
-        if asset["name"] == "GW2EI.zip":
+        if asset["name"] == "GW2EICLI.zip":
             dl_url = asset["browser_download_url"]
             break
 
