@@ -45,8 +45,8 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # %%
 # TODO do something with Ethereal Barrier (47188)
-y, m, d = today_y_m_d()
-# y, m, d = 2024, 11, 18
+# y, m, d = today_y_m_d()
+y, m, d = 2024, 11, 20
 itype_groups = ["raid", "strike", "fractal"]
 # itype_groups = []
 
@@ -81,7 +81,6 @@ if True:
             icgi = None
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
-                # for processing_type in ["upload"]:
                 # Find logs in directory
                 log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
@@ -121,9 +120,9 @@ if True:
                         uploaded_log = dli.dpslog
 
                     elif processing_type == "upload":
-                        if log_path not in log_paths_local_done:  # Log must be parsed locally before uploading
+                        if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
                             # Upload log
-                            log_upload = LogUploader.from_path(log_path, only_url=False)
+                            log_upload = LogUploader.from_path(log_path, only_url=True)
                             uploaded_log = log_upload.run()
                         else:
                             uploaded_log = False
@@ -177,7 +176,6 @@ if True:
                     current_sleeptime = MAXSLEEPTIME
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
-                # time.sleep(10)
 
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
                 leaderboards.create_leaderboard(itype="fractal")

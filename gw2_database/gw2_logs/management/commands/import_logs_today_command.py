@@ -88,9 +88,11 @@ class Command(BaseCommand):
                     # Skip upload if log is not in itype_group
                     try:
                         if itype_groups is not None:
+                            # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
                                 print(f"Skipped {log_path}")
+                                log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
