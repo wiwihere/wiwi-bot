@@ -1,32 +1,11 @@
-import datetime
-import os
-import time
-from itertools import chain
-from pathlib import Path
-
-import scripts.leaderboards as leaderboards
-from bot_settings import settings
 from django.core.management.base import BaseCommand
-from scripts.cerus_cm import run_cerus_cm
-from scripts.log_helpers import (
-    ITYPE_GROUPS,
-    WEBHOOKS,
-    create_folder_names,
-    find_log_by_date,
-    today_y_m_d,
-    zfill_y_m_d,
-)
-from scripts.log_instance_interaction import (
-    InstanceClearGroup,
-    InstanceClearGroupInteraction,
-    create_embeds,
-    create_or_update_discord_message,
-)
-from scripts.log_uploader import LogUploader
+from scripts.log_helpers import today_y_m_d
+
+from gw2_database.scripts.encounters.cerus import run_cerus_cm
 
 
 class Command(BaseCommand):
-    help = "Update leaderboards on discord"
+    help = "Import Cerus LCM logs and track progression."
 
     def add_arguments(self, parser):
         parser.add_argument("--y", type=int, nargs="?", default=None)

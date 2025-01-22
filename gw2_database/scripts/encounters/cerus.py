@@ -12,7 +12,6 @@ if __name__ == "__main__":
 import datetime
 import os
 import time
-from itertools import chain
 from pathlib import Path
 
 import numpy as np
@@ -43,9 +42,9 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 # For cerus always use percentiles.
 RANK_EMOTES = create_rank_emote_dict_percentiles(custom_emoji_name=False, invalid=False)
 # %%
-
-y, m, d = today_y_m_d()
-y, m, d = 2024, 4, 6
+if __name__ == "__main__":
+    y, m, d = today_y_m_d()
+    y, m, d = 2024, 4, 6
 
 
 def run_cerus_cm(y, m, d):
