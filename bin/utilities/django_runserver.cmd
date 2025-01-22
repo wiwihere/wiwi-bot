@@ -1,6 +1,6 @@
 @REM @echo off
 
-SET commando=%~dp0django.cmd
+SET commando="%~dp0django.cmd"
 
 "%commando%" runserver %*
 

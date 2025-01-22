@@ -1,7 +1,7 @@
 @echo off
 
 REM Change current path to parent of bin folder
-set parentPath=%~dp0\..\
+set parentPath=%~dp0..\..\
 set ROOT_DIR=%parentPath%
 pushd %parentPath%
 
