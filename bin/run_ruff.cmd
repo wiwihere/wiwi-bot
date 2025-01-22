@@ -1,1 +1,0 @@
-%~dp0utilities\python -m ruff format .\**\*.py --force-exclude
