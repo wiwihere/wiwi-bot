@@ -1,25 +1,18 @@
-name: discord_bot
+name: discord_py312
 
 channels:
   - conda-forge
-  - defaults
 
 dependencies:
-  - python=3.9
-  - pandas=1.1.3
-
-  - jupyterlab=3.6.3
-  - ipywidgets=8.0.6
-  - pytest=7.2.2
-  - pytest-cov
-  - pluggy=1.0.0 #pytest dependency
-  - iniconfig=2.0.0 #pytest dependency
-  - tqdm=4.64.0
-  - openpyxl=3.1.2
+  - python=3.12
+  - pandas
+  - jupyterlab
+  - ipywidgets
   - django=4.2.8
+  - discord.py[voice]
   - pip=24.*
 
   - pip:
-    - discord.py[voice]
     - python-dotenv
     - tzlocal
+    - ruff
