@@ -38,9 +38,11 @@ if version_file.exists():
     # Dont download when the latest release is the same as the local version.
     if ei_version == v:
         cont = False
-if not cont:
-    print(f"Version up to date: {ei_version}")
-else:
+        print(f"Version up to date: {v}")
+    else:
+        print(f"Current version: {v}")
+
+if cont:
     print(f"Updating GW2 Elite Inisghts Parser to version: {ei_version}")
     # Get the zip download url
     dl_url = None
