@@ -31,8 +31,7 @@ def copy_logs(y, m, d, itype_groups):
     print(f"Dst dir: {log_dir_dst}")
 
     # Find logs in directory
-    log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in [log_dir_source])))
-    log_paths = sorted(log_paths, key=os.path.getmtime)
+    log_paths = find_log_by_date(log_dirs=[log_dir_source], y=y, m=m, d=d)
     folder_names = create_folder_names(itype_groups=itype_groups)
 
     log_paths_loop = sorted(log_paths, key=os.path.getmtime)

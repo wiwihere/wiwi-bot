@@ -1,10 +1,13 @@
 # %%
-
+import sys
+from pathlib import Path
 
 if __name__ == "__main__":
+    if str(Path(__file__).parents[1]) not in sys.path:
+        sys.path.append(str(Path(__file__).parents[1]))
     from django_for_jupyter import init_django_from_commands
 
-    init_django_from_commands("gw2_database")
+    init_django_from_commands("gw2_database", pwd=Path(__file__).parents[2])
 
 import datetime
 import os
@@ -75,8 +78,7 @@ def run_cerus_cm(y, m, d):
         )
 
         # Find logs in directory
-        log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-        log_paths = sorted(log_paths, key=os.path.getmtime)
+        log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
         for processing_type in ["local", "upload"]:
             titles = None

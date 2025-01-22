@@ -17,6 +17,7 @@ dependencies:
   - tqdm=4.64.0
   - openpyxl=3.1.2
   - django=4.2.8
+  - pip=24.*
 
   - pip:
     - discord.py[voice]

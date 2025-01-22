@@ -74,8 +74,7 @@ class Command(BaseCommand):
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
-                log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-                log_paths = sorted(log_paths, key=os.path.getmtime)
+                log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
                 # check a different set when local or uploading.
                 if processing_type == "local":
@@ -89,9 +88,11 @@ class Command(BaseCommand):
                     # Skip upload if log is not in itype_group
                     try:
                         if itype_groups is not None:
+                            # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
                                 print(f"Skipped {log_path}")
+                                log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
@@ -102,7 +103,14 @@ class Command(BaseCommand):
                         # Local processing
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
+                        if dli is False:
+                            # Parsing didnt work, too short log maybe.
+                            log_paths_local_done.append(log_path)
+                            log_paths_done.append(log_path)
+                            continue
+
                         uploaded_log = dli.dpslog
+
                     elif processing_type == "upload":
                         if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
                             # Upload log

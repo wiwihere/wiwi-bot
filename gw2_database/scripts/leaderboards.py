@@ -29,7 +29,7 @@ from scripts.log_helpers import (
 
 # TODO remove ITYPE_GROUPS
 if __name__ == "__main__":
-    itype = "strike"
+    itype = "raid"
     min_core_count = 0  # select all logs when including non core
 
 
@@ -219,14 +219,15 @@ def create_leaderboard(itype: str):
         )
         .filter(
             Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-            & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+            & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC)),
         )
+        .exclude(name__icontains="cm__")
         .order_by("duration")
     )
 
     for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
         rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype, pretty_time=True)
-        description += rank_duration_str
+        description += rank_duration_str  # FIXME
 
     if len(icleargroup_success_all) > 0:
         # Add average clear times

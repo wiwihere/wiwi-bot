@@ -257,21 +257,22 @@ ERROR
             if settings.DEBUG:
                 raise Encounter.DoesNotExist
 
+        # Check wrong metadata, sometimes the normal json response has empty
+        # or plain wrong data. This has to do with some memory issues on b.dps.report.
+        # Can be fixed by requesting the detailed info.
+        # Still relevant when only requesting url because start time can be off
+        if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
+            print(f"Log seems broken. Requesting more info {self.log_source_view}")
+
+            self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
+            # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
+            start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
+
+            r["encounter"]["duration"] = self.r2["durationMS"] / 1000
+            r["encounter"]["isCm"] = r2["isCM"]
+            r["encounterTime"] = create_unix_time(start_time)
+
         if not self.only_url:
-            # Check wrong metadata, sometimes the normal json response has empty
-            # or plain wrong data. This has to do with some memory issues on b.dps.report.
-            # Can be fixed by requesting the detailed info.
-            if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
-                print(f"Log seems broken. Requesting more info {self.log_source_view}")
-
-                self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
-                # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
-                start_time = parse(r2["timeStart"]).astimezone(datetime.timezone.utc)
-
-                r["encounter"]["duration"] = self.r2["durationMS"] / 1000
-                r["encounter"]["isCm"] = r2["isCM"]
-                r["encounterTime"] = create_unix_time(start_time)
-
             # Arcdps error 'File had invalid agents. Please update arcdps' would return some
             # empty jsons. This makes sure the log is still processed
             if self.r["players"] != []:
@@ -366,6 +367,10 @@ class DpsLogInteraction:
             dpslog = None
 
         if dpslog is None:
+            if parsed_path is None:
+                print(f"{log_path} was not parsed")
+                return False
+
             json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
             dpslog = cls.from_detailed_logs(log_path, json_detailed)
 
@@ -379,7 +384,12 @@ class DpsLogInteraction:
         players = [player["account"] for player in r2["players"]]
         final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
 
-        encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+        try:
+            encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
+        except Encounter.DoesNotExist:
+            print(f"{r2['fightName']} with id {r2['eiEncounterID']} doesnt exist")
+            move_failed_upload(log_path)
+            return False
 
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
             move_failed_upload(log_path)
@@ -467,3 +477,6 @@ def move_failed_upload(log_path):
 #     )
 #     #     self.run()
 #     a = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=log)
+
+
+# %%

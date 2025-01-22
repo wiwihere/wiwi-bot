@@ -45,11 +45,10 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # %%
 # TODO do something with Ethereal Barrier (47188)
-
-y, m, d = today_y_m_d()
-y, m, d = 2024, 9, 5
+# y, m, d = today_y_m_d()
+y, m, d = 2024, 11, 20
 itype_groups = ["raid", "strike", "fractal"]
-itype_groups = []
+# itype_groups = []
 
 if True:
     if True:
@@ -83,8 +82,7 @@ if True:
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
-                log_paths = list(chain(*(find_log_by_date(log_dir=log_dir, y=y, m=m, d=d) for log_dir in log_dirs)))
-                log_paths = sorted(log_paths, key=os.path.getmtime)
+                log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
 
                 # check a different set when local or uploading.
                 if processing_type == "local":
@@ -98,9 +96,11 @@ if True:
                     # Skip upload if log is not in itype_group
                     try:
                         if itype_groups is not None:
+                            # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
                                 print(f"Skipped {log_path}")
+                                log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
@@ -111,7 +111,14 @@ if True:
                         # Local processing
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
+                        if dli is False:
+                            # Parsing didnt work, too short log maybe.
+                            log_paths_local_done.append(log_path)
+                            log_paths_done.append(log_path)
+                            continue
+
                         uploaded_log = dli.dpslog
+
                     elif processing_type == "upload":
                         if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
                             # Upload log
@@ -241,18 +248,19 @@ if False:
 
 
 # %% Update all discord messages.
-for icg in InstanceClearGroup.objects.all():
+for icg in InstanceClearGroup.objects.all().order_by("start_time"):
     ymd = icg.name.split("__")[-1]
     y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
     # y,m,d= 2024,2,6
 
-    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
+    if icg.type in ["raid", "strike"]:
+        icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
 
-    # icgi = InstanceClearGroupInteraction.from_name(icg.name)
-    titles, descriptions = icgi.create_message()
-    embeds = icgi.create_embeds(titles, descriptions)
-
-    icgi.create_or_update_discord_message(embeds=embeds)
+        # icgi = InstanceClearGroupInteraction.from_name(icg.name)
+        # titles, descriptions = icgi.create_message()
+        # embeds = icgi.create_embeds(titles, descriptions)
+        if icgi:
+            icgi.send_discord_message()
     # break
 
 # %% Updating emoji ids in bulk
@@ -295,3 +303,13 @@ if True:
 
 # %%
 import pandas as pd
+
+log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
+log.request_metadata(report_id=None, url=log.log_url)
+
+
+log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
+log.request_metadata(report_id=None, url=log.log_url)
+
+
+# %%
