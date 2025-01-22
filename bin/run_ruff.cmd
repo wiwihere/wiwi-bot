@@ -1,1 +1,1 @@
-python -m ruff format ./gw2_database/**/*.py --force-exclude
+python -m ruff format ./**/*.py --force-exclude
