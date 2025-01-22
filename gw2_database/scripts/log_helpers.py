@@ -85,14 +85,14 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
     # RANK_BINS_PERCENTILE=[20, 40, 50, 60, 70, 80, 90, 100] # in .env
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='1_junk'),tag)()}".format("bin20_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='2_basic'),tag)()}".format("bin40_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='3_fine'),tag)()}".format("bin50_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='4_masterwork'),tag)()}".format("bin60_percrank{}"),
-        4: f"{getattr(Emoji.objects.get(name='5_rare'),tag)()}".format("bin70_percrank{}"),
-        5: f"{getattr(Emoji.objects.get(name='6_exotic'),tag)()}".format("bin80_percrank{}"),
-        6: f"{getattr(Emoji.objects.get(name='7_ascended'),tag)()}".format("bin90_percrank{}"),
-        7: f"{getattr(Emoji.objects.get(name='8_legendary'),tag)()}".format("bin100_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='1_junk'), tag)()}".format("bin20_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='2_basic'), tag)()}".format("bin40_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='3_fine'), tag)()}".format("bin50_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='4_masterwork'), tag)()}".format("bin60_percrank{}"),
+        4: f"{getattr(Emoji.objects.get(name='5_rare'), tag)()}".format("bin70_percrank{}"),
+        5: f"{getattr(Emoji.objects.get(name='6_exotic'), tag)()}".format("bin80_percrank{}"),
+        6: f"{getattr(Emoji.objects.get(name='7_ascended'), tag)()}".format("bin90_percrank{}"),
+        7: f"{getattr(Emoji.objects.get(name='8_legendary'), tag)()}".format("bin100_percrank{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -118,10 +118,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'),tag)()}".format("bin25_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'),tag)()}".format("bin50_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'),tag)()}".format("bin75_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'),tag)()}".format("bin100_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("bin25_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("bin50_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("bin75_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("bin100_percrank{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -227,7 +227,7 @@ def find_log_by_date(log_dirs, y, m, d) -> list[Path]:
     Returns sorted list on maketime
     """
     # return log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc")
-    log_paths = list(chain(*(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc") for log_dir in log_dirs)))
+    log_paths = list(chain(*(log_dir.rglob(f"{zfill_y_m_d(y, m, d)}*.zevtc") for log_dir in log_dirs)))
     return sorted(log_paths, key=os.path.getmtime)
 
 

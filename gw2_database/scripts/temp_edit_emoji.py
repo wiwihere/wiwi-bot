@@ -81,10 +81,10 @@ medalnames = {
 
 
 medalnames = {
-"red_full_medal" : "red_full_medal",
-"red_line_medal" : "red_line_medal",
-"green_line_medal" : "green_line_medal",
-"green_full_medal" : "green_full_medal",
+    "red_full_medal": "red_full_medal",
+    "red_line_medal": "red_line_medal",
+    "green_line_medal": "green_line_medal",
+    "green_full_medal": "green_full_medal",
 }
 # a = """<:junkmedal:1218317392627765450>
 # <:basicmedal:1218317391260287006>

@@ -55,7 +55,7 @@ if True:
         if y is None:
             y, m, d = today_y_m_d()
 
-        print(f"Starting log import for {zfill_y_m_d(y,m,d)}")
+        print(f"Starting log import for {zfill_y_m_d(y, m, d)}")
         print(f"Selected instance types: {itype_groups}")
         # y, m, d = 2023, 12, 11
 
