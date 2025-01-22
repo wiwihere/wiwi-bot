@@ -324,8 +324,10 @@ class DpsLog(models.Model):
         mins, secs = divmod(self.duration.seconds, 60)
 
         if self.url == "":
-            return f"{self.encounter.emoji.discord_tag(self.difficulty)}{{rank_str}}{self.encounter.name}{self.cm_str} \
+            return (
+                f"{self.encounter.emoji.discord_tag(self.difficulty)}{{rank_str}}{self.encounter.name}{self.cm_str} \
 (**{mins}:{str(secs).zfill(2)}**)"
+            )
         else:
             return f"{self.encounter.emoji.discord_tag(self.difficulty)}{{rank_str}}[{self.encounter.name}{self.cm_str}]({self.url}) \
 (**{mins}:{str(secs).zfill(2)}**)"

@@ -248,9 +248,9 @@ class LogUploader:
             print(
                 f"""
 ERROR
-Encounter not part of database. Register? {r['encounter']}
-bossId:  {r['encounter']['bossId']}
-print(f"bossname:  {r['encounter']['boss']}
+Encounter not part of database. Register? {r["encounter"]}
+bossId:  {r["encounter"]["bossId"]}
+print(f"bossname:  {r["encounter"]["boss"]}
 ERROR
 """
             )

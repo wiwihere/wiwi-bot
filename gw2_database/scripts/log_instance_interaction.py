@@ -118,7 +118,7 @@ class InstanceClearGroupInteraction:
         if len(logs_day) == 0:
             return None
 
-        name = f"{itype_group}s__{zfill_y_m_d(y,m,d)}"
+        name = f"{itype_group}s__{zfill_y_m_d(y, m, d)}"
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
@@ -275,7 +275,7 @@ class InstanceClearGroupInteraction:
             pug_count = 10
 
         # Nina's space, add space after 5 ducks for better readability.
-        pug_split_str = f"{PLAYER_EMOTES['core']*core_count}{PLAYER_EMOTES['friend']*friend_count}{PLAYER_EMOTES['pug']*pug_count}".split(
+        pug_split_str = f"{PLAYER_EMOTES['core'] * core_count}{PLAYER_EMOTES['friend'] * friend_count}{PLAYER_EMOTES['pug'] * pug_count}".split(
             ">"
         )
         if len(pug_split_str) > 5:
@@ -284,7 +284,7 @@ class InstanceClearGroupInteraction:
 
         # title description with start - end time and colored ducks for core/pugs
         description = f"""{create_discord_time(self.all_logs[0].start_time)} - \
-{create_discord_time(self.all_logs[-1].start_time+self.all_logs[-1].duration)} \
+{create_discord_time(self.all_logs[-1].start_time + self.all_logs[-1].duration)} \
 \n{pug_str}\n
 """
         # Add total instance group time if all bosses finished.
@@ -338,10 +338,10 @@ class InstanceClearGroupInteraction:
             # Cleartime wing
             duration_str = get_duration_str(iclear.duration.seconds)
 
-            titles[iclear.instance.instance_group.name][
-                iclear.name
-            ] = f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
+            titles[iclear.instance.instance_group.name][iclear.name] = (
+                f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
 ({duration_str})__**\n"
+            )
             field_value = ""
 
             instance_logs = iclear.dps_logs.order_by("start_time")

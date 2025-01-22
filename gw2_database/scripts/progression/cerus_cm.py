@@ -49,7 +49,7 @@ y, m, d = 2024, 4, 6
 
 
 def run_cerus_cm(y, m, d):
-    print(f"Starting Cerus log import for {zfill_y_m_d(y,m,d)}")
+    print(f"Starting Cerus log import for {zfill_y_m_d(y, m, d)}")
 
     encounter = Encounter.objects.get(name="Temple of Febe")
 
@@ -74,7 +74,7 @@ def run_cerus_cm(y, m, d):
         icgi = None
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(
-            name=f"cerus_cm__{zfill_y_m_d(y,m,d)}", type="strike"
+            name=f"cerus_cm__{zfill_y_m_d(y, m, d)}", type="strike"
         )
 
         # Find logs in directory
@@ -138,7 +138,7 @@ def run_cerus_cm(y, m, d):
                 health_df.sort_values("health", inplace=True)
 
                 health_df.reset_index(inplace=True)
-                health_df["rank"] = health_df["index"].apply(lambda x: f"`{str(x+1).zfill(2)}`")  # FIXME v1
+                health_df["rank"] = health_df["index"].apply(lambda x: f"`{str(x + 1).zfill(2)}`")  # FIXME v1
 
                 emote_cups = pd.Series(RANK_EMOTES_CUPS.values(), name="rank")
                 health_df["cups"] = ""
@@ -155,7 +155,7 @@ def run_cerus_cm(y, m, d):
                     if health_df["lcm"].mode().values[0]:
                         cerus_title = "Cerus Legendary CM"
                         difficulty = "lcm"
-                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time+list(cm_logs)[-1].duration)}\n\
+                field_value = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n{create_discord_time(cm_logs[0].start_time)} - {create_discord_time(list(cm_logs)[-1].start_time + list(cm_logs)[-1].duration)}\n\
         <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414>\n"
                 # field_value += f"`nr`{BLANK_EMOTE}⠀⠀ `( health | 80%  | 50%  | 10%  )`\n"
                 # field_value += f"\n`##`⠀⠀**log** `( health |  80% |  50% |  10% )`+delay\n\n"
