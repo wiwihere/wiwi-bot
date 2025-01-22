@@ -18,7 +18,7 @@ from scripts.log_helpers import (
 
 
 class Command(BaseCommand):
-    help = "Update leaderboards on discord"
+    help = "Copy logs from .env/DPS_LOGS_DIR to .env/ONEDRIVE_LOGS_DIR"
 
     def add_arguments(self, parser):
         parser.add_argument("--y", type=int, nargs="?", default=None)

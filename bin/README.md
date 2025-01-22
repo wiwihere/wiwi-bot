@@ -4,8 +4,10 @@
 Easiest way to proces todays logs. Just double click it.
 
 ## upload_from_url.cmd
-Paste dps.report urls to `bin\urls.txt`. Each report should be on a new line, dont add comma's space other other charcters than the urls.
+To add already uploaded logs to the database, paste the dps.report urls to `bin\urls.txt`. Each report should be on a new line, dont add comma's space or other characters than the urls. Finally run the .cmd.
 
+## copy_logs.cmd
+Copy all logs of selected date from the `DPS_LOGS_DIR` (default arcdps output) to the `ONEDRIVE_LOGS_DIR`. Setup the dirs in the `gw2_database\bot_settings\.env`.
 
 # Utilities
 
@@ -16,4 +18,4 @@ Update to EI parser to the latest version. Will download it from github and inst
 Start a django server to get access to the admin interface. http://127.0.0.1:8000/admin/
 
 ## python.cmd
-Activate the python enviroment. This uses `activate_conda.cmd` to activate the env specified in `gw2_database\bot_settings\.env`.
+Activate the python environment. This uses `activate_conda.cmd` to activate the env specified in `gw2_database\bot_settings\.env`.
