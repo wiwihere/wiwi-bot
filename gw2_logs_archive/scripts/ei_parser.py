@@ -9,7 +9,7 @@ from pathlib import Path
 proj_path = Path(os.path.abspath(os.path.dirname(__file__))).parents[1]
 EI_PARSER_FOLDER = proj_path / "GW2EI_parser"
 
-EI_SETTINGS_DEFAULT = proj_path / "gw2_database" / "bot_settings" / "gw2ei_settings_default.conf"
+EI_SETTINGS_DEFAULT = proj_path / "gw2_logs_archive" / "bot_settings" / "gw2ei_settings_default.conf"
 
 
 class EliteInisghtsParser:

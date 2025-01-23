@@ -1,5 +1,5 @@
 """
-ASGI config for gw2_database project.
+ASGI config for gw2_logs_archive project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

@@ -1,7 +1,7 @@
 # See https://docs.astral.sh/ruff/rules/ for meaning of rules
 [tool.ruff]
 line-length = 119
-extend-exclude = ["*.bat", "gw2_database/gw2_logs/migrations/*"]
+extend-exclude = ["*.bat", "gw2_logs_archive/gw2_logs/migrations/*"]
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "NPY", "PD", "C4", "I"]

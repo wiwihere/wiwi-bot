@@ -11,7 +11,7 @@ from django.db.models import Q
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
-    init_django_from_commands("gw2_database")
+    init_django_from_commands("gw2_logs_archive")
 from bot_settings import settings
 from gw2_logs.models import (
     DpsLog,

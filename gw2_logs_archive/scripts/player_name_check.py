@@ -6,7 +6,7 @@ Creates a dataframe with a count of all the logs for each day they were there.
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
-    init_django_from_commands("gw2_database")
+    init_django_from_commands("gw2_logs_archive")
 
 import numpy as np
 import pandas as pd

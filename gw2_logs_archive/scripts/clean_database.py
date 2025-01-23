@@ -7,12 +7,11 @@ import sys
 if __name__ == "__main__":
     from django_for_jupyter import init_django_from_commands
 
-    init_django_from_commands("gw2_database")
+    init_django_from_commands("gw2_logs_archive")
 
 from gw2_logs.models import DpsLog, Instance, InstanceClear, InstanceClearGroup, Player
+from gw2_logs_archive.bot_settings import settings as django_settings
 from scripts.log_helpers import today_y_m_d
-
-from gw2_database.bot_settings import settings as django_settings
 
 res = input("Are you sure you want to clean your database? A copy will be made first. [y/n]")
 if res == "y":

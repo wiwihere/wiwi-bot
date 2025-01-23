@@ -1,5 +1,5 @@
 """
-WSGI config for gw2_database project.
+WSGI config for gw2_logs_archive project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

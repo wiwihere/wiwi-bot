@@ -15,24 +15,24 @@ Apart from uploading the logs to dps.report, they will be processed locally firs
 
 (**4:41**) cleartime of the encounter\
 _+1:07_ Time between the end of the previous kill run and the start of the current kill run. If its the first log in the session it will be 0:00, unless there is a fail log. \
-<img src="gw2_database/img/medal/first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
-<img src="gw2_database/img/medal/first_invalid.png" width="20"/> Invalid medals mean that there were more pugs than allowed (check settings).\
-<img src="gw2_database/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
-<img src="gw2_database/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
-<img src="gw2_database/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health. Hover to see remaining health percentage.\
+<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
+<img src="gw2_logs_archive/img/medal/first_invalid.png" width="20"/> Invalid medals mean that there were more pugs than allowed (check settings).\
+<img src="gw2_logs_archive/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
+<img src="gw2_logs_archive/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
+<img src="gw2_logs_archive/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health. Hover to see remaining health percentage.\
 <img src="img/click_wipe.png" alt="click_wipe%" width=""/>\
 Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
-<img src="gw2_database/img/core.gif" width="20"/> Amount of core members in the run.\
-<img src="gw2_database/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_database/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_database/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
+<img src="gw2_logs_archive/img/core.gif" width="20"/> Amount of core members in the run.\
+<img src="gw2_logs_archive/img/pug.gif" width="20"/> Amount of pugs in the run.\
+<img src="gw2_logs_archive/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_logs_archive/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
 _*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
-<img src="gw2_database/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
+<img src="gw2_logs_archive/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
 
 
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
-<img src="gw2_database/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
-<img src="gw2_database/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
+<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
+<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
 of the run.
 
 
@@ -65,7 +65,7 @@ mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #C
 4. -- optional -- Use the IDE of your choice if you need to debug errors or want a bit more control. I use [vs-code-insiders](https://code.visualstudio.com/insiders):\
     a. Install the python and jupyter extensions.\
     b. File -> Open Folder ->  select the folder with the unpacked zip from 1.\
-    c. Open the file `wiwi-bot/gw2_database/scripts/import_dps_report.py`\
+    c. Open the file `wiwi-bot/gw2_logs_archive/scripts/import_dps_report.py`\
     d. On the bottom right click the python interpreter ![select interpreter](img/vscode_select_interpreter.png) and select the python env we installed at step 2; ![python env](img/vscode_python_env.png).\
     e. Run the code with `shift+enter` or by pressing ![alt text](img/vscode_runcell.png) above the code blocks.
 5. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
@@ -78,7 +78,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
-    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_database/img/medal/first_invalid.png" width="20"/>)
+    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_logs_archive/img/medal/first_invalid.png" width="20"/>)
     - .env\MEAN_OR_MEDIAN -> [mean or median] Choose what unranked runs are compared with, the median or mean of all runs.
     - .env\MEDALS_TYPE -> Choose which medals are used. options are ['original', 'percentile', 'newgame']
 
