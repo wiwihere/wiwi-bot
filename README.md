@@ -73,7 +73,7 @@ mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #C
 
 ## Initial setup
 A couple tokens and keys need to be set so the results can be posted to discord.
-1. Rename `bot_settings\.env-example` to `bot_settings\.env`.
+1. Rename `.env-example` to `.env`.
     - .env\CONDA_DIR -> rename `C:\Users\Wiwi\miniforge3` to your own conda or mamba installation (step 2 in software)
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
