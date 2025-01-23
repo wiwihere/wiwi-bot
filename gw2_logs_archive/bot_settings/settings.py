@@ -18,7 +18,7 @@ def get_env(name):
     try:
         return os.environ[name]
     except KeyError:
-        raise MissingEnvironmentVariable(rf"Add {name} variable to your gw2_logs_archive\bot_settings\.env file.")
+        raise MissingEnvironmentVariable(rf"Add {name} variable to your .env file.")
 
 
 DISCORD_API_SECRET = get_env("DISCORD_API_TOKEN")
@@ -62,7 +62,7 @@ DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
 ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
 if not Path(DPS_LOGS_DIR).exists():
-    print("WARNING: ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the bot_settings/.env")
+    print("WARNING: ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the .env")
 
 CMDS_DIR = BASE_DIR / "cmds"
 COGS_DIR = BASE_DIR / "cogs"
