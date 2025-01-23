@@ -12,7 +12,7 @@ if __name__ == "__main__":
 from gw2_logs.models import DpsLog, Instance, InstanceClear, InstanceClearGroup, Player
 from scripts.log_helpers import today_y_m_d
 
-from gw2_database.gw2_database import settings as django_settings
+from gw2_database.bot_settings import settings as django_settings
 
 res = input("Are you sure you want to clean your database? A copy will be made first. [y/n]")
 if res == "y":
@@ -43,3 +43,5 @@ if res == "y":
         for instance in Instance.objects.all():
             instance.discord_leaderboard_message_id = None
             instance.save()
+
+# %%
