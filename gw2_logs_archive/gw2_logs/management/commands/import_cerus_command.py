@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-from gw2_logs_archive.scripts.encounters.cerus import run_cerus_cm
 from scripts.log_helpers import today_y_m_d
+
+from gw2_logs_archive.scripts.encounters.cerus import run_cerus_cm
 
 
 class Command(BaseCommand):

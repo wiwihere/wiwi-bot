@@ -1,5 +1,5 @@
-from django.core.management import call_command
 from django.contrib import messages
+from django.core.management import call_command
 from django.shortcuts import redirect
 
 
