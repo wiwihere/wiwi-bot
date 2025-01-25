@@ -56,6 +56,10 @@ cover/
 *.mo
 *.pot
 
+
+GW2EI_parser
+!GW2EI_parser/README.md
+
 # Django stuff:
 *.log
 local_settings.py
