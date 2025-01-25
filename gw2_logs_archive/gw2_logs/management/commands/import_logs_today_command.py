@@ -67,7 +67,7 @@ class Command(BaseCommand):
 
         # Initialize local parser
         ei_parser = EliteInisghtsParser()
-        ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+        ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
         while True:
             icgi = None

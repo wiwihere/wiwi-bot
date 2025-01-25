@@ -6,6 +6,12 @@ import os
 import subprocess
 from pathlib import Path
 
+if __name__ == "__main__":
+    from django_for_jupyter import init_django_from_commands
+
+    init_django_from_commands("gw2_logs_archive")
+from bot_settings import settings
+
 proj_path = Path(os.path.abspath(os.path.dirname(__file__))).parents[1]
 EI_PARSER_FOLDER = proj_path / "GW2EI_parser"
 
@@ -103,7 +109,7 @@ class EliteInisghtsParser:
 
 if __name__ == "__main__":
     self = ei_parser = EliteInisghtsParser()
-    ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20241125"), create_html=False)
+    ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath("20241125"), create_html=False)
 
     d = ei_parser.parse_log(evtc_path=r"C:/Users/Wietse/OneDrive/gw2_shared_logs/20241125-200608.zevtc")
     r2 = EliteInisghtsParser.load_json_gz(js_path=d)
