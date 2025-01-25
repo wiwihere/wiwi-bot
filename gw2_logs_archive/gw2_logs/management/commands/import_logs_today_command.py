@@ -1,12 +1,10 @@
 # %%
-import datetime
 import os
 import time
-from itertools import chain
 from pathlib import Path
 
 import scripts.leaderboards as leaderboards
-from bot_settings import settings
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
 from scripts.log_helpers import (
@@ -20,8 +18,6 @@ from scripts.log_helpers import (
 from scripts.log_instance_interaction import (
     InstanceClearGroup,
     InstanceClearGroupInteraction,
-    create_embeds,
-    create_or_update_discord_message,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
 

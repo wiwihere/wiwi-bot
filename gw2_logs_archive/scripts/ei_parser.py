@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from bot_settings import settings
+from django.conf import settings
 
 proj_path = Path(os.path.abspath(os.path.dirname(__file__))).parents[1]
 EI_PARSER_FOLDER = proj_path / "GW2EI_parser"
@@ -21,6 +21,7 @@ EI_SETTINGS_DEFAULT = proj_path / "gw2_logs_archive" / "bot_settings" / "gw2ei_s
 
 class EliteInisghtsParser:
     def __init__(self):
+        """Interaction with EliteInisghts CLI"""
         self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights-CLI.exe")
         self.out_dir = None  # Set in .make_settings
         self.settings = None  # Set in .make_settings

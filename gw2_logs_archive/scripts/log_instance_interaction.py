@@ -6,6 +6,7 @@ from itertools import chain
 import discord
 import numpy as np
 import pandas as pd
+from django.conf import settings
 from django.db.models import Q
 
 if __name__ == "__main__":
@@ -13,10 +14,8 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from bot_settings import settings
 from gw2_logs.models import (
     DpsLog,
-    Emoji,
     Encounter,
     Instance,
     InstanceClear,

@@ -17,11 +17,20 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-
-from bot_settings import settings
-from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
+from django.conf import settings
+from gw2_logs.models import (
+    DpsLog,
+    Encounter,
+    Player,
+)
 from scripts.ei_parser import EliteInisghtsParser
-from scripts.log_helpers import create_unix_time, get_duration_str, get_emboldened_wing, today_y_m_d, zfill_y_m_d
+from scripts.log_helpers import (
+    create_unix_time,
+    get_duration_str,
+    get_emboldened_wing,
+    today_y_m_d,
+    zfill_y_m_d,
+)
 
 
 @dataclass

@@ -18,10 +18,10 @@ import discord
 import numpy as np
 import pandas as pd
 import pytz
-from bot_settings import settings
 from discord import SyncWebhook
 from discord.utils import MISSING
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup, Player
+from django.conf import settings
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {

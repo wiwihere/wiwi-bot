@@ -10,22 +10,21 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from bot_settings import settings
+from django.conf import settings
 from django.db.models import Q
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
+from gw2_logs.models import (
+    Instance,
+    InstanceClearGroup,
+    InstanceGroup,
+)
 from scripts.log_helpers import (
     BLANK_EMOTE,
     EMBED_COLOR,
-    RANK_EMOTES,
-    RANK_EMOTES_INVALID,
     WEBHOOKS,
     Thread,
-    create_discord_time,
     create_or_update_discord_message,
     get_avg_duration_str,
-    get_duration_str,
     get_rank_duration_str,
-    get_rank_emote,
 )
 
 # TODO remove ITYPE_GROUPS

@@ -6,28 +6,23 @@ TODO list
 Multiple runs on same day/week?
 """
 
+import datetime
 import os
-from itertools import chain
+import time
 from pathlib import Path
+
+from django.conf import settings
 
 if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
 
-import datetime
-import os
-import time
-from itertools import chain
-from pathlib import Path
 
-import scripts.leaderboards as leaderboards
-from bot_settings import settings
 from scripts import leaderboards
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from scripts.ei_parser import EliteInisghtsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
-    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
@@ -36,8 +31,6 @@ from scripts.log_helpers import (
 from scripts.log_instance_interaction import (
     InstanceClearGroup,
     InstanceClearGroupInteraction,
-    create_embeds,
-    create_or_update_discord_message,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
 

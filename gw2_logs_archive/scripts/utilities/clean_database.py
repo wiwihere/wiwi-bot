@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from bot_settings import settings as django_settings
+from django.conf import settings as django_settings
 from gw2_logs.models import DpsLog, Instance, InstanceClear, InstanceClearGroup, Player
 from scripts.log_helpers import today_y_m_d
 

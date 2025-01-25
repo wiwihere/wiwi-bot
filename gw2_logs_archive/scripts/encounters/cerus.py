@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from bot_settings import settings
+from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
@@ -20,9 +20,8 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from scripts.ei_parser import EliteInisghtsParser
 from scripts.log_helpers import (
-    BLANK_EMOTE,
     RANK_EMOTES_CUPS,
     create_discord_time,
     create_or_update_discord_message,

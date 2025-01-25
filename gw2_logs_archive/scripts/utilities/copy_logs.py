@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from bot_settings import settings
+from django.conf import settings
 from scripts.log_helpers import (
     create_folder_names,
     find_log_by_date,
