@@ -1,9 +1,11 @@
 # %%
-"""Dangerous! Only use if you wish to have a clean start."""
+"""Dangerous! Only use if you wish to have a clean start.
+
+Clears the database of all dps logs and clears.
+"""
 
 import shutil
 import sqlite3
-import sys
 
 if __name__ == "__main__":
     from _setup_django import init_django

@@ -1,3 +1,4 @@
+# Required in every scripts folder to allow running django in the ipykernel
 import os
 import sys
 from pathlib import Path

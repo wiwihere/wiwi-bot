@@ -25,6 +25,7 @@ from gw2_logs.models import (
     InstanceClearGroup,
     Player,
 )
+from scripts.log_instance_interaction import InstanceClearGroupInteraction
 
 # %%
 
