@@ -6,7 +6,6 @@ import os
 import subprocess
 from pathlib import Path
 
-# %%
 if __name__ == "__main__":
     from _setup_django import init_django
 

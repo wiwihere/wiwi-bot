@@ -15,11 +15,11 @@ def init_django(script_path, marker="manage.py"):
             project_dir = str(parent)
             root_dir = str(parent.parent)
 
-    if project_dir not in sys.path:
-        sys.path.insert(0, project_dir)
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
 
     # Initialize Django
-    os.chdir(root_dir)
+    os.chdir(project_dir)
     from gw2_logs_archive.scripts.utilities.django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_logs_archive")

@@ -14,7 +14,7 @@ or call:\n
     # sys.path.insert(0, str(pwd.parent))
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"{project_name}.bot_settings.settings")
-    os.environ["DJANGO_SETTINGS_MODULE"] = "{project_name}.bot_settings.settings"
+    os.environ["DJANGO_SETTINGS_MODULE"] = f"{project_name}.bot_settings.settings"
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     import django
 
