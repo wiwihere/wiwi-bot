@@ -1,1 +1,0 @@
-Currently unused. Everything is done through webhooks.

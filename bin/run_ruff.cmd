@@ -1,1 +1,0 @@
-python -m ruff format ./**/*.py --force-exclude
