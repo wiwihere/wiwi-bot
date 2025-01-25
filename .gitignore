@@ -62,7 +62,7 @@ local_settings.py
 db.sqlite3
 db_test.sqlite3
 db.sqlite3-journal
-gw2_logs_archive/backups/*.sqlite3
+data/db_backups/*.sqlite3
 gw2_logs_archive/img/deprecated
 
 # Flask stuff:

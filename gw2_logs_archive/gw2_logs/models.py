@@ -1,8 +1,6 @@
 from itertools import chain
 
-from discord import ChannelFlags
 from django.db import models
-from traitlets import default
 
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
 EMOJI_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("medal", "Medal"), ("other", "Other")]
@@ -71,6 +69,8 @@ class DiscordMessage(models.Model):
 
 
 class InstanceGroup(models.Model):
+    """Instance groups e.g. raid, strike, fractal, golem"""
+
     name = models.CharField(max_length=100, null=True, blank=True)
     discord_message = models.ForeignKey(
         DiscordMessage,

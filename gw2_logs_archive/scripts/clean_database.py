@@ -21,7 +21,9 @@ if res == "y":
     if res2 == "delete all my clears":
         y, m, d = today_y_m_d()
         django_db = django_settings.DATABASES["default"]["NAME"]
-        backup_db = django_db.parent.joinpath(f"backups/db_{y}{str(m).zfill(2)}{str(d).zfill(2)}.sqlite3")
+        backup_db = django_settings.PROJECT_DIR.joinpath(
+            "data", "db_backups", f"db_{y}{str(m).zfill(2)}{str(d).zfill(2)}.sqlite3"
+        )
         i = 0
         while backup_db.exists():
             backup_db = backup_db.with_name(f"db_{y}{str(m).zfill(2)}{str(d).zfill(2)}_{i}.sqlite3")
