@@ -43,5 +43,3 @@ if res == "y":
         for instance in Instance.objects.all():
             instance.discord_leaderboard_message_id = None
             instance.save()
-
-# %%
