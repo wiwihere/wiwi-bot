@@ -1,10 +1,9 @@
 # %%
 
 from django.core.management.base import BaseCommand
-from scripts import copy_logs
-from scripts.log_helpers import (
-    today_y_m_d,
-)
+from scripts.log_helpers import today_y_m_d
+
+from gw2_logs_archive.scripts.tools import copy_logs
 
 
 class Command(BaseCommand):

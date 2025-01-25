@@ -6,10 +6,9 @@ from pathlib import Path
 import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from scripts.ei_parser import EliteInisghtsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
-    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
