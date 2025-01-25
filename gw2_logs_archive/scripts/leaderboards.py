@@ -6,9 +6,10 @@ import numpy as np
 import pytz
 
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
+    init_django(__file__)
+
 from bot_settings import settings
 from django.db.models import Q
 from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup

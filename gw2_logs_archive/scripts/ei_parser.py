@@ -6,10 +6,12 @@ import os
 import subprocess
 from pathlib import Path
 
+# %%
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
+    init_django(__file__)
+
 from bot_settings import settings
 
 proj_path = Path(os.path.abspath(os.path.dirname(__file__))).parents[1]

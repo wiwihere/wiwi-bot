@@ -1,13 +1,9 @@
 # %%
-import sys
-from pathlib import Path
 
 if __name__ == "__main__":
-    if str(Path(__file__).parents[1]) not in sys.path:
-        sys.path.append(str(Path(__file__).parents[1]))
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive", pwd=Path(__file__).parents[2])
+    init_django(__file__)
 
 import datetime
 import os
