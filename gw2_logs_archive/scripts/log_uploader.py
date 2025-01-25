@@ -471,6 +471,7 @@ class DpsLogInteraction:
 
 def move_failed_upload(log_path):
     """Some logs are just broken. Lets remove them from the equation"""  # noqa
+    # TODO this function is declared twice
     out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(log_path).name)
     out_path.parent.mkdir(exist_ok=True)
     # print(f"Moved failing log from {self.log_source_view} to")
