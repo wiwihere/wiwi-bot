@@ -2,6 +2,7 @@
 """Dangerous! Only use if you wish to have a clean start."""
 
 import shutil
+import sqlite3
 import sys
 
 if __name__ == "__main__":
@@ -19,15 +20,14 @@ if res == "y":
     res2 = input("Really? Type: delete all my clears")
     if res2 == "delete all my clears":
         y, m, d = today_y_m_d()
-        backup_db = django_settings.DATABASES["default"]["NAME"].parent.joinpath(
-            f"backups/db_{y}{str(m).zfill(2)}{str(d).zfill(2)}.sqlite3"
-        )
+        django_db = django_settings.DATABASES["default"]["NAME"]
+        backup_db = django_db.parent.joinpath(f"backups/db_{y}{str(m).zfill(2)}{str(d).zfill(2)}.sqlite3")
         i = 0
         while backup_db.exists():
             backup_db = backup_db.with_name(f"db_{y}{str(m).zfill(2)}{str(d).zfill(2)}_{i}.sqlite3")
             i += 1
 
-        shutil.copyfile(src=django_settings.DATABASES["default"]["NAME"], dst=backup_db)
+        shutil.copyfile(src=django_db, dst=backup_db)
         print(f"Created db backup @ {backup_db}")
 
         print("Deleting all: DpsLog")
@@ -43,3 +43,8 @@ if res == "y":
         for instance in Instance.objects.all():
             instance.discord_leaderboard_message_id = None
             instance.save()
+
+        # Vacuum the database to reduce file size
+        conn = sqlite3.connect(django_db)
+        conn.execute("VACUUM")
+        conn.close()
