@@ -1,7 +1,14 @@
+# %%
 from itertools import chain
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
+
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+from bot_settings import settings
 from scripts import log_uploader
 
 
@@ -10,7 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Read urls from txt file
-        log_urls = Path(r"bin/urls.txt").read_text()
+        log_urls = settings.PROJECT_DIR.joinpath("bin", "urls.txt").read_text()
         log_urls = log_urls.split(";")
         log_urls = list(chain(*[u.split("\n") for u in log_urls]))
         print(log_urls)
