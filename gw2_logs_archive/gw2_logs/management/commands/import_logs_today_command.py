@@ -6,7 +6,7 @@ from pathlib import Path
 import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts.ei_parser import EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     create_folder_names,
@@ -61,7 +61,7 @@ class Command(BaseCommand):
         current_sleeptime = MAXSLEEPTIME
 
         # Initialize local parser
-        ei_parser = EliteInisghtsParser()
+        ei_parser = EliteInsightsParser()
         ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
         while True:

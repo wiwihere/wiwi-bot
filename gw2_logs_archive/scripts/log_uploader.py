@@ -23,7 +23,7 @@ from gw2_logs.models import (
     Encounter,
     Player,
 )
-from scripts.ei_parser import EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     create_unix_time,
     get_duration_str,
@@ -381,7 +381,7 @@ class DpsLogInteraction:
                 print(f"{log_path} was not parsed")
                 return False
 
-            json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
+            json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
             dpslog = cls.from_detailed_logs(log_path, json_detailed)
 
         return cls(dpslog=dpslog)

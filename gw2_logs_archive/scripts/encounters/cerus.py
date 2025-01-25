@@ -20,7 +20,7 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from scripts.ei_parser import EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
@@ -60,7 +60,7 @@ def run_cerus_cm(y, m, d):
     current_sleeptime = MAXSLEEPTIME
 
     # Initialize local parser
-    ei_parser = EliteInisghtsParser()
+    ei_parser = EliteInsightsParser()
     ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
     while True:

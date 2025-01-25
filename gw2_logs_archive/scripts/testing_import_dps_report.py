@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
 import scripts.leaderboards as leaderboards
 from gw2_logs.models import InstanceClearGroup
-from scripts.ei_parser import EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     create_folder_names,
@@ -66,7 +66,7 @@ if True:
         current_sleeptime = MAXSLEEPTIME
 
         # Initialize local parser
-        ei_parser = EliteInisghtsParser()
+        ei_parser = EliteInsightsParser()
         ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
         while True:
