@@ -57,7 +57,7 @@ if True:
         folder_names = create_folder_names(itype_groups=itype_groups)
 
         log_dir1 = Path(settings.DPS_LOGS_DIR)
-        log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
+        log_dir2 = Path(settings.EXTRA_LOGS_DIR)
         log_dirs = [log_dir1, log_dir2]
 
         log_paths_done = []

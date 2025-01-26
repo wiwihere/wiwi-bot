@@ -50,7 +50,7 @@ def run_cerus_cm(y, m, d):
     # possible folder names for selected itype_groups
 
     log_dir1 = Path(settings.DPS_LOGS_DIR)
-    log_dir2 = Path(settings.ONEDRIVE_LOGS_DIR)
+    log_dir2 = Path(settings.EXTRA_LOGS_DIR)
     log_dirs = [log_dir1, log_dir2]
 
     log_paths_done = []

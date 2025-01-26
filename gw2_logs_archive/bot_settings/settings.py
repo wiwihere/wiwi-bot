@@ -71,7 +71,7 @@ EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtlogs"
 DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
-ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
+EXTRA_LOGS_DIR = get_env("EXTRA_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
 
 
