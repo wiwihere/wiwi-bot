@@ -56,8 +56,8 @@ if True:
         # possible folder names for selected itype_groups
         folder_names = create_folder_names(itype_groups=itype_groups)
 
-        log_dir1 = Path(settings.DPS_LOGS_DIR)
-        log_dir2 = Path(settings.EXTRA_LOGS_DIR)
+        log_dir1 = settings.DPS_LOGS_DIR
+        log_dir2 = settings.EXTRA_LOGS_DIR
         log_dirs = [log_dir1, log_dir2]
 
         log_paths_done = []
@@ -193,7 +193,7 @@ if True:
 
 # y, m, d = 2023, 12, 18
 
-# log_dir = Path(settings.DPS_LOGS_DIR)
+# log_dir = settings.DPS_LOGS_DIR
 # log_paths = list(log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc"))
 
 # for log_path in log_paths:

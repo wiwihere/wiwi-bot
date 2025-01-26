@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 def copy_logs(y, m, d, itype_groups):
     """Copy logs from a date to a folder"""
-    log_dir_source = Path(settings.DPS_LOGS_DIR)
-    log_dir_dst = Path(settings.EXTRA_LOGS_DIR)
+    log_dir_source = settings.DPS_LOGS_DIR
+    log_dir_dst = settings.EXTRA_LOGS_DIR
     logger.info(f"Selected itype groups: {itype_groups}")
     logger.info(f"Src dir: {log_dir_source}")
     logger.info(f"Dst dir: {log_dir_dst}")

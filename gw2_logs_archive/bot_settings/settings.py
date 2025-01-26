@@ -70,8 +70,8 @@ EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 
 DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtlogs"
-DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
-EXTRA_LOGS_DIR = get_env("EXTRA_LOGS_DIR")
+DPS_LOGS_DIR = Path(get_env("DPS_LOGS_DIR"))
+EXTRA_LOGS_DIR = Path(get_env("EXTRA_LOGS_DIR"))
 # Shared drive with other static members, they can post logs there to upload.
 
 
@@ -122,7 +122,7 @@ logging.config.dictConfig(LOGGING)
 
 logger = logging.getLogger(__name__)
 
-if not Path(DPS_LOGS_DIR).exists():
+if not DPS_LOGS_DIR.exists():
     logger.warning("ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the .env")
 
 """
