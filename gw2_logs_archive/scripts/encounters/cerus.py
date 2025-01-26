@@ -61,7 +61,7 @@ def run_cerus_cm(y, m, d):
 
     # Initialize local parser
     ei_parser = EliteInsightsParser()
-    ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+    ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
     while True:
         # if True:

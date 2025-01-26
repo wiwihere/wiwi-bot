@@ -1,4 +1,5 @@
 # Required in every scripts folder to allow running django in the ipykernel
+import logging
 import os
 import sys
 from pathlib import Path
@@ -23,4 +24,6 @@ def init_django(script_path, marker="manage.py"):
     from gw2_logs_archive.scripts.utilities.django_for_jupyter import init_django_from_commands
 
     init_django_from_commands("gw2_logs_archive")
-    print(f"Initialized Django at {project_dir}")
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"Initialized Django for Jupyter at {project_dir}")

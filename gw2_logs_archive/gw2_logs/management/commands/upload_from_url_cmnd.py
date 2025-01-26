@@ -1,14 +1,17 @@
 # %%
+import logging
 from itertools import chain
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
-from django.conf import settings
 from scripts import log_uploader
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -19,7 +22,8 @@ class Command(BaseCommand):
         log_urls = settings.PROJECT_DIR.joinpath("bin", "urls.txt").read_text()
         log_urls = log_urls.split(";")
         log_urls = list(chain(*[u.split("\n") for u in log_urls]))
-        print(log_urls)
+        logger.info("Processing urls from urls.txt")
+        logger.info(log_urls)
 
         # Parse the urls
         for log_url in log_urls:

@@ -1,5 +1,6 @@
 # %%
 import datetime
+import logging
 from dataclasses import dataclass
 from itertools import chain
 
@@ -34,6 +35,8 @@ from scripts.log_helpers import (
     zfill_y_m_d,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class InstanceClearInteraction:
@@ -60,7 +63,7 @@ class InstanceClearInteraction:
             name=iname,
         )
         if created:
-            print(f"Created {iclear}")
+            logger.info(f"Created {iclear}")
 
         # All logs that are not yet part of the instance clear will be added.
         for log in set(logs).difference(set(iclear.dps_logs.all())):
@@ -122,7 +125,7 @@ class InstanceClearGroupInteraction:
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
-            print(f"Created InstanceClearGroup: {iclear_group}")
+            logger.info(f"Created InstanceClearGroup: {iclear_group}")
 
         # Create individual instance clears
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
@@ -180,7 +183,7 @@ class InstanceClearGroupInteraction:
                 Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
             ):
                 # if self.iclear_group.success is False:
-                print(f"Finished {self.iclear_group.type}s for this week!")
+                logger.info(f"Finished {self.iclear_group.type}s for this week!")
                 # Duration is the difference between first and last log for each day.
                 # If there is only one log (e.g. strikes), that duration should be added.
                 time_diff = datetime.timedelta(0)
@@ -233,7 +236,7 @@ class InstanceClearGroupInteraction:
             if sum(self.icg_iclears_all.values_list("success", flat=True)) == len(
                 Instance.objects.filter(instance_group__name=self.iclear_group.type)
             ):
-                print("Finished all fractals!")
+                logger.info("Finished all fractals!")
                 self.iclear_group.success = True
                 self.iclear_group.duration = sum(
                     self.icg_iclears_all.values_list("duration", flat=True),
@@ -484,7 +487,7 @@ def create_embeds(titles, descriptions):
         # Check field length. If more than 1024 it cannot go to a field and should instead
         # go to description
         if np.any(field_characters > 1024):
-            print("Cannot use fields because one has more than 1024 chars")
+            logger.info("Cannot use fields because one has more than 1024 chars")
             use_fields = False
 
             # field characters actually change here because the titles are included in
@@ -517,7 +520,7 @@ def create_embeds(titles, descriptions):
                     if encounter_key == "main":  # Main is already in title.
                         continue
                     if embed_id_instance != embed_id:  # Should go to different embed.
-                        print(len(description))
+                        logger.debug(f"{len(description)} something is up with embeds")
 
                         continue
 
@@ -575,7 +578,7 @@ if __name__ == "__main__":
         embeds = {}
         for icg in grp_lst:
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
-            print(icg.name)
+            logger.info(icg.name)
             titles, descriptions = icgi.create_message()
             icg_embeds = create_embeds(titles, descriptions)
             embeds.update(icg_embeds)

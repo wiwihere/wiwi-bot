@@ -7,6 +7,7 @@ Multiple runs on same day/week?
 """
 
 import datetime
+import logging
 import os
 import time
 from pathlib import Path
@@ -33,6 +34,7 @@ from scripts.log_instance_interaction import InstanceClearGroupInteraction
 from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # importlib.reload(log_uploader)
+logger = logging.getLogger(__name__)
 
 
 # %%
@@ -47,8 +49,8 @@ if True:
         if y is None:
             y, m, d = today_y_m_d()
 
-        print(f"Starting log import for {zfill_y_m_d(y, m, d)}")
-        print(f"Selected instance types: {itype_groups}")
+        logger.info(f"Starting log import for {zfill_y_m_d(y, m, d)}")
+        logger.info(f"Selected instance types: {itype_groups}")
         # y, m, d = 2023, 12, 11
 
         # possible folder names for selected itype_groups
@@ -67,7 +69,9 @@ if True:
 
         # Initialize local parser
         ei_parser = EliteInsightsParser()
-        ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+        ei_parser.create_settings(
+            out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
+        )
 
         while True:
             icgi = None
@@ -91,12 +95,12 @@ if True:
                             # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
                             if boss_name not in folder_names:
-                                print(f"Skipped {log_path}")
+                                logger.info(f"Skipped {log_path}")
                                 log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
-                        print("Failed to find bossname, will use log.")
+                        logger.warning("Failed to find bossname, will use log.")
                         pass
 
                     if processing_type == "local":
@@ -173,11 +177,11 @@ if True:
                 leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
-                print("Finished run")
+                logger.info("Finished run")
                 break
 
             current_sleeptime -= SLEEPTIME
-            print(f"Run {run_count} done")
+            logger.info(f"Run {run_count} done")
 
             run_count += 1
 

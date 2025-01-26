@@ -1,6 +1,7 @@
 # %%
 import datetime
 import json
+import logging
 import shutil
 import time
 from dataclasses import dataclass
@@ -11,13 +12,13 @@ import numpy as np
 import pandas as pd
 import requests
 from dateutil.parser import parse
+from django.conf import settings
 
 if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
 
-from django.conf import settings
 from gw2_logs.models import (
     DpsLog,
     Encounter,
@@ -31,6 +32,8 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -107,16 +110,16 @@ class LogUploader:
             self.r_raw = r = requests.post(base_url, files=files, data=data)
 
         if r.status_code == 503:
-            print(f"{datetime.datetime.now()} ERROR 503: Failed uploading {self.log_source_view}")
+            logger.error(f"Code 503: Failed uploading {self.log_source_view}")
             try:
-                print(f"ERROR: {self.r_raw.error}")
+                logger.error(f"{self.r_raw.error}")
             except:
                 pass
             return False
         if r.status_code == 403:
-            print(f"{datetime.datetime.now()} ERROR 403: Failed uploading {self.log_source_view}")
+            logger.error(f"Code 403: Failed uploading {self.log_source_view}")
             try:
-                print(r.json()["error"])
+                logger.error(r.json()["error"])
 
                 # Move perma fail upload so it wont bother us again.
                 if r.json()["error"] == "Encounter is too short for a useful report to be made":
@@ -124,7 +127,7 @@ class LogUploader:
             except json.decoder.JSONDecodeError:
                 pass
             try:
-                print(f"{datetime.datetime.now()} ERROR Reason: {self.r_raw.reason}")
+                logger.error(f"Reason: {self.r_raw.reason}")
                 if str(self.r_raw.reason) == "Forbidden":
                     self.move_forbidden_upload()
             except:
@@ -133,21 +136,19 @@ class LogUploader:
                 pass
             return False
 
-        if hasattr(r, "status_code"):
+        if hasattr(r, "status_code"):  # NOTE this hasattr here makes no sense, we already use status_code.
             if r.status_code == 200:
                 return r.json()
 
-        print(
-            f"{datetime.datetime.now()} ERROR: Failed uploading log for unknown reason {r.status_code} {self.log_source_view}"
-        )
+        logger.error(f"Failed uploading log for unknown reason {r.status_code} {self.log_source_view}")
         return False
 
     def move_failed_upload(self):
         """Some logs are just broken. Lets remove them from the equation"""  # noqa
         out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(self.log_path).name)
         out_path.parent.mkdir(exist_ok=True)
-        print(f"Moved failing log from {self.log_source_view} to")
-        print(out_path)
+        logger.warning(f"Moved failing log from {self.log_source_view} to")
+        logger.warning(out_path)
         shutil.move(src=self.log_path, dst=out_path)
 
     def move_forbidden_upload(self):
@@ -156,8 +157,8 @@ class LogUploader:
             "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
         )
         out_path.parent.mkdir(exist_ok=True, parents=True)
-        print(f"Moved forbidden log from {self.log_source_view} to")
-        print(out_path)
+        logger.warning(f"Moved forbidden log from {self.log_source_view} to")
+        logger.warning(out_path)
         shutil.move(src=self.log_path, dst=out_path)
 
     def request_metadata(self, report_id=None, url=None):
@@ -167,7 +168,7 @@ class LogUploader:
         self.r = r = requests.get(json_url, params=data)
 
         if r.status_code != 200:
-            print(f"ERROR: Failed retrieving log {self.log_url}")
+            logger.error(f"Code {r.status_code}: Failed retrieving log {self.log_url}")
             return False
         return r.json()
 
@@ -199,13 +200,13 @@ class LogUploader:
         """Get log from database, if not there, upload it."""
 
         if len(self.get_django_log()) == 0:
-            print(f"{datetime.datetime.now()}    Uploading log")
+            logger.info("    Uploading log")
             if self.log_path:
                 r = self.upload_log()
             if self.log_url:
                 r = self.request_metadata(url=self.log_url)
         else:
-            print(f"{datetime.datetime.now()}    Already in database")
+            logger.info("    Already in database")
             r = self.get_django_log().first().json_dump
         return r
 
@@ -217,7 +218,7 @@ class LogUploader:
             # fightName in detailed logs do names as below, so we can look them up
             # 'Dark Ai, Keeper of the Peak'
             # 'Elemental Ai, Keeper of the Peak'
-            print("    Fixing Ai boss name")
+            logger.info("    Fixing Ai boss name")
             self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
             r["encounter"]["boss"] = r2["fightName"].split(",")[0]
             # Dark to different bossid so it gives separate log
@@ -242,7 +243,7 @@ class LogUploader:
         False on fail
         DpsLog.object on success
         """
-        print(f"{datetime.datetime.now()} Start processing: {self.log_source_view}")
+        logger.info(f"Start processing: {self.log_source_view}")
         self.r = r = self.get_or_upload_log()
 
         if r is False:
@@ -255,13 +256,12 @@ class LogUploader:
         except Encounter.DoesNotExist:
             encounter = None
             # jank way of making error known to user.
-            print(
+            logger.error(
                 f"""
-ERROR
 Encounter not part of database. Register? {r["encounter"]}
 bossId:  {r["encounter"]["bossId"]}
-print(f"bossname:  {r["encounter"]["boss"]}
-ERROR
+bossname:  {r["encounter"]["boss"]}
+
 """
             )
             if settings.DEBUG:
@@ -272,7 +272,7 @@ ERROR
         # Can be fixed by requesting the detailed info.
         # Still relevant when only requesting url because start time can be off
         if datetime.timedelta(seconds=r["encounter"]["duration"]).seconds == 0:
-            print(f"Log seems broken. Requesting more info {self.log_source_view}")
+            logger.info(f"Log seems broken. Requesting more info {self.log_source_view}")
 
             self.r2 = r2 = self.request_detailed_info(report_id=r["id"], url=r["permalink"])
             # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
@@ -314,7 +314,7 @@ ERROR
             # Update final health percentage
             if log.final_health_percentage is None:
                 if log.success is False:
-                    print(f"{datetime.datetime.now()}    Requesting final boss health")
+                    logger.info("    Requesting final boss health")
                     self.r2 = r2 = self.request_detailed_info()
                     log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
 
@@ -336,7 +336,7 @@ ERROR
                     and (log.encounter.instance.instance_group.name == "raid")
                     and not (log.cm)
                 ):
-                    print("    Checking for emboldened")
+                    logger.info("    Checking for emboldened")
                     self.r2 = r2 = self.request_detailed_info()
                     if "presentInstanceBuffs" in r2:
                         log.emboldened = 68087 in list(chain(*r2["presentInstanceBuffs"]))
@@ -356,7 +356,7 @@ ERROR
                 start_time=datetime.datetime.fromtimestamp(r["encounterTime"], tz=datetime.timezone.utc),
             )
 
-        print(f"{datetime.datetime.now()} Finished processing: {self.log_source_view}")
+        logger.info(f"Finished processing: {self.log_source_view}")
 
         return log
 
@@ -378,7 +378,7 @@ class DpsLogInteraction:
 
         if dpslog is None:
             if parsed_path is None:
-                print(f"{log_path} was not parsed")
+                logger.warning(f"{log_path} was not parsed")
                 return False
 
             json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
@@ -388,7 +388,7 @@ class DpsLogInteraction:
 
     @classmethod
     def from_detailed_logs(cls, log_path, json_detailed):
-        print(f"Processing detailed log: {log_path}")
+        logger.info(f"Processing detailed log: {log_path}")
         r2 = json_detailed
 
         players = [player["account"] for player in r2["players"]]
@@ -397,7 +397,7 @@ class DpsLogInteraction:
         try:
             encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])
         except Encounter.DoesNotExist:
-            print(f"{r2['fightName']} with id {r2['eiEncounterID']} doesnt exist")
+            logger.error(f"{r2['fightName']} with id {r2['eiEncounterID']} doesnt exist")
             move_failed_upload(log_path)
             return False
 
@@ -471,11 +471,10 @@ class DpsLogInteraction:
 
 def move_failed_upload(log_path):
     """Some logs are just broken. Lets remove them from the equation"""  # noqa
-    # TODO this function is declared twice
     out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(log_path).name)
     out_path.parent.mkdir(exist_ok=True)
-    # print(f"Moved failing log from {self.log_source_view} to")
-    print(out_path)
+    logger.warning(f"Moved failing log from {log_path} to")
+    logger.warning(out_path)
     shutil.move(src=log_path, dst=out_path)
 
 

@@ -1,4 +1,5 @@
 # %%
+import logging
 import os
 import time
 from pathlib import Path
@@ -6,6 +7,11 @@ from pathlib import Path
 import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
+
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
 from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
@@ -19,6 +25,8 @@ from scripts.log_instance_interaction import (
     InstanceClearGroupInteraction,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -42,8 +50,8 @@ class Command(BaseCommand):
         if y is None:
             y, m, d = today_y_m_d()
 
-        print(f"Starting log import for {zfill_y_m_d(y, m, d)}")
-        print(f"Selected instance types: {itype_groups}")
+        logger.info(f"Starting log import for {zfill_y_m_d(y, m, d)}")
+        logger.info(f"Selected instance types: {itype_groups}")
         # y, m, d = 2023, 12, 11
 
         # possible folder names for selected itype_groups
@@ -62,7 +70,9 @@ class Command(BaseCommand):
 
         # Initialize local parser
         ei_parser = EliteInsightsParser()
-        ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+        ei_parser.create_settings(
+            out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
+        )
 
         while True:
             icgi = None
@@ -91,7 +101,7 @@ class Command(BaseCommand):
                                 log_paths_done.append(log_path)
                                 continue
                     except IndexError as e:
-                        print("Failed to find bossname, will use log.")
+                        logger.info("Failed to find bossname, will use log.")
                         pass
 
                     if processing_type == "local":
@@ -171,10 +181,10 @@ class Command(BaseCommand):
                 leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")
-                print("Finished run")
+                logger.info("Finished run")
                 break
 
             current_sleeptime -= SLEEPTIME
-            print(f"Run {run_count} done")
+            logger.info(f"Run {run_count} done")
 
             run_count += 1
