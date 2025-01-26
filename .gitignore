@@ -56,13 +56,20 @@ cover/
 *.mo
 *.pot
 
+
+GW2EI_parser
+!GW2EI_parser/README.md
+
 # Django stuff:
 *.log
 local_settings.py
 db.sqlite3
 db_test.sqlite3
 db.sqlite3-journal
-gw2_logs_archive/backups/*.sqlite3
+data/db_backups/*.sqlite3
+data/parsed_logs/*
+!data/parsed_logs/README.md
+
 gw2_logs_archive/img/deprecated
 
 # Flask stuff:

@@ -1,29 +1,16 @@
 # %%
-import datetime
-from dataclasses import dataclass
-from itertools import chain
-
-import discord
-import numpy as np
-import pandas as pd
-from discord import SyncWebhook
-from django.db.models import Q
 
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
-from bot_settings import settings
+    init_django(__file__)
+
 from gw2_logs.models import (
     DiscordMessage,
-    DpsLog,
-    Emoji,
     Encounter,
-    Instance,
-    InstanceClear,
     InstanceClearGroup,
-    Player,
 )
+from scripts.log_instance_interaction import InstanceClearGroupInteraction
 
 # %%
 

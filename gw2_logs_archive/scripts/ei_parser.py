@@ -6,17 +6,34 @@ import os
 import subprocess
 from pathlib import Path
 
-proj_path = Path(os.path.abspath(os.path.dirname(__file__))).parents[1]
-EI_PARSER_FOLDER = proj_path / "GW2EI_parser"
+from django.core.management import call_command
 
-EI_SETTINGS_DEFAULT = proj_path / "gw2_logs_archive" / "bot_settings" / "gw2ei_settings_default.conf"
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+
+from django.conf import settings
+
+EI_PARSER_FOLDER = settings.PROJECT_DIR.joinpath("GW2EI_parser")
+EI_SETTINGS_DEFAULT = settings.BASE_DIR.joinpath("bot_settings", "gw2ei_settings_default.conf")
 
 
-class EliteInisghtsParser:
+class EliteInsightsParser:
     def __init__(self):
+        """Interaction with EliteInisghts CLI"""
         self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights-CLI.exe")
         self.out_dir = None  # Set in .make_settings
         self.settings = None  # Set in .make_settings
+
+        self.download_or_update_EI()
+
+    def download_or_update_EI(self):
+        """Download or update EliteInisghts CLI
+
+        Automatically checks version every week.
+        """
+        call_command("update_elite_insights_version", auto_update_check=True)
 
     def make_settings(self, out_dir, setting_in_path=EI_SETTINGS_DEFAULT, create_html=False):
         """
@@ -29,29 +46,27 @@ class EliteInisghtsParser:
         """
 
         self.out_dir = out_dir
-        self.out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(exist_ok=True)
 
         setting_out_path = out_dir.joinpath("gw2ei_settings.conf")
 
-        # Load default settings and format them with the variables.
-        with open(setting_in_path, "r") as f:
-            set_default = f.read()
+        # Load default settings
+        set_default = setting_in_path.read_text()
 
-            set_str = set_default.format(create_html=create_html, out_dir=out_dir)
+        # Format the str with provided variables
+        set_str = set_default.format(create_html=create_html, out_dir=out_dir)
 
         # Create settigns in output folder
-        with open(setting_out_path, "w") as f:
-            f.write(set_str)
-
+        setting_out_path.write_text(set_str)
         self.settings = setting_out_path
 
     def parse_log(self, evtc_path) -> Path:
-        """Parse to json locally. Uploading to dpsreport is not implemented.
+        """Parse to json locally. Uploading to dps.report is not implemented.
         returns evtc_path=None when process doesnt parse the log. For instance due to
         Program: Fight is too short: 0 < 2200
 
         evtc_path: str
-            Path to log
+            Path to original log
 
         Returns
         -------
@@ -67,11 +82,6 @@ class EliteInisghtsParser:
         if js_path:
             print(f"Log {evtc_path.name} already parsed")
         else:
-            # Download EI
-            if not self.EI_exe.exists():
-                print("EI parser not found. Run bin/elite_insights_update.cmd")
-                # TODO call download command
-
             # Call the parser
             res = subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])
             js_path = self.find_parsed_json(evtc_path=evtc_path)
@@ -102,10 +112,13 @@ class EliteInisghtsParser:
 # %%
 
 if __name__ == "__main__":
-    self = ei_parser = EliteInisghtsParser()
-    ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath("20241125"), create_html=False)
+    self = ei_parser = EliteInsightsParser()
+    out_dir = settings.EI_PARSED_LOGS_DIR.joinpath("20250125")
+    setting_in_path = EI_SETTINGS_DEFAULT
+    create_html = False
+    ei_parser.make_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=False)
 
-    d = ei_parser.parse_log(evtc_path=r"C:/Users/Wietse/OneDrive/gw2_shared_logs/20241125-200608.zevtc")
-    r2 = EliteInisghtsParser.load_json_gz(js_path=d)
+    d = ei_parser.parse_log(evtc_path=r"")
+    r2 = EliteInsightsParser.load_json_gz(js_path=d)
     r2["eiEncounterID"]
 # %%

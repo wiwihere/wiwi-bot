@@ -8,19 +8,20 @@ from dataclasses import dataclass
 from itertools import chain
 
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
+    init_django(__file__)
+
 from pathlib import Path
 
 import discord
 import numpy as np
 import pandas as pd
 import pytz
-from bot_settings import settings
 from discord import SyncWebhook
 from discord.utils import MISSING
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup, Player
+from django.conf import settings
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
 
 WIPE_EMOTES = {

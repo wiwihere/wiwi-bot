@@ -6,25 +6,25 @@ import numpy as np
 import pytz
 
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
-from bot_settings import settings
+    init_django(__file__)
+
+from django.conf import settings
 from django.db.models import Q
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
+from gw2_logs.models import (
+    Instance,
+    InstanceClearGroup,
+    InstanceGroup,
+)
 from scripts.log_helpers import (
     BLANK_EMOTE,
     EMBED_COLOR,
-    RANK_EMOTES,
-    RANK_EMOTES_INVALID,
     WEBHOOKS,
     Thread,
-    create_discord_time,
     create_or_update_discord_message,
     get_avg_duration_str,
-    get_duration_str,
     get_rank_duration_str,
-    get_rank_emote,
 )
 
 # TODO remove ITYPE_GROUPS

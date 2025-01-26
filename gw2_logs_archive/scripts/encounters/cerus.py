@@ -1,13 +1,9 @@
 # %%
-import sys
-from pathlib import Path
 
 if __name__ == "__main__":
-    if str(Path(__file__).parents[1]) not in sys.path:
-        sys.path.append(str(Path(__file__).parents[1]))
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive", pwd=Path(__file__).parents[2])
+    init_django(__file__)
 
 import datetime
 import os
@@ -16,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from bot_settings import settings
+from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
@@ -24,9 +20,8 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
-    BLANK_EMOTE,
     RANK_EMOTES_CUPS,
     create_discord_time,
     create_or_update_discord_message,
@@ -65,8 +60,8 @@ def run_cerus_cm(y, m, d):
     current_sleeptime = MAXSLEEPTIME
 
     # Initialize local parser
-    ei_parser = EliteInisghtsParser()
-    ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+    ei_parser = EliteInsightsParser()
+    ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
     while True:
         # if True:

@@ -13,14 +13,24 @@ import requests
 from dateutil.parser import parse
 
 if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
+    from _setup_django import init_django
 
-    init_django_from_commands("gw2_logs_archive")
+    init_django(__file__)
 
-from bot_settings import settings
-from gw2_logs.models import DpsLog, Emoji, Encounter, Instance, InstanceClear, InstanceClearGroup, Player
-from scripts.ei_parser import EliteInisghtsParser
-from scripts.log_helpers import create_unix_time, get_duration_str, get_emboldened_wing, today_y_m_d, zfill_y_m_d
+from django.conf import settings
+from gw2_logs.models import (
+    DpsLog,
+    Encounter,
+    Player,
+)
+from scripts.ei_parser import EliteInsightsParser
+from scripts.log_helpers import (
+    create_unix_time,
+    get_duration_str,
+    get_emboldened_wing,
+    today_y_m_d,
+    zfill_y_m_d,
+)
 
 
 @dataclass
@@ -371,7 +381,7 @@ class DpsLogInteraction:
                 print(f"{log_path} was not parsed")
                 return False
 
-            json_detailed = EliteInisghtsParser.load_json_gz(js_path=parsed_path)
+            json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
             dpslog = cls.from_detailed_logs(log_path, json_detailed)
 
         return cls(dpslog=dpslog)
@@ -461,6 +471,7 @@ class DpsLogInteraction:
 
 def move_failed_upload(log_path):
     """Some logs are just broken. Lets remove them from the equation"""  # noqa
+    # TODO this function is declared twice
     out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(log_path).name)
     out_path.parent.mkdir(exist_ok=True)
     # print(f"Moved failing log from {self.log_source_view} to")

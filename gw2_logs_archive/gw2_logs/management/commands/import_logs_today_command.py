@@ -1,17 +1,14 @@
 # %%
-import datetime
 import os
 import time
-from itertools import chain
 from pathlib import Path
 
 import scripts.leaderboards as leaderboards
-from bot_settings import settings
+from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
-    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
@@ -20,8 +17,6 @@ from scripts.log_helpers import (
 from scripts.log_instance_interaction import (
     InstanceClearGroup,
     InstanceClearGroupInteraction,
-    create_embeds,
-    create_or_update_discord_message,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
 
@@ -66,8 +61,8 @@ class Command(BaseCommand):
         current_sleeptime = MAXSLEEPTIME
 
         # Initialize local parser
-        ei_parser = EliteInisghtsParser()
-        ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+        ei_parser = EliteInsightsParser()
+        ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
         while True:
             icgi = None

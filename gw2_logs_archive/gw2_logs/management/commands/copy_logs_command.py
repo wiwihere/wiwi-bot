@@ -1,20 +1,9 @@
 # %%
-import os
-import shutil
-from itertools import chain
-from pathlib import Path
 
-from bot_settings import settings
 from django.core.management.base import BaseCommand
-from scripts import copy_logs
-from scripts.log_helpers import (
-    ITYPE_GROUPS,
-    WEBHOOKS,
-    create_folder_names,
-    find_log_by_date,
-    today_y_m_d,
-    zfill_y_m_d,
-)
+from scripts.log_helpers import today_y_m_d
+
+from gw2_logs_archive.scripts.tools import copy_logs
 
 
 class Command(BaseCommand):

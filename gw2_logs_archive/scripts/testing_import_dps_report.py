@@ -6,38 +6,30 @@ TODO list
 Multiple runs on same day/week?
 """
 
-import os
-from itertools import chain
-from pathlib import Path
-
-if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
-
-    init_django_from_commands("gw2_logs_archive")
 import datetime
 import os
 import time
-from itertools import chain
 from pathlib import Path
 
+from django.conf import settings
+
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+
+
 import scripts.leaderboards as leaderboards
-from bot_settings import settings
-from scripts import leaderboards
-from scripts.ei_parser import EI_PARSER_FOLDER, EliteInisghtsParser
+from gw2_logs.models import InstanceClearGroup
+from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     ITYPE_GROUPS,
-    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_instance_interaction import (
-    InstanceClearGroup,
-    InstanceClearGroupInteraction,
-    create_embeds,
-    create_or_update_discord_message,
-)
+from scripts.log_instance_interaction import InstanceClearGroupInteraction
 from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 # importlib.reload(log_uploader)
@@ -74,8 +66,8 @@ if True:
         current_sleeptime = MAXSLEEPTIME
 
         # Initialize local parser
-        ei_parser = EliteInisghtsParser()
-        ei_parser.make_settings(out_dir=EI_PARSER_FOLDER.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
+        ei_parser = EliteInsightsParser()
+        ei_parser.make_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
         while True:
             icgi = None
@@ -190,41 +182,6 @@ if True:
             run_count += 1
 
 
-# %%
-
-
-# %% Just update or create discord message, dont upload logs.
-
-
-# y, m, d = today_y_m_d()
-y, m, d = 2022, 1, 27
-
-
-self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
-# self = icgi = InstanceClearGroupInteraction.from_name("dummy")
-
-titles, descriptions = icgi.create_message()
-embeds = icgi.create_embeds(titles, descriptions)
-
-# print(embeds)
-
-# icgi.create_or_update_discord_message(embeds=embeds)
-# ici = InstanceClearInteraction.from_name("w7_the_key_of_ahdashim__20231211")
-
-
-# %% Update discord messages from a certain date onwards
-
-y, m, d = 2024, 8, 22
-
-if False:
-    icgs = InstanceClearGroup.objects.filter(
-        start_time__gte=datetime.datetime(year=y, month=m, day=d, tzinfo=datetime.timezone.utc)
-    ).order_by("start_time")
-    for icg in icgs:
-        icgi = InstanceClearGroupInteraction.from_name(name=icg.name)
-        icgi.send_discord_message()
-
-
 # %% Manual uploads without creating discord message
 
 # y, m, d = 2023, 12, 18
@@ -247,69 +204,7 @@ if False:
 #     log_upload.run()
 
 
-# %% Update all discord messages.
-for icg in InstanceClearGroup.objects.all().order_by("start_time"):
-    ymd = icg.name.split("__")[-1]
-    y, m, d = ymd[:4], ymd[4:6], ymd[6:8]
-    # y,m,d= 2024,2,6
-
-    if icg.type in ["raid", "strike"]:
-        icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=icg.type)
-
-        # icgi = InstanceClearGroupInteraction.from_name(icg.name)
-        # titles, descriptions = icgi.create_message()
-        # embeds = icgi.create_embeds(titles, descriptions)
-        if icgi:
-            icgi.send_discord_message()
-    # break
-
-# %% Updating emoji ids in bulk
-pngs_dir = Path(__file__).parents[1].joinpath("img", "raid")
-
-print("Copy this into discord")
-for png in pngs_dir.glob("*.png"):
-    png_name = png.stem
-    print(f"\:{png.stem}:")
-
 # %%
-emote_ids_raw = """paste result from discord here."""
-emote_ids = {i.split(":")[1]: i.split(":")[-1].split(">")[0] for i in emote_ids_raw.split("\n")}
-
-
-for png_name, png_id in emote_ids.items():
-    cm = False
-    if png_name.endswith("_cm"):
-        png_name = png_name[:-3]
-        cm = True
-    e = Emoji.objects.get(png_name=png_name)
-
-    if png_id:
-        if cm:
-            e.discord_id_cm = int(png_id)
-        else:
-            e.discord_id = int(png_id)
-        print(f"Update {e.name}. CM:{cm}")
-
-        e.save()
-
-
-# %%
-
-
-# %%
-if True:
-    if True:
-        pass
-
-# %%
-import pandas as pd
 
 log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
 log.request_metadata(report_id=None, url=log.log_url)
-
-
-log = LogUploader.from_url(log_url="https://dps.report/sGBv-20240926-211517_qpeer")
-log.request_metadata(report_id=None, url=log.log_url)
-
-
-# %%

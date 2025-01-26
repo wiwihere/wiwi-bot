@@ -1,24 +1,18 @@
 # %%
-if __name__ == "__main__":
-    from django_for_jupyter import init_django_from_commands
-
-    init_django_from_commands("gw2_logs_archive")
-
-
 import os
 import shutil
-from itertools import chain
 from pathlib import Path
 
-from bot_settings import settings
-from django.core.management.base import BaseCommand
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+
+from django.conf import settings
 from scripts.log_helpers import (
-    ITYPE_GROUPS,
-    WEBHOOKS,
     create_folder_names,
     find_log_by_date,
     today_y_m_d,
-    zfill_y_m_d,
 )
 
 
