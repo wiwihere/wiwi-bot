@@ -1,17 +1,18 @@
 # %%
 import datetime
+import logging
 
 import discord
 import numpy as np
 import pytz
+from django.conf import settings
+from django.db.models import Q
 
 if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
 
-from django.conf import settings
-from django.db.models import Q
 from gw2_logs.models import (
     Instance,
     InstanceClearGroup,
@@ -27,6 +28,7 @@ from scripts.log_helpers import (
     get_rank_duration_str,
 )
 
+logger = logging.getLogger(__name__)
 # TODO remove ITYPE_GROUPS
 if __name__ == "__main__":
     itype = "raid"

@@ -1,9 +1,14 @@
 # %%
 
 from django.core.management.base import BaseCommand
-from scripts.log_helpers import today_y_m_d
 
-from gw2_logs_archive.scripts.tools import copy_logs
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+
+from scripts.log_helpers import today_y_m_d
+from scripts.tools import copy_logs
 
 
 class Command(BaseCommand):

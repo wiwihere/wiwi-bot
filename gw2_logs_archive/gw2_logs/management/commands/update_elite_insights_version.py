@@ -59,12 +59,12 @@ class Command(BaseCommand):
             # Dont download when the latest release is the same as the local version.
             if ei_version == v:
                 cont = False
-                print(f"Version up to date: {v}")
+                logger.info(f"EI version up to date: {v}")
             else:
-                print(f"Current version: {v}")
+                logger.info(f"EI version: {v}")
 
         if cont:
-            print(f"Updating GW2 Elite Inisghts Parser to version: {ei_version}")
+            logger.info(f"Updating GW2 Elite Inisghts Parser to version: {ei_version}")
             EI_PARSER_FOLDER.mkdir(exist_ok=True)
 
             # Get the zip download url
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 # Unzip
                 with ZipFile(EI_PARSER_FOLDER / "download.zip", "r") as zObject:
                     zObject.extractall(path=EI_PARSER_FOLDER)
-            print("Update complete")
+            logger.info("EI update complete")
 
         # Update the last_checked.txt file
         last_checked_file.write_text(datetime.datetime.now().strftime("%Y%m%d"))

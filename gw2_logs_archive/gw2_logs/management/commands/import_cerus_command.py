@@ -1,7 +1,12 @@
 from django.core.management.base import BaseCommand
-from scripts.log_helpers import today_y_m_d
 
-from gw2_logs_archive.scripts.encounters.cerus import run_cerus_cm
+if __name__ == "__main__":
+    from _setup_django import init_django
+
+    init_django(__file__)
+
+from scripts.encounters.cerus import run_cerus_cm
+from scripts.log_helpers import today_y_m_d
 
 
 class Command(BaseCommand):

@@ -1,4 +1,5 @@
 # %%
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -15,14 +16,16 @@ from scripts.log_helpers import (
     today_y_m_d,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def copy_logs(y, m, d, itype_groups):
     """Copy logs from a date to a folder"""
     log_dir_source = Path(settings.DPS_LOGS_DIR)
     log_dir_dst = Path(settings.ONEDRIVE_LOGS_DIR)
-    print(f"Selected itype groups: {itype_groups}")
-    print(f"Src dir: {log_dir_source}")
-    print(f"Dst dir: {log_dir_dst}")
+    logger.info(f"Selected itype groups: {itype_groups}")
+    logger.info(f"Src dir: {log_dir_source}")
+    logger.info(f"Dst dir: {log_dir_dst}")
 
     # Find logs in directory
     log_paths = find_log_by_date(log_dirs=[log_dir_source], y=y, m=m, d=d)
@@ -40,11 +43,11 @@ def copy_logs(y, m, d, itype_groups):
                     continue
 
             dst = log_dir_dst.joinpath(log_path.name)
-            print(log_path)
+            logger.info(f"Moved: {log_path}")
             shutil.copyfile(src=log_path, dst=dst)
 
         except IndexError as e:
-            print(e)
+            logger.error(e)
             pass
 
 
