@@ -57,6 +57,13 @@ DEBUG = get_env("DEBUG") == "True"
 LOGLEVEL = get_env("LOGLEVEL") or "INFO"
 
 
+if DEBUG:
+    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(module)s:%(lineno)-4d| %(message)s"
+    # LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(name)s:%(lineno)-4d| %(message)s"  # name could get a bit long.
+else:
+    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(message)s"
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
@@ -73,8 +80,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "standard": {
-            "format": "%(asctime)s|%(levelname)-8s| %(module)s:%(lineno)-4d| %(message)s",
-            # "format": "%(asctime)s|%(levelname)-8s| %(name)s:%(lineno)-4d| %(message)s", #name could get a bit long.
+            "format": LOGFORMAT,
             "datefmt": "%H:%M:%S",
         },
     },
