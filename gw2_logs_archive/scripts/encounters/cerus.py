@@ -59,11 +59,11 @@ def run_cerus_cm(y, m, d):
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
+    log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
+
     while True:
         # if True:
         icgi = None
-
-        log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(
             name=f"cerus_cm__{zfill_y_m_d(y, m, d)}", type="strike"

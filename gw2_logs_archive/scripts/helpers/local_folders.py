@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LogFile:
+    """Store information about a log file.
+    During processing the local_processed and upload_processed bools
+    can be updated to reflect if the file has been processed locally or uploaded.
+    The mtime is used for sorting files by modification time.
+    """
+
     path: Path
     local_processed: bool = False
     upload_processed: bool = False
@@ -72,6 +78,26 @@ class LogPathsDate:
     d: int
     log_search_dirs: list[Path] | None = None
     allowed_folder_names: list[str] | None = None
+    """This class finds logs by date and returns the paths to them as a dataframe.
+    
+    Parameters
+    ----------
+    y (int): The year of the date.
+    m (int): The month of the date.
+    d (int): The day of the date.
+    log_search_dirs : list[Path]), Defaults to None.
+        A list of directories in which to search for logs. When None is passed,
+        the directories from the .env; DPS_LOGS_DIR and EXTRA_LOGS_DIR will be used.
+    allowed_folder_names : list[str]): Defaults to None.
+        A list of allowed folder names, can be retrieved with create_folder_names
+        to filter the logs. For instance, the processing of golem logs might not be
+        required.
+
+    Methods
+    -------
+    update_available_logs()
+        Finds the currently available logs by date and returns a dataframe.
+    """
 
     def __post_init__(self):
         if self.log_search_dirs is None:
@@ -80,19 +106,21 @@ class LogPathsDate:
 
             self.log_search_dirs = [dir for dir in [log_search_dir1, log_search_dir2] if dir is not None]
 
-        self.verify_log_dirs()
+        self._verify_log_dirs()
 
         self.logs = {}
 
-    def verify_log_dirs(self):
+    def _verify_log_dirs(self):
         """Check if all log directories exist"""
 
         for folder in self.log_search_dirs:
             if not folder.exists():
                 raise ValueError(f"Log directory {dir} does not exist. Check your .env")
 
-    def to_dataframe(self) -> pd.DataFrame:
-        """Convert the logs to a pandas DataFrame."""
+    def _to_dataframe(self) -> pd.DataFrame:
+        """Convert the logs to a pandas DataFrame.
+        used by self.update_available_logs to return a df
+        """
         data = [
             {
                 "id": log.id,
@@ -134,7 +162,7 @@ class LogPathsDate:
 
             self.logs[logfile.id] = logfile
 
-        return self.to_dataframe()
+        return self._to_dataframe()
 
 
 # %%

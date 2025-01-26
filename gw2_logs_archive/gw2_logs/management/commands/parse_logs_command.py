@@ -72,10 +72,10 @@ class Command(BaseCommand):
             out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
         )
 
+        log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
+
         while True:
             icgi = None
-
-            log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
