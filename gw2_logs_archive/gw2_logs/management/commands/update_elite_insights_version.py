@@ -1,5 +1,6 @@
 # %%
 import datetime
+import logging
 import os
 from pathlib import Path
 from zipfile import ZipFile
@@ -12,6 +13,9 @@ if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -40,9 +44,7 @@ class Command(BaseCommand):
                 last_checked_date = datetime.datetime.strptime(last_checked, "%Y%m%d")
                 delta = datetime.datetime.now() - last_checked_date
                 if delta.days <= 7:
-                    print(
-                        f"EI version last checkeded {delta.days} days ago. No need to auto update."
-                    )  # TODO debug logging
+                    logger.debug(f"EI version last checkeded {delta.days} days ago. No need to auto update.")
                     return
 
         # Get release info from github

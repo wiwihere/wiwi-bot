@@ -2,10 +2,12 @@
 
 import gzip
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management import call_command
 
 if __name__ == "__main__":
@@ -13,7 +15,9 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
 
 EI_PARSER_FOLDER = settings.PROJECT_DIR.joinpath("GW2EI_parser")
 EI_SETTINGS_DEFAULT = settings.BASE_DIR.joinpath("bot_settings", "gw2ei_settings_default.conf")
@@ -80,7 +84,7 @@ class EliteInsightsParser:
         js_path = self.find_parsed_json(evtc_path=evtc_path)
 
         if js_path:
-            print(f"Log {evtc_path.name} already parsed")
+            logger.info(f"Log {evtc_path.name} already parsed")
         else:
             # Call the parser
             res = subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])

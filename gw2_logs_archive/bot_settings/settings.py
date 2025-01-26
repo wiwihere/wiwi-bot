@@ -64,48 +64,63 @@ DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtl
 DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
 ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
+
+if DEBUG:
+    LOGLEVEL = "DEBUG"
+else:
+    LOGLEVEL = "INFO"
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s|%(levelname)-8s| %(module)s:%(lineno)-4d| %(message)s",
+            # "format": "%(asctime)s|%(levelname)-8s| %(name)s:%(lineno)-4d| %(message)s", #name could get a bit long.
+            "datefmt": "%H:%M:%S",
+        },
+    },
+    "handlers": {
+        "null": {
+            "class": "logging.NullHandler",
+        },
+        "console": {
+            "level": "NOTSET",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        },
+        "stderr": {
+            "level": "ERROR",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+        },
+    },
+    "loggers": {
+        "": {  # root logger
+            "level": "WARNING",
+            "handlers": ["console", "stderr"],
+        },
+        "__main__": {
+            "level": "DEBUG",
+        },
+        "scripts": {
+            "level": LOGLEVEL,
+        },
+        "gw2_logs": {
+            "level": LOGLEVEL,
+        },
+    },
+}
+# Django will do this by default, but easier to follow if its explicit.
+logging.config.dictConfig(LOGGING)
+
+logger = logging.getLogger(__name__)
+
 if not Path(DPS_LOGS_DIR).exists():
-    print("WARNING: ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the .env")
-
-
-# LOGGING_CONFIG = {
-#     "version": 1,
-#     "disabled_existing_loggers": False,
-#     "formatters": {
-#         "verbose": {"format": "%(levelname)-10s - %(asctime)s - %(module)-15s : %(message)s"},
-#         "standard": {"format": "%(levelname)-10s - %(name)-15s : %(message)s"},
-#     },
-#     "handlers": {
-#         "console": {
-#             "level": "DEBUG",
-#             "class": "logging.StreamHandler",
-#             "formatter": "standard",
-#         },
-#         "console2": {
-#             "level": "WARNING",
-#             "class": "logging.StreamHandler",
-#             "formatter": "standard",
-#         },
-#         "file": {
-#             "level": "INFO",
-#             "class": "logging.FileHandler",
-#             "filename": "logs/infos.log",
-#             "mode": "w",
-#             "formatter": "verbose",
-#         },
-#     },
-#     "loggers": {
-#         "bot": {"handlers": ["console"], "level": "INFO", "propagate": False},
-#         "discord": {
-#             "handlers": ["console2", "file"],
-#             "level": "INFO",
-#             "propagate": False,
-#         },
-#     },
-# }
-
-# dictConfig(LOGGING_CONFIG)
-
+    logger.warning("ArcDPS folder not found. Set the DPS_LOGS_DIR variable in the .env")
 
 """
 Django settings for gw2_logs_archive project.
@@ -119,7 +134,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
