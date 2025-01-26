@@ -24,7 +24,6 @@ from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     create_folder_names,
-    find_log_by_date,
     today_y_m_d,
     zfill_y_m_d,
 )
@@ -154,6 +153,7 @@ if True:
                     time.sleep(SLEEPTIME / 10)
 
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+                logger.info("Updating leaderboards")
                 leaderboards.create_leaderboard(itype="fractal")
                 leaderboards.create_leaderboard(itype="raid")
                 leaderboards.create_leaderboard(itype="strike")

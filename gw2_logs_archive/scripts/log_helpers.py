@@ -226,19 +226,11 @@ def zfill_y_m_d(y, m, d):
     return f"{y}{str(m).zfill(2)}{str(d).zfill(2)}"
 
 
-def find_log_by_date(log_dirs, y, m, d) -> list[Path]:
-    """Find all log files on a specific date.
-    Returns sorted list on maketime
-    """
-    # return log_dir.rglob(f"{zfill_y_m_d(y,m,d)}*.zevtc")
-    log_paths = list(chain(*(log_dir.rglob(f"{zfill_y_m_d(y, m, d)}*.zevtc") for log_dir in log_dirs)))
-    return sorted(log_paths, key=os.path.getmtime)
-
-
 def get_emboldened_wing(log_date: datetime.datetime):
     """Check if a wing had the possibility of emboldened buff
     Embolded was at wing 6 4th week of 2024
     """
+    # FIXME WING8 probably broke this.
     start_year = 2022
     start_week = 26
     start_wing = 1

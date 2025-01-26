@@ -6,6 +6,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 import datetime
+import logging
 import os
 import time
 from pathlib import Path
@@ -21,18 +22,20 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from scripts.ei_parser import EliteInsightsParser
+from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
     create_or_update_discord_message,
     create_rank_emote_dict_percentiles,
-    find_log_by_date,
     get_duration_str,
     today_y_m_d,
     zfill_y_m_d,
 )
 from scripts.log_instance_interaction import create_embeds
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+logger = logging.getLogger(__name__)
 
 # For cerus always use percentiles.
 RANK_EMOTES = create_rank_emote_dict_percentiles(custom_emoji_name=False, invalid=False)
@@ -47,13 +50,6 @@ def run_cerus_cm(y, m, d):
 
     encounter = Encounter.objects.get(name="Temple of Febe")
 
-    # possible folder names for selected itype_groups
-
-    log_dir1 = settings.DPS_LOGS_DIR
-    log_dir2 = settings.EXTRA_LOGS_DIR
-    log_dirs = [log_dir1, log_dir2]
-
-    log_paths_done = []
     run_count = 0
     SLEEPTIME = 30
     MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
@@ -67,44 +63,51 @@ def run_cerus_cm(y, m, d):
         # if True:
         icgi = None
 
+        log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
+
         iclear_group, created = InstanceClearGroup.objects.update_or_create(
             name=f"cerus_cm__{zfill_y_m_d(y, m, d)}", type="strike"
         )
 
-        # Find logs in directory
-        log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
-
         for processing_type in ["local", "upload"]:
             titles = None
             descriptions = None
+
+            # Find logs in directory
+            logs_df = log_paths.update_available_logs()
+
             # Process each log
-            for log_path in sorted(set(log_paths).difference(set(log_paths_done)), key=os.path.getmtime):
-                # Skip upload of non cerus logs.
-                try:
-                    boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
-                    if boss_name not in encounter.folder_names:
-                        print(f"Skipped {log_path}")
-                        log_paths_done.append(log_path)
-                        continue
-                except IndexError as e:
-                    print("Failed to find bossname, will use log.")
-                    pass
+            loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
+
+            # Process each log
+            for row in loop_df.itertuples():
+                log: LogFile = row.log
+                log_path = log.path
 
                 if processing_type == "local":
                     # Local processing
                     parsed_path = ei_parser.parse_log(evtc_path=log_path)
                     dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
-                    uploaded_log = dli.dpslog
+                    if dli is False:
+                        logger.warning(
+                            f"Parsing didnt work, too short log maybe. {log_path}. Skipping all further processing."
+                        )
+                        log.mark_local_processed()
+                        log.mark_upload_processed()
+                        continue
+                    parsed_log = dli.dpslog
                 elif processing_type == "upload":
-                    # Upload log
-                    log_upload = LogUploader.from_path(log_path)
-                    uploaded_log = log_upload.run()
+                    if log.local_processed:  # Log must be parsed locally before uploading
+                        # Upload log
+                        log_upload = LogUploader.from_path(log_path, only_url=True)
+                        parsed_log = log_upload.run()
+                    else:
+                        parsed_log = False
 
-                    if uploaded_log:
-                        log_paths_done.append(log_path)
-
+                if parsed_log.url != "":
+                    log.mark_upload_processed()
                 # skip on fail
-                if not uploaded_log:
+                if not parsed_log:
                     continue
 
                 cm_logs = DpsLog.objects.filter(
