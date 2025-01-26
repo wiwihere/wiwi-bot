@@ -27,8 +27,8 @@ class EliteInsightsParser:
     def __init__(self):
         """Interaction with EliteInisghts CLI"""
         self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights-CLI.exe")
-        self.out_dir = None  # Set in .make_settings
-        self.settings = None  # Set in .make_settings
+        self.out_dir = None  # Set in .create_settings
+        self.settings = None  # Set in .create_settings
 
         self.download_or_update_EI()
 
@@ -39,7 +39,7 @@ class EliteInsightsParser:
         """
         call_command("update_elite_insights_version", auto_update_check=True)
 
-    def make_settings(self, out_dir, setting_in_path=EI_SETTINGS_DEFAULT, create_html=False):
+    def create_settings(self, out_dir, setting_in_path=EI_SETTINGS_DEFAULT, create_html=False):
         """
         ei_settings: str
             Path to ei settings to use. Will be edited based on inputs
@@ -79,7 +79,7 @@ class EliteInsightsParser:
         evtc_path = Path(evtc_path)
 
         if self.settings is None:
-            raise ValueError("Run self.make_settings first.")
+            raise ValueError("Run self.create_settings first.")
 
         js_path = self.find_parsed_json(evtc_path=evtc_path)
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     out_dir = settings.EI_PARSED_LOGS_DIR.joinpath("20250125")
     setting_in_path = EI_SETTINGS_DEFAULT
     create_html = False
-    ei_parser.make_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=False)
+    ei_parser.create_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=False)
 
     d = ei_parser.parse_log(evtc_path=r"")
     r2 = EliteInsightsParser.load_json_gz(js_path=d)
