@@ -1,15 +1,11 @@
 # %%
-import datetime
 import logging
-import os
-import time
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 
 import pandas as pd
 from django.conf import settings
-from numpy import True_
 
 if __name__ == "__main__":
     from _setup_django import init_django
@@ -25,7 +21,7 @@ logger = logging.getLogger(__name__)
 class LogFile:
     path: Path
     local_processed: bool = False
-    external_processed: bool = False
+    upload_processed: bool = False
 
     def __post_init__(self):
         self.mtime = self.path.stat().st_mtime
@@ -95,7 +91,26 @@ class LogPathsDate:
             if not folder.exists():
                 raise ValueError(f"Log directory {dir} does not exist. Check your .env")
 
-    def get_logs(self) -> list[Path]:
+    def to_dataframe(self) -> pd.DataFrame:
+        """Convert the logs to a pandas DataFrame."""
+        data = [
+            {
+                "id": log.id,
+                "boss_name": log.boss_name,  # Just for inspection
+                "local_processed": log.local_processed,
+                "upload_processed": log.upload_processed,
+                "path": log.path,
+                "mtime": log.mtime,  # For sorting
+                "log": log,
+            }
+            for log in self.logs.values()
+        ]
+        df = pd.DataFrame(data)
+        df.sort_values(by="mtime", inplace=True)
+        df.reset_index(inplace=True, drop=True)
+        return df
+
+    def update_available_logs(self) -> pd.DataFrame:
         """Find all log files on a specific date.
         Returns sorted list on maketime
         """
@@ -113,30 +128,13 @@ class LogPathsDate:
             if self.allowed_folder_names is not None:
                 if logfile.boss_name is not None:
                     if logfile.boss_name not in self.allowed_folder_names:
-                        logger.info(f"Skipped {logfile.path_short} because it is not allowed")
+                        logger.info(f"Skipped {logfile.path_short} because it is not in the allowed_folder_names")
                         logfile.local_processed = True
                         logfile.upload_processed = True
 
             self.logs[logfile.id] = logfile
 
-    def to_dataframe(self) -> pd.DataFrame:
-        """Convert the logs to a pandas DataFrame."""
-        data = [
-            {
-                "id": log.id,
-                "boss_name": log.boss_name,  # Just for inspection
-                "local_processed": log.local_processed,
-                "external_processed": log.external_processed,
-                "path": log.path,
-                "mtime": log.mtime,  # For sorting
-                "log": log,
-            }
-            for log in self.logs.values()
-        ]
-        df = pd.DataFrame(data)
-        df.sort_values(by="mtime", inplace=True)
-        df.reset_index(inplace=True, drop=True)
-        return df
+        return self.to_dataframe()
 
 
 # %%
@@ -148,7 +146,7 @@ if __name__ == "__main__":
     self.get_logs()
     df = self.to_dataframe()
 
-    for log_row in df.where(df["local_processed"] == False).itertuples():
+    for log_row in df.where(~df["local_processed"]).itertuples():
         log = log_row.log
 
 # %%

@@ -4,7 +4,6 @@ import os
 import time
 from pathlib import Path
 
-import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
@@ -12,7 +11,10 @@ if __name__ == "__main__":
     from _setup_django import init_django
 
     init_django(__file__)
+
+import scripts.leaderboards as leaderboards
 from scripts.ei_parser import EliteInsightsParser
+from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     create_folder_names,
@@ -28,9 +30,11 @@ from scripts.log_uploader import DpsLogInteraction, LogUploader
 
 logger = logging.getLogger(__name__)
 
+# %%
+
 
 class Command(BaseCommand):
-    help = "Update leaderboards on discord"
+    help = "Parse logs and create message on discord"
 
     def add_arguments(self, parser):
         parser.add_argument("--y", type=int, nargs="?", default=None)
@@ -58,12 +62,6 @@ class Command(BaseCommand):
         # TODO move to class
         allowed_folder_names = create_folder_names(itype_groups=itype_groups)
 
-        log_dir1 = settings.DPS_LOGS_DIR
-        log_dir2 = settings.EXTRA_LOGS_DIR
-        log_dirs = [log_dir1, log_dir2]
-
-        log_paths_done = []
-        log_paths_local_done = []  # make sure we process log locally first.
         run_count = 0
         SLEEPTIME = 30
         MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
@@ -78,73 +76,57 @@ class Command(BaseCommand):
         while True:
             icgi = None
 
+            log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
+
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
-                log_paths = find_log_by_date(log_dirs=log_dirs, y=y, m=m, d=d)
+                logs_df = log_paths.update_available_logs()
 
-                # check a different set when local or uploading.
-                if processing_type == "local":
-                    log_paths_check = log_paths_local_done
-                elif processing_type == "upload":
-                    log_paths_check = log_paths_done
-
-                log_paths_loop = sorted(set(log_paths).difference(set(log_paths_check)), key=os.path.getmtime)
                 # Process each log
-                for idx, log_path in enumerate(log_paths_loop):
-                    # Skip upload if log is not in itype_group
-                    try:
-                        if itype_groups is not None:
-                            # TODO this doesnt work when loading from onedrive
-                            boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
-                            if boss_name not in allowed_folder_names:
-                                print(f"Skipped {log_path}")
-                                log_paths_local_done.append(log_path)
-                                log_paths_done.append(log_path)
-                                continue
-                    except IndexError as e:
-                        logger.info("Failed to find bossname, will use log.")
-                        pass
+                loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
+                for row in loop_df.itertuples():
+                    log: LogFile = row.log
+                    log_path = log.path
 
                     if processing_type == "local":
                         # Local processing
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
                         if dli is False:
-                            logger.warning(f"Parsing didnt work, too short log maybe. {log_path}")
-                            log_paths_local_done.append(log_path)
-                            log_paths_done.append(log_path)
+                            logger.warning(
+                                f"Parsing didnt work, too short log maybe. {log_path}. Skipping all further processing."
+                            )
+                            log.mark_local_processed()
+                            log.mark_upload_processed()
                             continue
 
-                        uploaded_log = dli.dpslog
+                        parsed_log = dli.dpslog
 
                     elif processing_type == "upload":
-                        if log_path in log_paths_local_done:  # Log must be parsed locally before uploading
+                        if log.local_processed:  # Log must be parsed locally before uploading
                             # Upload log
                             log_upload = LogUploader.from_path(log_path, only_url=True)
-                            uploaded_log = log_upload.run()
+                            parsed_log = log_upload.run()
                         else:
-                            uploaded_log = False
+                            parsed_log = False
 
                     # Create ICGI and update discord message
                     fractal_success = False
 
-                    if uploaded_log is not False:
+                    if parsed_log is not False:
                         if processing_type == "local":
-                            log_paths_local_done.append(log_path)
-                            if uploaded_log.url != "":
-                                log_paths_done.append(log_path)
+                            log.mark_local_processed()
+                            if parsed_log.url != "":
+                                log.mark_upload_processed()
 
                         if processing_type == "upload":
-                            log_paths_done.append(log_path)
+                            log.mark_upload_processed()
 
-                        if (
-                            fractal_success is True
-                            and uploaded_log.encounter.instance.instance_group.name == "fractal"
-                        ):
+                        if fractal_success is True and parsed_log.encounter.instance.instance_group.name == "fractal":
                             continue
 
                         self = icgi = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.instance_group.name
+                            y=y, m=m, d=d, itype_group=parsed_log.encounter.instance.instance_group.name
                         )
 
                         if icgi is not None:
@@ -166,7 +148,7 @@ class Command(BaseCommand):
                                     self.iclear_group.save()
 
                             # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                            if idx == len(log_paths_loop) - 1:
+                            if row.Index == len(loop_df):
                                 icgi.send_discord_message()
 
                             if icgi.iclear_group.success:

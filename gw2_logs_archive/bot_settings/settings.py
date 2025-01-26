@@ -58,7 +58,7 @@ LOGLEVEL = get_env("LOGLEVEL") or "INFO"
 
 
 if DEBUG:
-    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(module)s:%(lineno)-4d| %(message)s"
+    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(module)-30s:%(lineno)-4d| %(message)s"
     # LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(name)s:%(lineno)-4d| %(message)s"  # name could get a bit long.
 else:
     LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(message)s"
