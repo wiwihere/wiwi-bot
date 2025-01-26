@@ -145,7 +145,7 @@ class LogUploader:
 
     def move_failed_upload(self):
         """Some logs are just broken. Lets remove them from the equation"""  # noqa
-        out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(self.log_path).name)
+        out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", Path(self.log_path).name)
         out_path.parent.mkdir(exist_ok=True)
         logger.warning(f"Moved failing log from {self.log_source_view} to")
         logger.warning(out_path)
@@ -153,7 +153,7 @@ class LogUploader:
 
     def move_forbidden_upload(self):
         """The API throws exceptions regularly. Upload these by hand ;("""  # noqa
-        out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath(
+        out_path = settings.DPS_LOGS_DIR.parent.joinpath(
             "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
         )
         out_path.parent.mkdir(exist_ok=True, parents=True)
@@ -471,7 +471,7 @@ class DpsLogInteraction:
 
 def move_failed_upload(log_path):
     """Some logs are just broken. Lets remove them from the equation"""  # noqa
-    out_path = Path(settings.DPS_LOGS_DIR).parent.joinpath("failed_logs", Path(log_path).name)
+    out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", Path(log_path).name)
     out_path.parent.mkdir(exist_ok=True)
     logger.warning(f"Moved failing log from {log_path} to")
     logger.warning(out_path)

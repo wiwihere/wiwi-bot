@@ -12,7 +12,7 @@ from scripts.tools import copy_logs
 
 
 class Command(BaseCommand):
-    help = "Copy logs from .env/DPS_LOGS_DIR to .env/ONEDRIVE_LOGS_DIR"
+    help = "Copy logs from .env/DPS_LOGS_DIR to .env/EXTRA_LOGS_DIR"
 
     def add_arguments(self, parser):
         parser.add_argument("--y", type=int, nargs="?", default=None)
