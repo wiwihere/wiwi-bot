@@ -2,6 +2,7 @@
 """Helper functions and variables"""
 
 import datetime
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -23,6 +24,8 @@ from discord.utils import MISSING
 from django.conf import settings
 from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
+
+logger = logging.getLogger(__name__)
 
 WIPE_EMOTES = {
     0: Emoji.objects.get(name="wipe 13").discord_tag_custom_name(),  # OLC can still be bugged and give 0 health.
@@ -390,11 +393,11 @@ def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSI
             embeds=embeds_mes,
             thread=thread,
         )
-        print(f"Updating discord message: {group.name}")
+        logger.info(f"Updating discord message: {group.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
         disc_mess = DiscordMessage.objects.create(message_id=mess.id)
         group.discord_message = disc_mess
         group.save()
-        print(f"New discord message created: {group.name}")
+        logger.info(f"New discord message created: {group.name}")

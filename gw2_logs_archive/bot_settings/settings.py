@@ -1,6 +1,7 @@
 # %%
 import ast
 import logging  # noqa:F401
+import logging.config
 import os
 from pathlib import Path
 
@@ -53,6 +54,7 @@ RANK_BINS_PERCENTILE = ast.literal_eval(get_env("RANK_BINS_PERCENTILE"))  # Dist
 # 90% to 100% of other logs, it will be assigned to the last bin.
 
 DEBUG = get_env("DEBUG") == "True"
+LOGLEVEL = get_env("LOGLEVEL") or "INFO"
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -64,11 +66,6 @@ DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtl
 DPS_LOGS_DIR = get_env("ARCDPS_LOGS_DIR")
 ONEDRIVE_LOGS_DIR = get_env("ONEDRIVE_LOGS_DIR")
 # Shared drive with other static members, they can post logs there to upload.
-
-if DEBUG:
-    LOGLEVEL = "DEBUG"
-else:
-    LOGLEVEL = "INFO"
 
 
 LOGGING = {

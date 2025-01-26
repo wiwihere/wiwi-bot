@@ -18,7 +18,6 @@ if __name__ == "__main__":
 
 logger = logging.getLogger(__name__)
 
-
 EI_PARSER_FOLDER = settings.PROJECT_DIR.joinpath("GW2EI_parser")
 EI_SETTINGS_DEFAULT = settings.BASE_DIR.joinpath("bot_settings", "gw2ei_settings_default.conf")
 
