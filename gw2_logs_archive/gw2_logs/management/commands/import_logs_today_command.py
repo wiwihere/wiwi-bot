@@ -55,7 +55,8 @@ class Command(BaseCommand):
         # y, m, d = 2023, 12, 11
 
         # possible folder names for selected itype_groups
-        folder_names = create_folder_names(itype_groups=itype_groups)
+        # TODO move to class
+        allowed_folder_names = create_folder_names(itype_groups=itype_groups)
 
         log_dir1 = settings.DPS_LOGS_DIR
         log_dir2 = settings.EXTRA_LOGS_DIR
@@ -95,7 +96,7 @@ class Command(BaseCommand):
                         if itype_groups is not None:
                             # TODO this doesnt work when loading from onedrive
                             boss_name = str(log_path).split("arcdps.cbtlogs")[1].split("\\")[1]
-                            if boss_name not in folder_names:
+                            if boss_name not in allowed_folder_names:
                                 print(f"Skipped {log_path}")
                                 log_paths_local_done.append(log_path)
                                 log_paths_done.append(log_path)
@@ -109,7 +110,7 @@ class Command(BaseCommand):
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
                         if dli is False:
-                            # Parsing didnt work, too short log maybe.
+                            logger.warning(f"Parsing didnt work, too short log maybe. {log_path}")
                             log_paths_local_done.append(log_path)
                             log_paths_done.append(log_path)
                             continue
