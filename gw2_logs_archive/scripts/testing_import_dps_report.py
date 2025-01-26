@@ -135,8 +135,11 @@ if True:
                         if processing_type == "upload":
                             log_paths_done.append(log_path)
 
-                        # if fractal_success is True and uploaded_log.encounter.instance.instance_group.name == "fractal":
-                        #     continue  #TODO uncomment
+                        # if (
+                        #     fractal_success is True
+                        #     and uploaded_log.encounter.instance.instance_group.name == "fractal"
+                        # ):
+                        #     continue  # TODO uncomment
 
                         self = icgi = InstanceClearGroupInteraction.create_from_date(
                             y=y, m=m, d=d, itype_group=uploaded_log.encounter.instance.instance_group.name
