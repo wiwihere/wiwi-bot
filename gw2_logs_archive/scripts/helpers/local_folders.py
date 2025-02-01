@@ -62,12 +62,12 @@ class LogFile:
 
     def mark_local_processed(self):
         """Mark the log as processed locally."""
-        logger.debug(f"Marking {self.path} as processed locally.")
+        logger.debug(f"Marking {self.path_short} as processed locally.")
         self.local_processed = True
 
     def mark_upload_processed(self):
         """Mark the log as processed externally on dps.report."""
-        logger.debug(f"Marking {self.path} as processed externally on dps.report.")
+        logger.debug(f"Marking {self.path_short} as processed externally on dps.report.")
         self.upload_processed = True
 
 

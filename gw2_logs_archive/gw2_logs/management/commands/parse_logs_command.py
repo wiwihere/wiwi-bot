@@ -83,7 +83,7 @@ class Command(BaseCommand):
 
                 # Process each log
                 loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
-                for row in loop_df.itertuples():
+                for idx, row in enumerate(loop_df.itertuples()):
                     log: LogFile = row.log
                     log_path = log.path
 
@@ -147,7 +147,7 @@ class Command(BaseCommand):
                                     self.iclear_group.save()
 
                             # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                            if row.Index == len(loop_df):
+                            if idx == len(loop_df) - 1:
                                 icgi.send_discord_message()
 
                             if icgi.iclear_group.success:
