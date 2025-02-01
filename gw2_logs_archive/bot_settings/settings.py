@@ -64,8 +64,8 @@ else:
     LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(message)s"
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
 EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 
@@ -201,7 +201,7 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
     }
 }
 
