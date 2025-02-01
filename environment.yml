@@ -16,3 +16,4 @@ dependencies:
     - python-dotenv
     - tzlocal
     - ruff
+    - psycopg2

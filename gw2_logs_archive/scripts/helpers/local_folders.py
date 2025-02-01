@@ -17,6 +17,7 @@ from scripts.log_helpers import zfill_y_m_d
 logger = logging.getLogger(__name__)
 
 
+# %%
 @dataclass
 class LogFile:
     """Store information about a log file.

@@ -18,11 +18,11 @@ class Emoji(models.Model):
     name = models.CharField(max_length=30)
     animated = models.BooleanField(null=True, blank=True, default=False)
     type = models.CharField(null=True, max_length=10, choices=EMOJI_TYPES, default=None)
-    discord_id = models.IntegerField(null=True, blank=True)
+    discord_id = models.BigIntegerField(null=True, blank=True)
     url = models.URLField(null=True, blank=True)
-    discord_id_cm = models.IntegerField(null=True, blank=True)
+    discord_id_cm = models.BigIntegerField(null=True, blank=True)
     url_cm = models.URLField(null=True, blank=True)
-    discord_id_lcm = models.IntegerField(null=True, blank=True)
+    discord_id_lcm = models.BigIntegerField(null=True, blank=True)
     url_lcm = models.URLField(null=True, blank=True)
     png_name = models.CharField(max_length=50, null=True, blank=True)
 
@@ -62,7 +62,7 @@ class Emoji(models.Model):
 
 
 class DiscordMessage(models.Model):
-    message_id = models.IntegerField(null=True, blank=True)
+    message_id = models.BigIntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.message_id}"
@@ -187,7 +187,7 @@ class InstanceClearGroup(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_message_id_old = models.IntegerField(null=True, blank=True)  # TODO remove
+    discord_message_id_old = models.BigIntegerField(null=True, blank=True)  # TODO remove
     core_player_count = models.IntegerField(null=True, blank=True)
     friend_player_count = models.IntegerField(null=True, blank=True)
 
