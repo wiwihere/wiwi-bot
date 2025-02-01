@@ -10,6 +10,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+try:
+    from . import local_settings
+except ImportError as e:
+    raise e
+
+    class local_settings(object):
+        pass
+
+
 class MissingEnvironmentVariable(Exception):
     pass
 
@@ -197,13 +206,33 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+DB_SETTINGS = getattr(local_settings, "DATABASES", {})
+DB_SETTINGS_DEFAULT = DB_SETTINGS.get("default", {})
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
+
+if DB_SETTINGS_DEFAULT != {}:
+    DATABASES = {"default": DB_SETTINGS_DEFAULT}
+    # Example postgresql database settings. Place this in a new file;
+    # gw2_logs_archive/bot_settings/local_settings.py
+    #
+    # DATABASES = {
+    #     "default": {
+    #         "NAME": "gw2_logs_archive",
+    #         "ENGINE": "django.db.backends.postgresql",
+    #         "USER": "",
+    #         "PASSWORD": "",
+    #         "HOST": "",  # empty string for localhost.
+    #         "PORT": "",  # empty string for default.
+    #     },
+    # }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
+        },
     }
-}
+logger.warning(f"DATABSE ENGINE: {DATABASES['default'].get('ENGINE')}")
 
 
 # Password validation
