@@ -2,6 +2,6 @@
 
 SET commando="%~dp0django.cmd"
 
-"%commando%" runserver %*
+%commando% runserver %*
 
 pause

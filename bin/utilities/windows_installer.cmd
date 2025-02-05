@@ -36,3 +36,4 @@ echo The log manager has been installed in; %CD%\%LOCAL_REPO%
 echo Feel free to place it anywhere.
 echo Initial setup requires a few more steps. Mostly setting up the .env
 echo See %REPO_URL% for details.
+pause
