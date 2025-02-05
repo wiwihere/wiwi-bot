@@ -30,6 +30,7 @@ if not exist "%ENV_DIR%" (
 
 echo.
 echo Setup complete!
+echo micromamba has been created in %MAMBA_BIN%
 echo A python enviroment has been installed in; %ENV_DIR%
 echo.
 echo The log manager has been installed in; %CD%\%LOCAL_REPO%
