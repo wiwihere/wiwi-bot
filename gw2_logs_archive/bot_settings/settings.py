@@ -3,15 +3,24 @@ import ast
 import logging  # noqa:F401
 import logging.config
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Add the project directory to sys.path so we can import local_settings.
+path = Path(__file__).resolve()
+for parent in path.parents:
+    if (parent / "manage.py").exists():
+        project_dir = str(parent)
+        root_dir = str(parent.parent)
 
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 try:
-    from . import local_settings
+    import data.local_settings as local_settings
 except ImportError as e:
     raise e
 
