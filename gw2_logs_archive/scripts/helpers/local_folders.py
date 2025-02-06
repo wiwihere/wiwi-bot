@@ -135,6 +135,10 @@ class LogPathsDate:
             for log in self.logs.values()
         ]
         df = pd.DataFrame(data)
+        if df.empty:
+            df = pd.DataFrame(
+                columns=["id", "boss_name", "local_processed", "upload_processed", "path", "mtime", "log"]
+            )
         df.sort_values(by="mtime", inplace=True)
         df.reset_index(inplace=True, drop=True)
         return df
