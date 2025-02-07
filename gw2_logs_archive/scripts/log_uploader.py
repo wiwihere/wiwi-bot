@@ -409,32 +409,55 @@ class DpsLogInteraction:
         else:
             phasetime_str = None
 
-        dpslog, created = DpsLog.objects.update_or_create(
-            defaults={
-                # "url": r["permalink"],
-                "duration": datetime.timedelta(seconds=r2["durationMS"] / 1000),
-                # "end_time"=,
-                "player_count": len(players),
-                "encounter": encounter,
-                "boss_name": r2["fightName"],
-                "cm": r2["isCM"],
-                "lcm": r2["isLegendaryCM"],
-                "emboldened": "b68087" in r2["buffMap"],
-                "success": r2["success"],
-                "final_health_percentage": final_health_percentage,
-                "gw2_build": r2["gW2Build"],
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-                # "report_id": r["id"],
-                "local_path": log_path,
-                # "json_dump": r,
-                "phasetime_str": phasetime_str,
-            },
-            start_time=datetime.datetime.strptime(r2["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
-                datetime.timezone.utc
-            ),
+        start_time = datetime.datetime.strptime(r2["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
+            datetime.timezone.utc
         )
+
+        # Check if log was uploaded before by someone else. Start time can be couple seconds off,
+        # so we need to filter a timerange.
+        start_time = datetime.datetime.strptime("2025-02-03 20:22:16", "%Y-%m-%d %H:%M:%S")
+        dpslog = DpsLog.objects.filter(
+            start_time__range=(
+                start_time - datetime.timedelta(seconds=5),
+                start_time + datetime.timedelta(seconds=5),
+            ),
+            encounter__name=encounter.name,
+        )
+
+        if len(dpslog) > 1:
+            # Problem when multiple people upload the same log at exactly the same time
+            # unsure if this can/will occur.
+            logger.error("Multiple dpslogs found for %s, check the admin.", encounter.name)
+
+        if len(dpslog) >= 1:
+            dpslog = dpslog.first()
+        else:
+            dpslog, created = DpsLog.objects.update_or_create(
+                defaults={
+                    # "url": r["permalink"],
+                    "duration": datetime.timedelta(seconds=r2["durationMS"] / 1000),
+                    # "end_time"=,
+                    "player_count": len(players),
+                    "encounter": encounter,
+                    "boss_name": r2["fightName"],
+                    "cm": r2["isCM"],
+                    "lcm": r2["isLegendaryCM"],
+                    "emboldened": "b68087" in r2["buffMap"],
+                    "success": r2["success"],
+                    "final_health_percentage": final_health_percentage,
+                    "gw2_build": r2["gW2Build"],
+                    "players": players,
+                    "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                    "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+                    # "report_id": r["id"],
+                    "local_path": log_path,
+                    # "json_dump": r,
+                    "phasetime_str": phasetime_str,
+                },
+                start_time=datetime.datetime.strptime(r2["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
+                    datetime.timezone.utc
+                ),
+            )
         return dpslog
 
     def from_normal_logs(self):

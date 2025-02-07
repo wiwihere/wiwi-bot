@@ -91,7 +91,7 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     discord Server Setttings -> integrations -> Webhooks -> Copy Webhook URL
 3. Within the leaderboards channel create threads for: `raids`, `strikes` and `fractals`.
 - Get the thread id by right click -> copy link or  -> paste only the last 18 digit number in the .env.
-4. Setup the database. Copy `gw2_datase/db-empty.sqlite3` to `gw2_datase/db.sqlite3`.
+4. Setup the database. Copy `data/db-empty.sqlite3` to `data/db.sqlite3`.
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
 ## Usage

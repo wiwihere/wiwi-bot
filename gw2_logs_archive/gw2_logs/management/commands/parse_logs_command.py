@@ -72,10 +72,10 @@ class Command(BaseCommand):
             out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
         )
 
+        log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
+
         while True:
             icgi = None
-
-            log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
@@ -83,7 +83,7 @@ class Command(BaseCommand):
 
                 # Process each log
                 loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
-                for row in loop_df.itertuples():
+                for idx, row in enumerate(loop_df.itertuples()):
                     log: LogFile = row.log
                     log_path = log.path
 
@@ -147,7 +147,7 @@ class Command(BaseCommand):
                                     self.iclear_group.save()
 
                             # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                            if row.Index == len(loop_df):
+                            if idx == len(loop_df) - 1:
                                 icgi.send_discord_message()
 
                             if icgi.iclear_group.success:

@@ -3,11 +3,29 @@ import ast
 import logging  # noqa:F401
 import logging.config
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Add the project directory to sys.path so we can import local_settings.
+path = Path(__file__).resolve()
+for parent in path.parents:
+    if (parent / "manage.py").exists():
+        project_dir = str(parent)
+        root_dir = str(parent.parent)
+
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+try:
+    import data.local_settings as local_settings
+except ImportError as e:
+    raise e
+
+    class local_settings(object):
+        pass
 
 
 class MissingEnvironmentVariable(Exception):
@@ -64,8 +82,8 @@ else:
     LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(message)s"
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
 EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 
@@ -197,13 +215,33 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+DB_SETTINGS = getattr(local_settings, "DATABASES", {})
+DB_SETTINGS_DEFAULT = DB_SETTINGS.get("default", {})
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+
+if DB_SETTINGS_DEFAULT != {}:
+    DATABASES = {"default": DB_SETTINGS_DEFAULT}
+    # Example postgresql database settings. Place this in a new file;
+    # data/local_settings.py
+    #
+    # DATABASES = {
+    #     "default": {
+    #         "NAME": "gw2_logs_archive",
+    #         "ENGINE": "django.db.backends.postgresql",
+    #         "USER": "",
+    #         "PASSWORD": "",
+    #         "HOST": "",  # empty string for localhost.
+    #         "PORT": "",  # empty string for default.
+    #     },
+    # }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
+        },
     }
-}
+logger.warning(f"DATABSE ENGINE: {DATABASES['default'].get('ENGINE')}")
 
 
 # Password validation
