@@ -222,7 +222,7 @@ DB_SETTINGS_DEFAULT = DB_SETTINGS.get("default", {})
 if DB_SETTINGS_DEFAULT != {}:
     DATABASES = {"default": DB_SETTINGS_DEFAULT}
     # Example postgresql database settings. Place this in a new file;
-    # gw2_logs_archive/bot_settings/local_settings.py
+    # data/local_settings.py
     #
     # DATABASES = {
     #     "default": {
