@@ -8,7 +8,7 @@ dependencies:
   - pandas
   - jupyterlab
   - ipywidgets
-  - django=4.2.8
+  - django=5.1.6
   - discord.py[voice]
   - pip=24.*
 
