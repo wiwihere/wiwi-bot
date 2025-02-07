@@ -80,19 +80,29 @@ class PlayerInline(admin.TabularInline):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "instance_group", "emoji", "nr")
+    list_display = ("name", "discord_message_leaderboard", "instance_group", "emoji", "nr")
     inlines = [
         EncounterInline,
     ]
+
+    def discord_message_leaderboard(self, obj):
+        return obj.discord_message
+
+    discord_message_leaderboard.short_description = "Discord Message Leaderboard"
 
 
 @admin.register(models.InstanceGroup)
 class InstanceGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "discord_message")
+    list_display = ("name", "discord_message_leaderboard")
 
     inlines = [
         EncounterInline,
     ]
+
+    def discord_message_leaderboard(self, obj):
+        return obj.discord_message
+
+    discord_message_leaderboard.short_description = "Discord Message Leaderboard"
 
 
 @admin.register(models.Encounter)
@@ -131,7 +141,17 @@ class EncounterAdmin(admin.ModelAdmin):
 
 @admin.register(models.Emoji)
 class EmojiAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "type", "png_name", "discord_id", "animated", "url")
+    list_display = (
+        "id",
+        "name",
+        "type",
+        "png_name",
+        "animated",
+        "discord_id",
+        "discord_id_cm",
+        "discord_id_lcm",
+        "url",
+    )
     ordering = ("type", "png_name", "name")
 
     search_fields = ["name"]
