@@ -168,7 +168,8 @@ class InstanceClearGroupInteraction:
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
-                encounter__leaderboard_instance_group__name=self.iclear_group.type,
+                encounter__use_for_icg_duration=True,
+                encounter__instance__instance_group__name=self.iclear_group.type,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
@@ -179,10 +180,13 @@ class InstanceClearGroupInteraction:
             dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
-            # The column leaderboard_instance_group in Encounter is only filled when it
+            # The column use_for_icg_duration in Encounter is True when it
             # should be used in the total clear duration for that week.
             if len(df_logs_duration[df_logs_duration["success"]]) == len(
-                Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
+                Encounter.objects.filter(
+                    use_for_icg_duration=True,
+                    instance__instance_group__name=self.iclear_group.type,
+                )
             ):
                 if self.iclear_group.success is False:
                     logger.info(f"Finished {self.iclear_group.type}s for this week!")

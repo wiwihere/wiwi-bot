@@ -165,13 +165,13 @@ class Encounter(models.Model):
     lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", default=False)  # Include lcm in leaderboard
 
     # "raid", "strike", "fractal", etc
-    leaderboard_instance_group = models.ForeignKey(
-        InstanceGroup,
-        related_name="encounters",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )  # Use the instance_group to select encounters that need to be bundled
+    # leaderboard_instance_group = models.ForeignKey(  # TODO remove this one.
+    #     InstanceGroup,
+    #     related_name="encounters",
+    #     null=True,
+    #     blank=True,
+    #     on_delete=models.SET_NULL,
+    # )  # Use the instance_group to select encounters that need to be bundled
     # Encounters used to check if week (raid/strike) or day (fractal) was successful
     use_for_icg_duration = models.BooleanField(default=False)
 

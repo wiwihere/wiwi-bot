@@ -71,12 +71,8 @@ class InstanceInline(admin.TabularInline):
 
 class InstanceGroupInline(admin.TabularInline):
     model = models.InstanceGroup
-    fields = [
-        "name",
-    ]
-    readonly_fields = [
-        "name",
-    ]
+    fields = ["name"]
+    readonly_fields = ["name"]
     extra = 0
 
     show_change_link = True
@@ -105,18 +101,13 @@ class PlayerInline(admin.TabularInline):
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
     list_display = ("name", "nr", "instance_group", "emoji", "discord_message")
-    inlines = [
-        EncounterInline,
-    ]
+    inlines = [EncounterInline]
 
 
 @admin.register(models.InstanceGroup)
 class InstanceGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "discord_message")
 
-    inlines = [
-        EncounterInline,
-    ]
     ordering = ("name",)
 
 
