@@ -123,6 +123,7 @@ class InstanceGroupAdmin(admin.ModelAdmin):
 @admin.register(models.Encounter)
 class EncounterAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "name",
         "shortname",
         "instance",
@@ -141,7 +142,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "leaderboard_instance_group",
     )
 
-    # list_filter = "instance__type"
+    list_filter = ["instance"]
     inlines = [DpsLogInline]
 
     def instance__group(self, obj):
@@ -176,6 +177,7 @@ class EmojiAdmin(admin.ModelAdmin):
 @admin.register(models.InstanceClear)
 class InstanceClearAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "name",
         "instance",
         "start_time",
@@ -220,6 +222,7 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
 @admin.register(models.DpsLog)
 class DpsLogAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "encounter",
         "cm",
         "lcm",
@@ -246,17 +249,20 @@ class DpsLogAdmin(admin.ModelAdmin):
 
 @admin.register(models.Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ("name", "gw2_id", "role")
+    list_display = ("id", "name", "gw2_id", "role")
 
     ordering = ("name",)
 
 
 @admin.register(models.DiscordMessage)
 class DiscordMessage(admin.ModelAdmin):
-    list_display = ("id", "message_id", "name", "created_at", "updated_at", "update_count")
+    list_display = ("id", "message_id", "name", "linked_count", "created_at", "updated_at", "update_count")
     inlines = [InstanceClearGroupInline, InstanceInline, InstanceGroupInline]
 
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-updated_at",)
 
     search_fields = ["message_id", "name"]
+
+    def linked_count(self, obj):
+        return obj.instance_clear_group.all().count() + obj.instance.all().count() + obj.instance_group.all().count()
