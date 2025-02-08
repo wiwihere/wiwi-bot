@@ -78,6 +78,7 @@ class InstanceGroup(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+        verbose_name="discord message leaderboard",
     )
 
     def __str__(self):
@@ -109,6 +110,7 @@ class Instance(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+        verbose_name="discord message leaderboard",
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of instance (raid nr)
 
@@ -266,7 +268,6 @@ class DpsLog(models.Model):
     url = models.URLField(max_length=100)
     duration = models.DurationField(null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True, unique=True)
-    end_time = models.DateTimeField(null=True, blank=True, unique=True)  # TODO unused
     player_count = models.IntegerField(null=True, blank=True)
     encounter = models.ForeignKey(
         Encounter,
@@ -280,6 +281,13 @@ class DpsLog(models.Model):
     lcm = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
+    # final_health_percentage = models.DecimalField(
+    #     null=True,
+    #     blank=True,
+    #     decimal_places=2,
+    #     max_digits=5,
+    # )
+    # detailed info
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)
     players = models.JSONField(default=list)

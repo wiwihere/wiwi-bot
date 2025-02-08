@@ -316,7 +316,7 @@ bossname:  {r["encounter"]["boss"]}
                 if log.success is False:
                     logger.info("    Requesting final boss health")
                     self.r2 = r2 = self.request_detailed_info()
-                    log.final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+                    log.final_health_percentage = round(100 - r2["targets"][0]["healthPercentBurned"], 2)
 
                     # Sometimes people get in combat at eyes which creates an uneccesary log.
                     if log.final_health_percentage == 100.0 and self.r["encounter"]["boss"] == "Eye of Fate":
@@ -392,7 +392,7 @@ class DpsLogInteraction:
         r2 = json_detailed
 
         players = [player["account"] for player in r2["players"]]
-        final_health_percentage = 100 - r2["targets"][0]["healthPercentBurned"]
+        final_health_percentage = round(100 - r2["targets"][0]["healthPercentBurned"], 2)
 
         try:
             encounter = Encounter.objects.get(ei_encounter_id=r2["eiEncounterID"])

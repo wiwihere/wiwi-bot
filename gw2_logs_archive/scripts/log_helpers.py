@@ -22,7 +22,7 @@ import pytz
 from discord import SyncWebhook
 from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
+from gw2_logs.models import DiscordMessage, DpsLog, Emoji, Encounter, InstanceGroup
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)

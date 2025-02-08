@@ -80,29 +80,20 @@ class PlayerInline(admin.TabularInline):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "discord_message_leaderboard", "instance_group", "emoji", "nr")
+    list_display = ("name", "nr", "instance_group", "emoji", "discord_message")
     inlines = [
         EncounterInline,
     ]
-
-    def discord_message_leaderboard(self, obj):
-        return obj.discord_message
-
-    discord_message_leaderboard.short_description = "Discord Message Leaderboard"
 
 
 @admin.register(models.InstanceGroup)
 class InstanceGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "discord_message_leaderboard")
+    list_display = ("name", "discord_message")
 
     inlines = [
         EncounterInline,
     ]
-
-    def discord_message_leaderboard(self, obj):
-        return obj.discord_message
-
-    discord_message_leaderboard.short_description = "Discord Message Leaderboard"
+    ordering = ("name",)
 
 
 @admin.register(models.Encounter)
@@ -231,6 +222,8 @@ class DpsLogAdmin(admin.ModelAdmin):
 @admin.register(models.Player)
 class PlayerAdmin(admin.ModelAdmin):
     list_display = ("name", "gw2_id", "role")
+
+    ordering = ("name",)
 
 
 @admin.register(models.DiscordMessage)

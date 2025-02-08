@@ -241,8 +241,8 @@ else:
             "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
         },
     }
-logger.warning(f"DATABSE ENGINE: {DATABASES['default'].get('ENGINE')}")
-
+logger.warning(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE')}")
+logger.warning(f"DATABASE NAME: {DATABASES['default'].get('NAME')}")
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
