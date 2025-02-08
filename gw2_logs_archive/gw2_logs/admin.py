@@ -58,6 +58,30 @@ class InstanceClearInline(admin.TabularInline):
     show_change_link = True
 
 
+class InstanceInline(admin.TabularInline):
+    model = models.Instance
+    fields = ["name", "nr", "instance_group"]
+    readonly_fields = ["name", "nr", "instance_group"]
+    extra = 0
+
+    ordering = ("nr", "instance_group")
+
+    show_change_link = True
+
+
+class InstanceGroupInline(admin.TabularInline):
+    model = models.InstanceGroup
+    fields = [
+        "name",
+    ]
+    readonly_fields = [
+        "name",
+    ]
+    extra = 0
+
+    show_change_link = True
+
+
 class InstanceClearGroupInline(admin.TabularInline):
     model = models.InstanceClearGroup
     fields = ["name", "type", "start_time", "duration", "success", "core_player_count", "friend_player_count"]
@@ -228,7 +252,10 @@ class PlayerAdmin(admin.ModelAdmin):
 
 @admin.register(models.DiscordMessage)
 class DiscordMessage(admin.ModelAdmin):
-    list_display = ("message_id",)
-    inlines = [
-        InstanceClearGroupInline,
-    ]
+    list_display = ("id", "message_id", "name", "created_at", "updated_at", "update_count")
+    inlines = [InstanceClearGroupInline, InstanceInline, InstanceGroupInline]
+
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-updated_at",)
+
+    search_fields = ["message_id", "name"]

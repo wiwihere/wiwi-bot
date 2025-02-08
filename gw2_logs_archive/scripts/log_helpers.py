@@ -7,6 +7,7 @@ import os
 import time
 from dataclasses import dataclass
 from itertools import chain
+from typing import Union
 
 if __name__ == "__main__":
     from _setup_django import init_django
@@ -22,7 +23,7 @@ import pytz
 from discord import SyncWebhook
 from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, DpsLog, Emoji, Encounter, InstanceGroup
+from gw2_logs.models import DiscordMessage, DpsLog, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)
@@ -367,7 +368,9 @@ def get_avg_duration_str(group):
     return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
 
 
-def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSING):
+def create_or_update_discord_message(
+    group: Union[Instance, InstanceGroup, InstanceClearGroup], hook, embeds_mes: list, thread=MISSING
+):
     """Send message to discord
 
     group: instance_group or iclear_group
@@ -385,11 +388,21 @@ def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSI
             embeds=embeds_mes,
             thread=thread,
         )
+        group.discord_message.increase_counter()
         logger.info(f"Updating discord message: {group.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
-        disc_mess = DiscordMessage.objects.create(message_id=mess.id)
+
+        if isinstance(group, Instance):
+            itype = f"leaderboard_{group.instance_group.name}{group.nr}"
+        elif isinstance(group, InstanceGroup):
+            itype = f"leaderboard_{group.name}_all"
+        elif isinstance(group, InstanceClearGroup):
+            itype = group.name
+
+        disc_mess = DiscordMessage.objects.create(message_id=mess.id, itype=itype)
+        disc_mess.increase_counter()
         group.discord_message = disc_mess
         group.save()
         logger.info(f"New discord message created: {group.name}")

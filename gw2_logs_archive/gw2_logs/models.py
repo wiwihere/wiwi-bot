@@ -1,4 +1,5 @@
 from itertools import chain
+from turtle import mode
 
 from django.db import models
 
@@ -63,9 +64,18 @@ class Emoji(models.Model):
 
 class DiscordMessage(models.Model):
     message_id = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+    update_count = models.IntegerField(default=0)
+    name = models.CharField(max_length=256, null=True, blank=True)
+
+    def increase_counter(self):
+        """Adds one to the counter of discord api calls"""
+        self.update_count += 1
+        self.save()
 
     def __str__(self):
-        return f"{self.message_id}"
+        return f"{self.name}"
 
 
 class InstanceGroup(models.Model):
