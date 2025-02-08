@@ -165,7 +165,6 @@ def create_leaderboard(itype: str):
     # Create message for total clear time.
     instance_group = InstanceGroup.objects.get(name=itype)
     instances = Instance.objects.filter(instance_group=instance_group).order_by("nr")
-    duration_encounters = InstanceClearGroup.objects.all().order_by("start_time").last().duration_encounters
 
     description = ""
     # For each instance add the encounters that are included and their
@@ -220,6 +219,9 @@ def create_leaderboard(itype: str):
     # were selected  for leaderboard. e.g. with wing 8 the clear times went up,
     # so we reset the leaderboard here.
     description += "\n"
+    duration_encounters = (
+        InstanceClearGroup.objects.filter(type=itype).order_by("start_time").last().duration_encounters
+    )
     icleargroup_success_all = (
         InstanceClearGroup.objects.filter(
             success=True,
@@ -263,8 +265,8 @@ def create_leaderboard(itype: str):
 # %%
 if __name__ == "__main__":
     for itype in [
-        # "raid",
-        "strike",
+        "raid",
+        # "strike",
         # "fractal",
     ]:
         pass

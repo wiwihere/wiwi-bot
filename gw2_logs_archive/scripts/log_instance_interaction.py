@@ -326,14 +326,20 @@ class InstanceClearGroupInteraction:
         title = self.iclear_group.pretty_time
         if icg.success:
             # Get rank compared to all cleared instancecleargroups
+            duration_encounters = (
+                InstanceClearGroup.objects.filter(type=icg.type).order_by("start_time").last().duration_encounters
+            )
+
             group = list(
-                InstanceClearGroup.objects.filter(success=True, type=icg.type)
-                .filter(
-                    Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
-                    & Q(start_time__lte=icg.start_time)
+                InstanceClearGroup.objects.filter(
+                    success=True,
+                    duration_encounters=duration_encounters,
+                    type=icg.type,
                 )
+                .exclude(name__icontains="cm__")
                 .order_by("duration")
             )
+
             rank_str = get_rank_emote(
                 indiv=icg,
                 group=group,
@@ -581,11 +587,11 @@ def create_embeds(titles, descriptions):
 
 if __name__ == "__main__":
     y, m, d = 2024, 6, 13
-    itype_group = "strike"
+    itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
-    self = icgi = InstanceClearGroupInteraction.from_name("strikes__20250206")
+    self = icgi = InstanceClearGroupInteraction.from_name("raids__20250206")
     if icgi is not None:
         # Set the same discord message id when strikes and raids are combined.
         if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):
