@@ -125,6 +125,16 @@ class InstanceClearGroupInteraction:
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
+            # Select the encounters used to calculate the success and duration.
+            # This is only done once on creation
+            # creates a string like; "1_1__1_2__1_3__2_1.."
+            b = Encounter.objects.filter(
+                use_for_icg_duration=True,
+                instance__instance_group__name=iclear_group.type,
+            )
+            duration_encounters = "__".join([f"{a.instance.nr}_{a.nr}" for a in b])
+            iclear_group.duration_encounters = duration_encounters
+            iclear_group.save()
             logger.info(f"Created InstanceClearGroup: {iclear_group}")
 
         # Create individual instance clears
@@ -172,24 +182,38 @@ class InstanceClearGroupInteraction:
                 encounter__instance__instance_group__name=self.iclear_group.type,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
-                week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
-                columns=["encounter", "success", "duration", "start_time", "start_day"],
+                week_logs.values_list(
+                    "encounter",
+                    "encounter__nr",
+                    "encounter__instance__nr",
+                    "success",
+                    "duration",
+                    "start_time",
+                    "start_time__day",
+                ),
+                columns=["encounter", "encounter_nr", "instance_nr", "success", "duration", "start_time", "start_day"],
+            )
+
+            df_logs_duration["enc_ins_str"] = df_logs_duration.apply(
+                lambda x: f"{x.instance_nr}_{x.encounter_nr}", axis=1
             )
 
             # Drop duplicate successes. Shouldnt happen too much anyway...
             dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
-            # The column use_for_icg_duration in Encounter is True when it
-            # should be used in the total clear duration for that week.
-            if len(df_logs_duration[df_logs_duration["success"]]) == len(
-                Encounter.objects.filter(
-                    use_for_icg_duration=True,
-                    instance__instance_group__name=self.iclear_group.type,
+            # Count encounters that are used for leaderboard total with success
+            leaderboard_success_count = sum(
+                df_logs_duration.loc[df_logs_duration["success"], "enc_ins_str"].apply(
+                    lambda x: x in self.iclear_group.duration_encounters
                 )
-            ):
+            )
+            leaderboard_required_success_count = len(self.iclear_group.duration_encounters.split("__"))
+
+            if leaderboard_success_count == leaderboard_required_success_count:
                 if self.iclear_group.success is False:
                     logger.info(f"Finished {self.iclear_group.type}s for this week!")
+
                 # Duration is the difference between first and last log for each day.
                 # If there is only one log (e.g. strikes), that duration should be added.
                 time_diff = datetime.timedelta(0)
