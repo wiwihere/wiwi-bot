@@ -181,6 +181,7 @@ class InstanceClearAdmin(admin.ModelAdmin):
         "log_count",
     )
     list_filter = ["instance"]
+    search_fields = ["id", "name"]
 
     inlines = [DpsLogInline]
 
@@ -221,6 +222,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         "lcm",
         "emboldened",
         "success",
+        "use_in_leaderboard",
         "final_health_percentage",
         "duration",
         "url",

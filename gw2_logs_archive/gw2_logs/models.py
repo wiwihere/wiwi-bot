@@ -318,6 +318,7 @@ class DpsLog(models.Model):
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
     phasetime_str = models.CharField(max_length=100, null=True, blank=True)  # cerus cm
+    use_in_leaderboard = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.boss_name} {self.start_time}"

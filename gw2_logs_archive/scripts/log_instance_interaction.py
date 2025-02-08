@@ -180,6 +180,7 @@ class InstanceClearGroupInteraction:
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
                 encounter__use_for_icg_duration=True,
                 encounter__instance__instance_group__name=self.iclear_group.type,
+                use_in_leaderboard=True,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list(
@@ -580,11 +581,11 @@ def create_embeds(titles, descriptions):
 
 if __name__ == "__main__":
     y, m, d = 2024, 6, 13
-    itype_group = "raid"
+    itype_group = "strike"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
-    self = icgi = InstanceClearGroupInteraction.from_name("raids__20250206")
+    self = icgi = InstanceClearGroupInteraction.from_name("strikes__20250206")
     if icgi is not None:
         # Set the same discord message id when strikes and raids are combined.
         if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):

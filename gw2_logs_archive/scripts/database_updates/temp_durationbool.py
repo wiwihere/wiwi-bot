@@ -5,7 +5,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 # from django.conf import settings
-from gw2_logs.models import Encounter, InstanceClearGroup
+from gw2_logs.models import DpsLog, Encounter, InstanceClearGroup
 from scripts.log_instance_interaction import InstanceClearGroupInteraction
 
 # %%
@@ -41,3 +41,11 @@ for obj in InstanceClearGroup.objects.filter(type="strike").order_by("-start_tim
 
         InstanceClearGroupInteraction.from_name(obj.name)
         # break
+
+
+# %% set CerusCM fails to not leaderboard
+for obj in DpsLog.objects.filter(boss_name="Cerus", cm=True):
+    if obj.success:
+        print(f"{obj.id} {obj.boss_name}")
+        obj.use_in_leaderboard = True
+        # obj.save()
