@@ -198,6 +198,7 @@ class InstanceClearAdmin(admin.ModelAdmin):
 @admin.register(models.InstanceClearGroup)
 class InstanceClearGroupAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "name",
         "type",
         "success",
@@ -207,10 +208,10 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "core_player_count",
         "friend_player_count",
         "log_count",
-        "discord_message_id_old",
     )
 
     inlines = [InstanceClearInline]
+    search_fields = ["id", "name"]
 
     def log_count(self, obj):
         return sum([ic.dps_logs.all().count() for ic in obj.instance_clears.all()])

@@ -199,7 +199,6 @@ class InstanceClearGroup(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_message_id_old = models.BigIntegerField(null=True, blank=True)  # TODO remove
     core_player_count = models.IntegerField(null=True, blank=True)
     friend_player_count = models.IntegerField(null=True, blank=True)
 

@@ -42,5 +42,42 @@ for obj in DiscordMessage.objects.all():
             obj.save()
         else:
             logger.warning(f"Probably delete {obj.id}: {obj.name}")
+            continue
 
         logger.info(f"{obj.id}: {obj.name}")
+
+# %% Migrate discord_message_id_old
+for obj in InstanceClearGroup.objects.all():
+    dm = None
+    if obj.discord_message_id_old is not None:
+        try:
+            dm = DiscordMessage.objects.get(name=obj.name)
+
+        except DiscordMessage.DoesNotExist:
+            logger.warning(f"Making dm {obj.id}: {obj.name}")
+
+            dm = DiscordMessage.objects.create(message_id=obj.discord_message_id_old, name=obj.name)
+            dm.increase_counter()
+
+        if dm.message_id == obj.discord_message_id_old:
+            obj.discord_message_id_old = None
+            obj.save()
+            logger.info(f"{obj.id}: {obj.name}")
+
+
+# %% Migrate discord_message_id_old
+for obj in InstanceClearGroup.objects.all():
+    dm = None
+    if obj.discord_message is None:
+        try:
+            dm = DiscordMessage.objects.get(name=obj.name)
+            obj.discord_message = dm
+            obj.save()
+            logger.info(f"{obj.id}: {obj.name}")
+
+        except DiscordMessage.DoesNotExist:
+            name = obj.name.replace("strikes", "raids")
+            dm = DiscordMessage.objects.get(name=name)
+            obj.discord_message = dm
+            obj.save()
+            logger.warning(f"Ehh {obj.id}: {obj.name}")

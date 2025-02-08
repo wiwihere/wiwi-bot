@@ -395,13 +395,13 @@ def create_or_update_discord_message(
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
 
         if isinstance(group, Instance):
-            itype = f"leaderboard_{group.instance_group.name}{group.nr}"
+            name = f"leaderboard_{group.instance_group.name}{group.nr}"
         elif isinstance(group, InstanceGroup):
-            itype = f"leaderboard_{group.name}_all"
+            name = f"leaderboard_{group.name}_all"
         elif isinstance(group, InstanceClearGroup):
-            itype = group.name
+            name = group.name
 
-        disc_mess = DiscordMessage.objects.create(message_id=mess.id, itype=itype)
+        disc_mess = DiscordMessage.objects.create(message_id=mess.id, name=name)
         disc_mess.increase_counter()
         group.discord_message = disc_mess
         group.save()
