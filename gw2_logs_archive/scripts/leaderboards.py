@@ -14,6 +14,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 from gw2_logs.models import (
+    Encounter,
     Instance,
     InstanceClearGroup,
     InstanceGroup,
@@ -163,23 +164,36 @@ def create_leaderboard(itype: str):
     # %%
     # Create message for total clear time.
     instance_group = InstanceGroup.objects.get(name=itype)
-    encounters = instance_group.encounters.all()
-    instance_names = np.unique(encounters.values_list("instance__name", flat=True))
-    instances = Instance.objects.filter(name__in=instance_names).order_by("nr")
+    instances = Instance.objects.filter(instance_group=instance_group).order_by("nr")
+    duration_encounters = InstanceClearGroup.objects.all().order_by("start_time").last().duration_encounters
 
     description = ""
     # For each instance add the encounters that are included and their
-    # fastes and average killtime
+    # fastest and average killtime
     for instance in instances:
+        # Get all encounters for this instance that are used for total duration
+        encounters = Encounter.objects.filter(
+            use_for_icg_duration=True,
+            instance=instance,
+        ).order_by("nr")
+
+        # Find instance clear fastest and average time
+        iclear_success_all = instance.instance_clears.filter(
+            success=True,
+            emboldened=False,
+            core_player_count__gte=min_core_count,
+        ).order_by("duration")
+        # .filter(
+        #     Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+        #     & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+        # )
+
         # Instance emote
         description += f"{instance.emoji.discord_tag()}"
 
         # Loop over the encounters
         counter = 0
-
-        for ec in instance.encounters.filter(use_for_icg_duration=True, instance__instance_group__name=itype).order_by(
-            "nr"
-        ):
+        for ec in encounters:
             # encounter emote
             description += ec.emoji.discord_tag()
             counter += 1
@@ -189,46 +203,37 @@ def create_leaderboard(itype: str):
             description += BLANK_EMOTE
             counter += 1
 
-        # Find instance clear fastest and average time
-        iclear_success_all = (
-            instance.instance_clears.filter(
-                success=True,
-                emboldened=False,
-                core_player_count__gte=min_core_count,
-            )
-            .filter(
-                Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-                & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
-            )
-            .order_by("duration")
-        )
-
-        for idx, instance_clear in enumerate(iclear_success_all[:1]):
+        if len(iclear_success_all) > 0:
             # Add first rank time to message. The popup of the medal will give the date
-            rank_duration_str = get_rank_duration_str(instance_clear, iclear_success_all, itype, pretty_time=True)
+            rank_duration_str = get_rank_duration_str(
+                iclear_success_all.first(), iclear_success_all, itype, pretty_time=True
+            )
             description += rank_duration_str
 
-        if len(iclear_success_all) > 0:
             # Add average clear times
             avg_duration_str = get_avg_duration_str(iclear_success_all)
-            description += f"{avg_duration_str}"
+            description += avg_duration_str
         description += "\n"
 
     # List the top 3 of the instance group clear time #
+    # Filter on duration_encounters to only include runs where all the same wings
+    # were selected  for leaderboard. e.g. with wing 8 the clear times went up,
+    # so we reset the leaderboard here.
     description += "\n"
     icleargroup_success_all = (
         InstanceClearGroup.objects.filter(
             success=True,
+            duration_encounters=duration_encounters,
             type=itype,
             core_player_count__gte=min_core_count,
-        )
-        .filter(
-            Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-            & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC)),
         )
         .exclude(name__icontains="cm__")
         .order_by("duration")
     )
+    # .filter(
+    #         Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+    #         & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC)),
+    #     )
 
     for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
         rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype, pretty_time=True)
@@ -242,7 +247,7 @@ def create_leaderboard(itype: str):
     embed = discord.Embed(
         title=f"Full {itype.capitalize()} Clear",
         description=description,
-        colour=EMBED_COLOR[instance.instance_group.name],
+        colour=EMBED_COLOR[instance_group.name],
     )
     embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
     embed.timestamp = datetime.datetime.now()

@@ -128,11 +128,11 @@ class InstanceClearGroupInteraction:
             # Select the encounters used to calculate the success and duration.
             # This is only done once on creation
             # creates a string like; "1_1__1_2__1_3__2_1.."
-            b = Encounter.objects.filter(
+            encounters = Encounter.objects.filter(
                 use_for_icg_duration=True,
                 instance__instance_group__name=iclear_group.type,
             )
-            duration_encounters = "__".join([f"{a.instance.nr}_{a.nr}" for a in b])
+            duration_encounters = "__".join([f"{a.instance.nr}_{a.nr}" for a in encounters])
             iclear_group.duration_encounters = duration_encounters
             iclear_group.save()
             logger.info(f"Created InstanceClearGroup: {iclear_group}")
