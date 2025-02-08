@@ -158,13 +158,13 @@ class Encounter(models.Model):
         on_delete=models.SET_NULL,
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of boss in instance
-    has_cm = models.BooleanField(null=True, blank=True)
-    has_lcm = models.BooleanField(null=True, blank=True)
-    lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
-    lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
-    lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", null=True, blank=True)  # Include lcm in leaderboard
+    has_cm = models.BooleanField(default=False)
+    has_lcm = models.BooleanField(default=False)
+    lb = models.BooleanField(verbose_name="leaderboard", default=False)  # Include in leaderboard
+    lb_cm = models.BooleanField(verbose_name="leaderboard cm", default=False)  # Include cm in leaderboard
+    lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", default=False)  # Include lcm in leaderboard
 
-    # TODO do we need this?
+    # "raid", "strike", "fractal", etc
     leaderboard_instance_group = models.ForeignKey(
         InstanceGroup,
         related_name="encounters",
@@ -172,6 +172,8 @@ class Encounter(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )  # Use the instance_group to select encounters that need to be bundled
+    # Encounters used to check if week (raid/strike) or day (fractal) was successful
+    use_for_icg_duration = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -191,6 +193,9 @@ class InstanceClearGroup(models.Model):
     type = models.CharField(max_length=10, choices=INSTANCE_TYPES, default="raid")
     start_time = models.DateTimeField(null=True, blank=True)
     duration = models.DurationField(null=True, blank=True)
+    # Encounters included for calculating duration
+    duration_encounters = models.CharField(max_length=300, null=True, blank=True)
+
     success = models.BooleanField(null=True, blank=True, default=False)
     discord_message = models.ForeignKey(
         DiscordMessage,

@@ -139,7 +139,7 @@ class EncounterAdmin(admin.ModelAdmin):
         "lb_cm",
         "lb_lcm",
         "log_count",
-        "leaderboard_instance_group",
+        "use_for_icg_duration",
     )
 
     list_filter = ["instance"]
@@ -210,10 +210,12 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
         "core_player_count",
         "friend_player_count",
         "log_count",
+        "duration_encounters",
     )
 
     inlines = [InstanceClearInline]
     search_fields = ["id", "name"]
+    list_filter = ["success", "type", "duration_encounters"]
 
     def log_count(self, obj):
         return sum([ic.dps_logs.all().count() for ic in obj.instance_clears.all()])

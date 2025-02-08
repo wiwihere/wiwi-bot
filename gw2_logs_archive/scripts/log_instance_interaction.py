@@ -179,11 +179,13 @@ class InstanceClearGroupInteraction:
             dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
+            # The column leaderboard_instance_group in Encounter is only filled when it
+            # should be used in the total clear duration for that week.
             if len(df_logs_duration[df_logs_duration["success"]]) == len(
                 Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
             ):
-                # if self.iclear_group.success is False:
-                logger.info(f"Finished {self.iclear_group.type}s for this week!")
+                if self.iclear_group.success is False:
+                    logger.info(f"Finished {self.iclear_group.type}s for this week!")
                 # Duration is the difference between first and last log for each day.
                 # If there is only one log (e.g. strikes), that duration should be added.
                 time_diff = datetime.timedelta(0)
@@ -553,6 +555,8 @@ if __name__ == "__main__":
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+
+    self = icgi = InstanceClearGroupInteraction.from_name("raids__20250206")
     if icgi is not None:
         # Set the same discord message id when strikes and raids are combined.
         if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):
