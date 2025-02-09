@@ -32,7 +32,7 @@ from scripts.log_helpers import (
 logger = logging.getLogger(__name__)
 # TODO remove ITYPE_GROUPS
 if __name__ == "__main__":
-    itype = "raid"
+    itype = "strike"
     min_core_count = 0  # select all logs when including non core
 
 
@@ -175,6 +175,10 @@ def create_leaderboard(itype: str):
             use_for_icg_duration=True,
             instance=instance,
         ).order_by("nr")
+
+        # Dont add instance if no encounters selected
+        if len(encounters) == 0:
+            continue
 
         # Find instance clear fastest and average time
         iclear_success_all = instance.instance_clears.filter(
