@@ -14,9 +14,9 @@ from gw2_logs.models import (
 from scripts.log_instance_interaction import InstanceClearGroupInteraction
 
 
-def update_discord_message_single(y, m, d):
+def update_discord_message_single(y, m, d, itype_group="raid"):
     """Update single discord message. Doesnt upload any logs"""
-    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d)
+    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     # self = icgi = InstanceClearGroupInteraction.from_name("dummy")
     icgi.send_discord_message()
 
@@ -41,6 +41,7 @@ def update_discord_messages_all():
 
 # %%
 if __name__ == "__main__":
-    y, m, d = 2024, 8, 22
+    y, m, d = 2025, 2, 6
+    itype_group = "raid"
 
     # update_discord_messages_from_date(y=y, m=m, d=d)
