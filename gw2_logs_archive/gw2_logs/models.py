@@ -17,7 +17,7 @@ class Emoji(models.Model):
     """Discord emoji"""
 
     name = models.CharField(max_length=30)
-    animated = models.BooleanField(null=True, blank=True, default=False)
+    animated = models.BooleanField(default=False)
     type = models.CharField(null=True, max_length=10, choices=EMOJI_TYPES, default=None)
     discord_id = models.BigIntegerField(null=True, blank=True)
     url = models.URLField(null=True, blank=True)
@@ -188,7 +188,7 @@ class InstanceClearGroup(models.Model):
     # Encounters included for calculating duration
     duration_encounters = models.CharField(max_length=300, null=True, blank=True)
 
-    success = models.BooleanField(null=True, blank=True, default=False)
+    success = models.BooleanField(default=False)
     discord_message = models.ForeignKey(
         DiscordMessage,
         related_name="instance_clear_group",
@@ -244,8 +244,8 @@ class InstanceClear(models.Model):
     )
     start_time = models.DateTimeField(null=True, blank=True)
     duration = models.DurationField(null=True, blank=True)
-    success = models.BooleanField(null=True, blank=True, default=False)  # All encounters in instance cleared?
-    emboldened = models.BooleanField(null=True, blank=True)
+    success = models.BooleanField(default=False)  # All encounters in instance cleared?
+    emboldened = models.BooleanField(default=False)
     core_player_count = models.IntegerField(null=True, blank=True)
     friend_player_count = models.IntegerField(null=True, blank=True)
 
@@ -283,10 +283,10 @@ class DpsLog(models.Model):
         on_delete=models.SET_NULL,
     )
     boss_name = models.CharField(max_length=100, null=True, blank=True)
-    cm = models.BooleanField(null=True, blank=True)
-    lcm = models.BooleanField(null=True, blank=True)
-    emboldened = models.BooleanField(null=True, blank=True)  # detailed info
-    success = models.BooleanField(null=True, blank=True)
+    cm = models.BooleanField(default=False)
+    lcm = models.BooleanField(default=False)
+    emboldened = models.BooleanField(default=False)  # detailed info
+    success = models.BooleanField(default=False)
 
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)
