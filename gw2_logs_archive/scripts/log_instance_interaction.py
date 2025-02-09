@@ -445,6 +445,7 @@ class InstanceClearGroupInteraction:
                     indiv=log,
                     group=encounter_success_all,
                     core_minimum=settings.CORE_MINIMUM[log.encounter.instance.instance_group.name],
+                    custom_emoji_name=False,
                 )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
@@ -586,7 +587,7 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 6, 13
+    y, m, d = 2025, 2, 6
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
@@ -628,87 +629,3 @@ if __name__ == "__main__":
             hook=WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )
-
-
-# # %%
-# from log_helpers import RANK_EMOTES, RANK_EMOTES_CUSTOM, RANK_EMOTES_CUSTOM_INVALID, RANK_EMOTES_INVALID
-
-# # from gw2_logs.models import DpsLog
-# log = DpsLog.objects.get(url='https://dps.report/s5ZG-20240216-192127_skor')
-
-# encounter_success_all = list(
-#     log.encounter.dps_logs.filter(success=True, cm=log.cm, emboldened=False)
-#     .filter(Q(start_time__gte=log.start_time - datetime.timedelta(days=9999)) & Q(start_time__lte=log.start_time))
-#     .order_by("duration")
-# )
-
-# indiv = log
-# group = encounter_success_all
-# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.instance_group.name]
-# custom_emoji_name = False
-
-# MEDAL_TYPE = "percentiles"
-# if True:
-#     emboldened = False
-#     if hasattr(indiv, "emboldened"):
-#         emboldened = indiv.emboldened
-
-#     if indiv.success and not emboldened:
-#         rank = group.index(indiv)
-#     else:
-#         rank = None
-
-#     # When amount of players is below the minimum it will still show rank but with a different emote.
-#     if indiv.core_player_count < core_minimum:
-#         if custom_emoji_name:
-#             emote_dict = RANK_EMOTES_CUSTOM_INVALID
-#         else:
-#             emote_dict = RANK_EMOTES_INVALID
-#     else:
-#         if custom_emoji_name:
-#             emote_dict = RANK_EMOTES_CUSTOM
-#         else:
-#             emote_dict = RANK_EMOTES
-
-#     rank = 5
-#     # Ranks 1, 2 and 3.
-#     # if rank in emote_dict:
-#     #     rank_str = emote_dict[rank]
-
-#     # Other ranks
-#     if emboldened:
-#         rank_str = emote_dict["emboldened"]
-#     else:
-#         if MEDAL_TYPE == "avg":
-#             rank_str = emote_dict["average"]
-#             if indiv.success:
-#                 if indiv.duration.seconds < (
-#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
-#                 ):
-#                     rank_str = emote_dict["above_average"]
-#                 elif indiv.duration.seconds > (
-#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
-#                 ):
-#                     rank_str = emote_dict["below_average"]
-#         if MEDAL_TYPE == "percentiles":
-#             inverse_rank = group[::-1].index(indiv)
-#             percentile_rank = (inverse_rank+1)/ len(group) * 100
-#             rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-#             rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
-
-
-# print(rank_str)
-
-# # %%
-# from scipy.stats import percentileofscore
-
-# # Calculate percentile of duration
-# # Rank '0' is better than 100% of logs. We need to invert the groups to say this log is
-# # better than 100% of logs.
-
-# inverse_rank = group[::-1].index(indiv)
-# percentile_rank = inverse_rank / len(group) * 100
-# rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-# RANK_EMOTES_CUSTOM[rank_binned]
-
-# %%

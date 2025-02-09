@@ -123,10 +123,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("bin25_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("bin50_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("bin75_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("bin100_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("percrank{}_samples{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("percrank{}_samples{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("percrank{}_samples{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("percrank{}_samples{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -310,7 +310,8 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
                 inverse_rank = group[::-1].index(indiv)
                 percentile_rank = (inverse_rank + 1) / len(group) * 100
                 rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
+                # Fill percrank and samples
+                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank), len(group))
 
     return rank_str
 
@@ -406,3 +407,6 @@ def create_or_update_discord_message(
         group.discord_message = disc_mess
         group.save()
         logger.info(f"New discord message created: {group.name}")
+
+
+# %%
