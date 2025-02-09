@@ -1,4 +1,5 @@
 from itertools import chain
+from turtle import mode
 
 from django.db import models
 
@@ -63,9 +64,18 @@ class Emoji(models.Model):
 
 class DiscordMessage(models.Model):
     message_id = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+    update_count = models.IntegerField(default=0)
+    name = models.CharField(max_length=256, null=True, blank=True)
+
+    def increase_counter(self):
+        """Adds one to the counter of discord api calls"""
+        self.update_count += 1
+        self.save()
 
     def __str__(self):
-        return f"{self.message_id}"
+        return f"{self.name}"
 
 
 class InstanceGroup(models.Model):
@@ -78,6 +88,7 @@ class InstanceGroup(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+        verbose_name="discord message leaderboard",
     )
 
     def __str__(self):
@@ -109,6 +120,7 @@ class Instance(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+        verbose_name="discord message leaderboard",
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of instance (raid nr)
 
@@ -146,20 +158,14 @@ class Encounter(models.Model):
         on_delete=models.SET_NULL,
     )
     nr = models.IntegerField(null=True, blank=True)  # Nr of boss in instance
-    has_cm = models.BooleanField(null=True, blank=True)
-    has_lcm = models.BooleanField(null=True, blank=True)
-    lb = models.BooleanField(verbose_name="leaderboard", null=True, blank=True)  # Include in leaderboard
-    lb_cm = models.BooleanField(verbose_name="leaderboard cm", null=True, blank=True)  # Include cm in leaderboard
-    lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", null=True, blank=True)  # Include lcm in leaderboard
+    has_cm = models.BooleanField(default=False)
+    has_lcm = models.BooleanField(default=False)
+    lb = models.BooleanField(verbose_name="leaderboard", default=False)  # Include in leaderboard
+    lb_cm = models.BooleanField(verbose_name="leaderboard cm", default=False)  # Include cm in leaderboard
+    lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", default=False)  # Include lcm in leaderboard
 
-    # TODO do we need this?
-    leaderboard_instance_group = models.ForeignKey(
-        InstanceGroup,
-        related_name="encounters",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )  # Use the instance_group to select encounters that need to be bundled
+    # Encounters used to check if week (raid/strike) or day (fractal) was successful
+    use_for_icg_duration = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -179,6 +185,9 @@ class InstanceClearGroup(models.Model):
     type = models.CharField(max_length=10, choices=INSTANCE_TYPES, default="raid")
     start_time = models.DateTimeField(null=True, blank=True)
     duration = models.DurationField(null=True, blank=True)
+    # Encounters included for calculating duration
+    duration_encounters = models.CharField(max_length=300, null=True, blank=True)
+
     success = models.BooleanField(null=True, blank=True, default=False)
     discord_message = models.ForeignKey(
         DiscordMessage,
@@ -187,7 +196,6 @@ class InstanceClearGroup(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    discord_message_id_old = models.BigIntegerField(null=True, blank=True)  # TODO remove
     core_player_count = models.IntegerField(null=True, blank=True)
     friend_player_count = models.IntegerField(null=True, blank=True)
 
@@ -266,7 +274,6 @@ class DpsLog(models.Model):
     url = models.URLField(max_length=100)
     duration = models.DurationField(null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True, unique=True)
-    end_time = models.DateTimeField(null=True, blank=True, unique=True)  # TODO unused
     player_count = models.IntegerField(null=True, blank=True)
     encounter = models.ForeignKey(
         Encounter,
@@ -280,6 +287,7 @@ class DpsLog(models.Model):
     lcm = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
+
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)
     players = models.JSONField(default=list)
@@ -296,6 +304,7 @@ class DpsLog(models.Model):
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
     phasetime_str = models.CharField(max_length=100, null=True, blank=True)  # cerus cm
+    use_in_leaderboard = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.boss_name} {self.start_time}"

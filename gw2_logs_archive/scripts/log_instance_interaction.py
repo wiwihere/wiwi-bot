@@ -125,6 +125,16 @@ class InstanceClearGroupInteraction:
 
         iclear_group, created = InstanceClearGroup.objects.update_or_create(name=name, type=itype_group)
         if created:
+            # Select the encounters used to calculate the success and duration.
+            # This is only done once on creation
+            # creates a string like; "1_1__1_2__1_3__2_1.."
+            encounters = Encounter.objects.filter(
+                use_for_icg_duration=True,
+                instance__instance_group__name=iclear_group.type,
+            )
+            duration_encounters = "__".join([f"{a.instance.nr}_{a.nr}" for a in encounters])
+            iclear_group.duration_encounters = duration_encounters
+            iclear_group.save()
             logger.info(f"Created InstanceClearGroup: {iclear_group}")
 
         # Create individual instance clears
@@ -168,22 +178,43 @@ class InstanceClearGroupInteraction:
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
-                encounter__leaderboard_instance_group__name=self.iclear_group.type,
+                encounter__use_for_icg_duration=True,
+                encounter__instance__instance_group__name=self.iclear_group.type,
+                use_in_leaderboard=True,
             ).order_by("start_time")
             df_logs_duration = pd.DataFrame(
-                week_logs.values_list("encounter", "success", "duration", "start_time", "start_time__day"),
-                columns=["encounter", "success", "duration", "start_time", "start_day"],
+                week_logs.values_list(
+                    "encounter",
+                    "encounter__nr",
+                    "encounter__instance__nr",
+                    "success",
+                    "duration",
+                    "start_time",
+                    "start_time__day",
+                ),
+                columns=["encounter", "encounter_nr", "instance_nr", "success", "duration", "start_time", "start_day"],
+            )
+
+            df_logs_duration["enc_ins_str"] = df_logs_duration.apply(
+                lambda x: f"{x.instance_nr}_{x.encounter_nr}", axis=1
             )
 
             # Drop duplicate successes. Shouldnt happen too much anyway...
             dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
             df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
 
-            if len(df_logs_duration[df_logs_duration["success"]]) == len(
-                Encounter.objects.filter(leaderboard_instance_group__name=self.iclear_group.type)
-            ):
-                # if self.iclear_group.success is False:
-                logger.info(f"Finished {self.iclear_group.type}s for this week!")
+            # Count encounters that are used for leaderboard total with success
+            leaderboard_success_count = sum(
+                df_logs_duration.loc[df_logs_duration["success"], "enc_ins_str"].apply(
+                    lambda x: x in self.iclear_group.duration_encounters
+                )
+            )
+            leaderboard_required_success_count = len(self.iclear_group.duration_encounters.split("__"))
+
+            if leaderboard_success_count == leaderboard_required_success_count:
+                if self.iclear_group.success is False:
+                    logger.info(f"Finished {self.iclear_group.type}s for this week!")
+
                 # Duration is the difference between first and last log for each day.
                 # If there is only one log (e.g. strikes), that duration should be added.
                 time_diff = datetime.timedelta(0)
@@ -295,14 +326,20 @@ class InstanceClearGroupInteraction:
         title = self.iclear_group.pretty_time
         if icg.success:
             # Get rank compared to all cleared instancecleargroups
+            duration_encounters = (
+                InstanceClearGroup.objects.filter(type=icg.type).order_by("start_time").last().duration_encounters
+            )
+
             group = list(
-                InstanceClearGroup.objects.filter(success=True, type=icg.type)
-                .filter(
-                    Q(start_time__gte=icg.start_time - datetime.timedelta(days=9999))
-                    & Q(start_time__lte=icg.start_time)
+                InstanceClearGroup.objects.filter(
+                    success=True,
+                    duration_encounters=duration_encounters,
+                    type=icg.type,
                 )
+                .exclude(name__icontains="cm__")
                 .order_by("duration")
             )
+
             rank_str = get_rank_emote(
                 indiv=icg,
                 group=group,
@@ -408,6 +445,7 @@ class InstanceClearGroupInteraction:
                     indiv=log,
                     group=encounter_success_all,
                     core_minimum=settings.CORE_MINIMUM[log.encounter.instance.instance_group.name],
+                    custom_emoji_name=False,
                 )
 
                 # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
@@ -549,10 +587,12 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2024, 6, 13
+    y, m, d = 2025, 2, 6
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+
+    self = icgi = InstanceClearGroupInteraction.from_name("raids__20250206")
     if icgi is not None:
         # Set the same discord message id when strikes and raids are combined.
         if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (icgi.iclear_group.type in ["raid", "strike"]):
@@ -589,87 +629,3 @@ if __name__ == "__main__":
             hook=WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )
-
-
-# # %%
-# from log_helpers import RANK_EMOTES, RANK_EMOTES_CUSTOM, RANK_EMOTES_CUSTOM_INVALID, RANK_EMOTES_INVALID
-
-# # from gw2_logs.models import DpsLog
-# log = DpsLog.objects.get(url='https://dps.report/s5ZG-20240216-192127_skor')
-
-# encounter_success_all = list(
-#     log.encounter.dps_logs.filter(success=True, cm=log.cm, emboldened=False)
-#     .filter(Q(start_time__gte=log.start_time - datetime.timedelta(days=9999)) & Q(start_time__lte=log.start_time))
-#     .order_by("duration")
-# )
-
-# indiv = log
-# group = encounter_success_all
-# core_minimum = settings.CORE_MINIMUM[log.encounter.instance.instance_group.name]
-# custom_emoji_name = False
-
-# MEDAL_TYPE = "percentiles"
-# if True:
-#     emboldened = False
-#     if hasattr(indiv, "emboldened"):
-#         emboldened = indiv.emboldened
-
-#     if indiv.success and not emboldened:
-#         rank = group.index(indiv)
-#     else:
-#         rank = None
-
-#     # When amount of players is below the minimum it will still show rank but with a different emote.
-#     if indiv.core_player_count < core_minimum:
-#         if custom_emoji_name:
-#             emote_dict = RANK_EMOTES_CUSTOM_INVALID
-#         else:
-#             emote_dict = RANK_EMOTES_INVALID
-#     else:
-#         if custom_emoji_name:
-#             emote_dict = RANK_EMOTES_CUSTOM
-#         else:
-#             emote_dict = RANK_EMOTES
-
-#     rank = 5
-#     # Ranks 1, 2 and 3.
-#     # if rank in emote_dict:
-#     #     rank_str = emote_dict[rank]
-
-#     # Other ranks
-#     if emboldened:
-#         rank_str = emote_dict["emboldened"]
-#     else:
-#         if MEDAL_TYPE == "avg":
-#             rank_str = emote_dict["average"]
-#             if indiv.success:
-#                 if indiv.duration.seconds < (
-#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
-#                 ):
-#                     rank_str = emote_dict["above_average"]
-#                 elif indiv.duration.seconds > (
-#                     getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
-#                 ):
-#                     rank_str = emote_dict["below_average"]
-#         if MEDAL_TYPE == "percentiles":
-#             inverse_rank = group[::-1].index(indiv)
-#             percentile_rank = (inverse_rank+1)/ len(group) * 100
-#             rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-#             rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
-
-
-# print(rank_str)
-
-# # %%
-# from scipy.stats import percentileofscore
-
-# # Calculate percentile of duration
-# # Rank '0' is better than 100% of logs. We need to invert the groups to say this log is
-# # better than 100% of logs.
-
-# inverse_rank = group[::-1].index(indiv)
-# percentile_rank = inverse_rank / len(group) * 100
-# rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-# RANK_EMOTES_CUSTOM[rank_binned]
-
-# %%

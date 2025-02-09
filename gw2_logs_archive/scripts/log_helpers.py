@@ -7,6 +7,7 @@ import os
 import time
 from dataclasses import dataclass
 from itertools import chain
+from typing import Union
 
 if __name__ == "__main__":
     from _setup_django import init_django
@@ -22,7 +23,7 @@ import pytz
 from discord import SyncWebhook
 from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, InstanceGroup
+from gw2_logs.models import DiscordMessage, DpsLog, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)
@@ -122,10 +123,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("bin25_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("bin50_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("bin75_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("bin100_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("percrank{}_samples{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("percrank{}_samples{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("percrank{}_samples{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("percrank{}_samples{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -309,7 +310,8 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
                 inverse_rank = group[::-1].index(indiv)
                 percentile_rank = (inverse_rank + 1) / len(group) * 100
                 rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank))
+                # Fill percrank and samples
+                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank), len(group))
 
     return rank_str
 
@@ -367,7 +369,9 @@ def get_avg_duration_str(group):
     return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
 
 
-def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSING):
+def create_or_update_discord_message(
+    group: Union[Instance, InstanceGroup, InstanceClearGroup], hook, embeds_mes: list, thread=MISSING
+):
     """Send message to discord
 
     group: instance_group or iclear_group
@@ -385,11 +389,24 @@ def create_or_update_discord_message(group, hook, embeds_mes: list, thread=MISSI
             embeds=embeds_mes,
             thread=thread,
         )
+        group.discord_message.increase_counter()
         logger.info(f"Updating discord message: {group.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
-        disc_mess = DiscordMessage.objects.create(message_id=mess.id)
+
+        if isinstance(group, Instance):
+            name = f"leaderboard_{group.instance_group.name}{group.nr}"
+        elif isinstance(group, InstanceGroup):
+            name = f"leaderboard_{group.name}_all"
+        elif isinstance(group, InstanceClearGroup):
+            name = group.name
+
+        disc_mess = DiscordMessage.objects.create(message_id=mess.id, name=name)
+        disc_mess.increase_counter()
         group.discord_message = disc_mess
         group.save()
         logger.info(f"New discord message created: {group.name}")
+
+
+# %%
