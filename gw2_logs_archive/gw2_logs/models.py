@@ -164,14 +164,6 @@ class Encounter(models.Model):
     lb_cm = models.BooleanField(verbose_name="leaderboard cm", default=False)  # Include cm in leaderboard
     lb_lcm = models.BooleanField(verbose_name="leaderboard lcm", default=False)  # Include lcm in leaderboard
 
-    # "raid", "strike", "fractal", etc
-    # leaderboard_instance_group = models.ForeignKey(  # TODO remove this one.
-    #     InstanceGroup,
-    #     related_name="encounters",
-    #     null=True,
-    #     blank=True,
-    #     on_delete=models.SET_NULL,
-    # )  # Use the instance_group to select encounters that need to be bundled
     # Encounters used to check if week (raid/strike) or day (fractal) was successful
     use_for_icg_duration = models.BooleanField(default=False)
 
@@ -295,13 +287,7 @@ class DpsLog(models.Model):
     lcm = models.BooleanField(null=True, blank=True)
     emboldened = models.BooleanField(null=True, blank=True)  # detailed info
     success = models.BooleanField(null=True, blank=True)
-    # final_health_percentage = models.DecimalField(
-    #     null=True,
-    #     blank=True,
-    #     decimal_places=2,
-    #     max_digits=5,
-    # )
-    # detailed info
+
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)
     players = models.JSONField(default=list)
