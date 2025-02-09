@@ -123,10 +123,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("percrank{}_samples{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("percrank{}_samples{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("percrank{}_samples{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("percrank{}_samples{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -156,9 +156,9 @@ RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
 RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
 RANK_EMOTES_CUPS = {
-    0: Emoji.objects.get(name="trophy_gold").discord_tag(),
-    1: Emoji.objects.get(name="trophy_silver").discord_tag(),
-    2: Emoji.objects.get(name="trophy_bronze").discord_tag(),
+    1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("rank{}_tot{}"),
+    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("rank{}_tot{}"),
+    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("rank{}_tot{}"),
 }
 
 
@@ -269,11 +269,6 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     if hasattr(indiv, "emboldened"):
         emboldened = indiv.emboldened
 
-    if indiv.success and not emboldened:
-        rank = group.index(indiv)
-    else:
-        rank = None
-
     # When amount of players is below the minimum it will still show rank but with a different emote.
     if indiv.core_player_count < core_minimum:
         if custom_emoji_name:
@@ -289,29 +284,33 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     # Other ranks
     if emboldened:
         rank_str = emote_dict["emboldened"]
-    # Ranks 1, 2 and 3.
-    elif rank in [0, 1, 2]:
-        rank_str = RANK_EMOTES_CUPS[rank]
+    elif not indiv.success:
+        rank_str = emote_dict["average"]  # dault rank string
+    elif indiv.success:
+        rank = group.index(indiv) + 1
 
-    else:
-        rank_str = emote_dict["average"]
-        if indiv.success:
-            if settings.MEDALS_TYPE == "original":
-                if indiv.duration.seconds < (
-                    getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
-                ):
-                    rank_str = emote_dict["above_average"]
-                elif indiv.duration.seconds > (
-                    getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
-                ):
-                    rank_str = emote_dict["below_average"]
+        # Top 3
+        if rank in [1, 2, 3]:
+            rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group))
 
-            else:
-                inverse_rank = group[::-1].index(indiv)
-                percentile_rank = (inverse_rank + 1) / len(group) * 100
-                rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
-                # Fill percrank and samples
-                rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank), len(group))
+        else:
+            if indiv.success:
+                if settings.MEDALS_TYPE == "original":
+                    if indiv.duration.seconds < (
+                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+                    ):
+                        rank_str = emote_dict["above_average"]
+                    elif indiv.duration.seconds > (
+                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+                    ):
+                        rank_str = emote_dict["below_average"]
+
+                else:
+                    inverse_rank = group[::-1].index(indiv)
+                    percentile_rank = (inverse_rank + 1) / len(group) * 100
+                    rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
+                    # Fill percrank and samples
+                    rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank), rank, len(group))
 
     return rank_str
 
