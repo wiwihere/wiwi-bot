@@ -32,7 +32,7 @@ from scripts.log_helpers import (
 logger = logging.getLogger(__name__)
 # TODO remove ITYPE_GROUPS
 if __name__ == "__main__":
-    itype = "strike"
+    itype = "raid"
     min_core_count = 0  # select all logs when including non core
 
 
@@ -47,7 +47,7 @@ def create_leaderboard(itype: str):
 
     # Instance leaderboards (wings/ strikes/ fractal scales)
     instances = Instance.objects.filter(instance_group__name=itype).order_by("nr")
-    for idx_instance, instance in enumerate(instances):
+    for instance in instances:
         # INSTANCE LEADERBOARDS
         # ----------------
         # Find wing clear times
@@ -57,10 +57,10 @@ def create_leaderboard(itype: str):
                 emboldened=False,
                 core_player_count__gte=min_core_count,
             )
-            .filter(
-                Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-                & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
-            )
+            # .filter(
+            #     Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
+            #     & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+            # )
             .order_by("duration")
         )
 
@@ -111,10 +111,10 @@ def create_leaderboard(itype: str):
                         lcm=lcm,
                         core_player_count__gte=min_core_count,
                     )
-                    .filter(
-                        Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=9999))
-                        & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
-                    )
+                    # .filter(
+                    #     Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=9999))
+                    #     & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
+                    # )
                     .order_by("duration")
                 )
 
