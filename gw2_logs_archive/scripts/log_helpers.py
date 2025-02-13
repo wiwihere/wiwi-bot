@@ -307,7 +307,7 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
 
                 else:
                     inverse_rank = group[::-1].index(indiv)
-                    percentile_rank = (inverse_rank + 1) / len(group) * 100
+                    percentile_rank = (inverse_rank) / len(group) * 100
                     rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
                     # Fill percrank and samples
                     rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(
