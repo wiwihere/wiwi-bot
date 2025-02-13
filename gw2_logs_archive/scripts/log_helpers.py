@@ -123,10 +123,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("crank{}_rnk{}_tot{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("r{}_of{}_percrank{}"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("r{}_of{}_percrank{}"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("r{}_of{}_percrank{}"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("r{}_of{}_percrank{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -156,9 +156,9 @@ RANK_EMOTES_CUSTOM = rank_func(custom_emoji_name=True, invalid=False)
 RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
 RANK_EMOTES_CUPS = {
-    1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("rank{}_tot{}"),
-    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("rank{}_tot{}"),
-    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("rank{}_tot{}"),
+    1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("r{}_of{}"),
+    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("r{}_of{}"),
+    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r{}_of{}"),
 }
 
 
@@ -310,7 +310,11 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
                     percentile_rank = (inverse_rank + 1) / len(group) * 100
                     rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
                     # Fill percrank and samples
-                    rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(int(percentile_rank), rank, len(group))
+                    rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(
+                        rank,
+                        len(group),
+                        int(percentile_rank),
+                    )
 
     return rank_str
 
