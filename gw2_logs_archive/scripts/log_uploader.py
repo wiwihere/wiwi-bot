@@ -415,7 +415,6 @@ class DpsLogInteraction:
 
         # Check if log was uploaded before by someone else. Start time can be couple seconds off,
         # so we need to filter a timerange.
-        start_time = datetime.datetime.strptime("2025-02-03 20:22:16", "%Y-%m-%d %H:%M:%S")
         dpslog = DpsLog.objects.filter(
             start_time__range=(
                 start_time - datetime.timedelta(seconds=5),
