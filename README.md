@@ -13,27 +13,29 @@ Apart from uploading the logs to dps.report, they will be processed locally firs
 ![Raid message](img/raid_message.png)
 ![Fractal message](img/fractal_message.png)
 
-(**4:41**) cleartime of the encounter\
-_+1:07_ Time between the end of the previous kill run and the start of the current kill run. If its the first log in the session it will be 0:00, unless there is a fail log. \
-<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
+(**5:43**) cleartime of the encounter\
+_+1:17_ Time between the end of the previous kill run and the start of the current kill run. If its the first log in the session it will be 0:00, unless there is a fail log. \
+<img src="gw2_logs_archive/img/medal/trophy_gold.png" width="20"/> Throphies and medals indicate position on leaderboard, comparing the speed of that run with all historic runs.\
 <img src="gw2_logs_archive/img/medal/first_invalid.png" width="20"/> Invalid medals mean that there were more pugs than allowed (check settings).\
-<img src="gw2_logs_archive/img/medal/below_average.png" alt="below average" width="20"/> 5s slower than average\
+<img src="gw2_logs_archive/img/medal/red_line_medal.png" alt="below average" width="20"/> 25th to 50th percentile. Slower than 50% of the runs, but faster than 75% of the runs.\
 <img src="gw2_logs_archive/img/medal/above_average.png" alt="above average" width="20"/> 5s faster than average, but not in top 3\
 <img src="gw2_logs_archive/img/wipe_50.png" alt="wipe_50%" width="20"/> Wipe, red indicates how much health left. More red = lower boss health. Hover to see remaining health percentage.\
 <img src="img/click_wipe.png" alt="click_wipe%" width=""/>\
 Clicking the skull icon will also open the log of that run. Does sadly not work on phone.\
 <img src="gw2_logs_archive/img/core.gif" width="20"/> Amount of core members in the run.\
 <img src="gw2_logs_archive/img/pug.gif" width="20"/> Amount of pugs in the run.\
-<img src="gw2_logs_archive/img/medal/below_average.png" width="20"/>**2:47:15**<img src="gw2_logs_archive/img/medal/below_average.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
+<img src="gw2_logs_archive/img/medal/red_line_medal.png" width="20"/>**3:12:34**<img src="gw2_logs_archive/img/medal/red_line_medal.png" width="20"/> Total runtime of combined runs. Only shows when all* encounters have been successfully killed. For raids and strikes the whole week is checked. Fractals need to be cleared on the same day. For each day the total time between the first and last log is taken.\
 _*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
-<img src="gw2_logs_archive/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.
+<img src="gw2_logs_archive/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.\
+<img src="img/medal_popup_rank.png" width=""/> When hovering medals it will show the rank and total encounters 
+that were used in calculating the medal.
 
 
 ### Leaderboards
 <img src="img/leaderboard_message.png" width=""/>\
-<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Click the medal to go to the dps report.\
-<img src="gw2_logs_archive/img/medal/first.png" width="20"/> Hover the medal if there is not a log to see the date
-of the run.
+<img src="gw2_logs_archive/img/medal/trophy_gold.png" width="20"/> Click the trophy to go to the dps report.\
+<img src="gw2_logs_archive/img/medal/trophy_gold.png" width="20"/> Hover the medal to see amount of logs available for that medal.\
+
 
 
 ### Cerus Legendary CM
@@ -82,7 +84,9 @@ A couple tokens and keys need to be set so the results can be posted to discord.
     - .env\MEAN_OR_MEDIAN -> [mean or median] Choose what unranked runs are compared with, the median or mean of all runs.
     - .env\MEDALS_TYPE -> Choose which medals are used. options are ['original', 'percentile', 'newgame']
 
-2. In discord we have 3 channels running. Create a webhook for each and copy the webhook URL into the env. 
+2. In discord we have 4 channels running. The `raid-logs-current` channel is optional ([more info](#adding-channel-with-only-the-current-week)).
+Create a webhook for each you want and copy the webhook URL into the env. Under the corresponding
+`.env\WEBHOOK_BOT_CHANNEL_RAID`, `STRIKE` or `FRACTAL` variable.
 
     ![discord_channels](img/discord_channel.png)\
     Make sure to tick the option:\
@@ -160,3 +164,32 @@ the desired group. For each encounter you want to add or remove.
 ![message_total_cleartime](img/message_total_cleartime.png)
 
 ![alt select_instance_group](img/select_instance_group.png)
+
+
+#### Adding channel with only the current week
+It is possible to create a separate channel that will only show the logs from the current week.
+This can be useful if the raid-logs channel is getting very slow to load. Discord seems to load about 100 message
+and there are quite a few emotes in each message.
+
+The archive channels holds all logs and will always be updated. The current week channel will only show
+the logs for the current week.
+
+In the `.env` set the variable `WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK` and  `WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK`
+to the webhook url of the channel. When raids and strikes are combined. Fill both with the same value.
+
+
+#### Database connection to external server
+To add a connection to a database server on or outside of the local machine, you can use a connection string.
+Place this in `data/local_settings.py`. We are running a postgresql server. 
+```
+DATABASES = {
+    "default": {
+        "NAME": "",
+        "ENGINE": "django.db.backends.postgresql",
+        "USER": "",
+        "PASSWORD": "",
+        "HOST": "",  # empty string for localhost.
+        "PORT": "",  # empty string for default.
+    },
+}
+```

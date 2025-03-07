@@ -16,6 +16,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 from gw2_logs.models import (
+    DiscordMessage,
     DpsLog,
     Encounter,
     Instance,
@@ -26,10 +27,10 @@ from scripts.log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
     PLAYER_EMOTES,
-    WEBHOOKS,
     WIPE_EMOTES,
     create_discord_time,
     create_or_update_discord_message,
+    create_or_update_discord_message_current_week,
     get_duration_str,
     get_rank_emote,
     zfill_y_m_d,
@@ -160,6 +161,17 @@ class InstanceClearGroupInteraction:
     def icg_iclears_all(self):
         return self.iclear_group.instance_clears.all().order_by("start_time")
 
+    def get_week_clears(self):
+        week_start = self.iclear_group.start_time - datetime.timedelta(
+            days=self.iclear_group.start_time.weekday()
+        )  # days are correct, but not hours and mins.
+        week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
+
+        week_clears = InstanceClearGroup.objects.filter(type=self.iclear_group.type).filter(
+            Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
+        )
+        return week_clears
+
     def get_total_clear_duration(self):
         """Get the total duration for raids and fractals
         Duration is saved in the iclear_group.
@@ -167,14 +179,7 @@ class InstanceClearGroupInteraction:
 
         # For raids and strikes we need to check multiple clears since they may not be done in one session.
         if self.iclear_group.type in ["raid", "strike"]:
-            week_start = self.iclear_group.start_time - datetime.timedelta(
-                days=self.iclear_group.start_time.weekday()
-            )  # days are correct, but not hours and mins.
-            week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
-
-            week_clears = InstanceClearGroup.objects.filter(type=self.iclear_group.type).filter(
-                Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
-            )
+            week_clears = self.get_week_clears()
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
@@ -510,9 +515,17 @@ class InstanceClearGroupInteraction:
         # Create/update the message
         create_or_update_discord_message(
             group=self.iclear_group,
-            hook=WEBHOOKS[self.iclear_group.type],
+            hook=settings.WEBHOOKS[self.iclear_group.type],
             embeds_mes=embeds_mes,
         )
+
+        # Create/update message in the fast channel.
+        if settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type] is not None:
+            create_or_update_discord_message_current_week(
+                group=self.iclear_group,
+                hook=settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type],
+                embeds_mes=embeds_mes,
+            )
 
 
 def create_embeds(titles, descriptions):
@@ -626,6 +639,6 @@ if __name__ == "__main__":
 
         create_or_update_discord_message(
             group=icgi.iclear_group,
-            hook=WEBHOOKS[icgi.iclear_group.type],
+            hook=settings.WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )

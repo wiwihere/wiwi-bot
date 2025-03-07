@@ -7,7 +7,7 @@ import os
 import time
 from dataclasses import dataclass
 from itertools import chain
-from typing import Union
+from typing import Optional, Union
 
 if __name__ == "__main__":
     from _setup_django import init_django
@@ -373,7 +373,10 @@ def get_avg_duration_str(group):
 
 
 def create_or_update_discord_message(
-    group: Union[Instance, InstanceGroup, InstanceClearGroup], hook, embeds_mes: list, thread=MISSING
+    group: Union[Instance, InstanceGroup, InstanceClearGroup],
+    hook,
+    embeds_mes: list,
+    thread=MISSING,
 ):
     """Send message to discord
 
@@ -381,19 +384,25 @@ def create_or_update_discord_message(
     hook: log_helper.WEBHOOK[itype]
     embeds_mes: [Embed, Embed]
     thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    discord_message:
+        When none, read from the group. Provided to update a current message
+        for instance, when updating the FAST channel.
     """
 
     webhook = SyncWebhook.from_url(hook)
 
     # Try to update message. If message cant be found, create a new message instead.
     try:
+        discord_message = group.discord_message
+
         webhook.edit_message(
-            message_id=group.discord_message.message_id,
+            message_id=discord_message.message_id,
             embeds=embeds_mes,
             thread=thread,
         )
-        group.discord_message.increase_counter()
-        logger.info(f"Updating discord message: {group.name}")
+
+        discord_message.increase_counter()
+        logger.info(f"Updating discord message: {discord_message.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
@@ -405,11 +414,79 @@ def create_or_update_discord_message(
         elif isinstance(group, InstanceClearGroup):
             name = group.name
 
-        disc_mess = DiscordMessage.objects.create(message_id=mess.id, name=name)
-        disc_mess.increase_counter()
-        group.discord_message = disc_mess
+        discord_message = DiscordMessage.objects.create(message_id=mess.id, name=name)
+        discord_message.increase_counter()
+        group.discord_message = discord_message
         group.save()
-        logger.info(f"New discord message created: {group.name}")
+        logger.info(f"New discord message created: {discord_message.name}")
+
+
+def create_or_update_discord_message_current_week(
+    group,
+    hook,
+    embeds_mes: list,
+    thread=MISSING,
+    discord_message: Optional[DiscordMessage] = None,
+):
+    """Send message to discord. This will update or create the message in the current
+    week channel. This channel only holds logs for the current week.
+
+    Parameters
+    ----------
+    group: iclear_group
+    hook: log_helper.WEBHOOK[itype]
+    embeds_mes: [Embed, Embed]
+    thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    discord_message:
+        When none, read from the group. Provided to update a current message
+        for instance, when updating the FAST channel.
+    """
+
+    weekdate = int(f"{group.start_time.strftime('%Y%V')}")  # e.g. 202510 -> year2025, week10
+    weekdate_current = int(f"{datetime.date.today().strftime('%Y%V')}")
+
+    # Only update current week.
+    if weekdate == weekdate_current:
+        # Remove old messages from previous weeks from the channel
+        dms = DiscordMessage.objects.filter(weekdate__lt=weekdate_current)
+        for dm in dms:
+            if dm.message_id is not None:
+                logger.info(f"Removing discord message {dm.message_id} from date {dm.weekdate}")
+                webhook = SyncWebhook.from_url(settings.WEBHOOKS_CURRENT_WEEK[group.type])
+                webhook.delete_message(dm.message_id)
+                dm.message_id = None
+                dm.weekdate = None
+                dm.save()
+
+        # Update the message weekdate
+        day_str = group.start_time.strftime("%a")
+        message_name = f"current_week_message_{day_str}"
+        discord_message, created = DiscordMessage.objects.get_or_create(name=message_name)
+        if discord_message.weekdate is None:
+            discord_message.weekdate = weekdate
+            discord_message.save()
+
+        webhook = SyncWebhook.from_url(hook)
+
+        # Try to update message. If message cant be found, create a new message instead.
+        try:
+            webhook.edit_message(
+                message_id=discord_message.message_id,
+                embeds=embeds_mes,
+                thread=thread,
+            )
+
+            discord_message.increase_counter()
+            logger.info(f"Updating discord message: {discord_message.name}")
+
+        except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
+            mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+
+            discord_message.message_id = mess.id
+            discord_message.increase_counter()
+            discord_message.save()
+
+            logger.info(f"New discord message created: {discord_message.name}")
 
 
 # %%
