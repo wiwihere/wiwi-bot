@@ -68,6 +68,7 @@ class DiscordMessage(models.Model):
     updated_at = models.DateTimeField(auto_now=True, editable=False)
     update_count = models.IntegerField(default=0)
     name = models.CharField(max_length=256, null=True, blank=True)
+    weekdate = models.IntegerField(null=True, blank=True)
 
     def increase_counter(self):
         """Adds one to the counter of discord api calls"""

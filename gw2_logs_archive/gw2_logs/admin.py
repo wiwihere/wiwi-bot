@@ -251,7 +251,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
 @admin.register(models.DiscordMessage)
 class DiscordMessage(admin.ModelAdmin):
-    list_display = ("id", "message_id", "name", "linked_count", "created_at", "updated_at", "update_count")
+    list_display = ("id", "message_id", "name", "weekdate", "linked_count", "created_at", "updated_at", "update_count")
     inlines = [InstanceClearGroupInline, InstanceInline, InstanceGroupInline]
 
     readonly_fields = ("created_at", "updated_at")

@@ -377,7 +377,6 @@ def create_or_update_discord_message(
     hook,
     embeds_mes: list,
     thread=MISSING,
-    discord_message: Optional[DiscordMessage] = None,
 ):
     """Send message to discord
 
@@ -394,8 +393,7 @@ def create_or_update_discord_message(
 
     # Try to update message. If message cant be found, create a new message instead.
     try:
-        if discord_message is None:
-            discord_message = group.discord_message
+        discord_message = group.discord_message
 
         webhook.edit_message(
             message_id=discord_message.message_id,
@@ -421,6 +419,52 @@ def create_or_update_discord_message(
         group.discord_message = discord_message
         group.save()
         logger.info(f"New discord message created: {discord_message.name}")
+
+
+def create_or_update_discord_fast_message(
+    hook,
+    embeds_mes: list,
+    thread=MISSING,
+    discord_message: Optional[DiscordMessage] = None,
+):
+    """Send message to discord
+
+    group: instance_group or iclear_group
+    hook: log_helper.WEBHOOK[itype]
+    embeds_mes: [Embed, Embed]
+    thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    discord_message:
+        When none, read from the group. Provided to update a current message
+        for instance, when updating the FAST channel.
+    """
+
+    webhook = SyncWebhook.from_url(hook)
+
+    # Try to update message. If message cant be found, create a new message instead.
+    try:
+        webhook.edit_message(
+            message_id=discord_message.message_id,
+            embeds=embeds_mes,
+            thread=thread,
+        )
+
+        discord_message.increase_counter()
+        logger.info(f"Updating discord message: {discord_message.name}")
+
+    except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
+        mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+
+        discord_message.message_id = mess.id
+        discord_message.increase_counter()
+        discord_message.save()
+
+        logger.info(f"New discord message created: {discord_message.name}")
+
+
+def clear_fast_raid_logs(hook):
+    """Removes old messages from  the fast raid logs channel"""
+
+    webhook = SyncWebhook.from_url(hook)
 
 
 # %%

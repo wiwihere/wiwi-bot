@@ -29,6 +29,7 @@ from scripts.log_helpers import (
     PLAYER_EMOTES,
     WIPE_EMOTES,
     create_discord_time,
+    create_or_update_discord_fast_message,
     create_or_update_discord_message,
     get_duration_str,
     get_rank_emote,
@@ -160,6 +161,17 @@ class InstanceClearGroupInteraction:
     def icg_iclears_all(self):
         return self.iclear_group.instance_clears.all().order_by("start_time")
 
+    def get_week_clears(self):
+        week_start = self.iclear_group.start_time - datetime.timedelta(
+            days=self.iclear_group.start_time.weekday()
+        )  # days are correct, but not hours and mins.
+        week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
+
+        week_clears = InstanceClearGroup.objects.filter(type=self.iclear_group.type).filter(
+            Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
+        )
+        return week_clears
+
     def get_total_clear_duration(self):
         """Get the total duration for raids and fractals
         Duration is saved in the iclear_group.
@@ -167,14 +179,7 @@ class InstanceClearGroupInteraction:
 
         # For raids and strikes we need to check multiple clears since they may not be done in one session.
         if self.iclear_group.type in ["raid", "strike"]:
-            week_start = self.iclear_group.start_time - datetime.timedelta(
-                days=self.iclear_group.start_time.weekday()
-            )  # days are correct, but not hours and mins.
-            week_start = week_start.replace(hour=8, minute=30, second=0, microsecond=0)  # Raid reset time.
-
-            week_clears = InstanceClearGroup.objects.filter(type=self.iclear_group.type).filter(
-                Q(start_time__gte=week_start) & Q(start_time__lte=self.iclear_group.start_time)
-            )
+            week_clears = self.get_week_clears()
 
             week_logs = DpsLog.objects.filter(
                 id__in=[j.id for i in week_clears for j in i.dps_logs_all],
@@ -514,16 +519,35 @@ class InstanceClearGroupInteraction:
             embeds_mes=embeds_mes,
         )
 
+        # Create/update message in the fast channel.
         if settings.WEBHOOKS_FAST[self.iclear_group.type] is not None:
-            message_name = f"FAST_{self.iclear_group.type}_message_1"
-            discord_message = DiscordMessage.objects.get(name=message_name)
+            weekdate = int(f"{self.iclear_group.start_time.strftime('%Y%V')}")
+            weekdate_current = int(f"{datetime.date.today().strftime('%Y%V')}")
 
-            create_or_update_discord_message(
-                group=self.iclear_group,
-                hook=settings.WEBHOOKS_FAST[self.iclear_group.type],
-                embeds_mes=embeds_mes,
-                discord_message=discord_message,
-            )
+            # Only update current week.
+            if weekdate == weekdate_current:
+                dms = DiscordMessage.objects.filter(weekdate__lt=weekdate_current)
+                from discord import SyncWebhook
+
+                for dm in dms:
+                    if dm.message_id is not None:
+                        logger.info(f"Removing discord message {dm.message_id} from date {dm.weekdate}")
+                        webhook = SyncWebhook.from_url(settings.WEBHOOKS_FAST[self.iclear_group.type])
+                        webhook.delete_message(dm.message_id)
+                        dm.message_id = None
+                        dm.save()
+
+                day_str = self.iclear_group.start_time.strftime("%a")
+                message_name = f"FAST_message_{day_str}"
+                discord_message, created = DiscordMessage.objects.get_or_create(name=message_name)
+                discord_message.weekdate = weekdate
+                discord_message.save()
+
+                create_or_update_discord_fast_message(
+                    hook=settings.WEBHOOKS_FAST[self.iclear_group.type],
+                    embeds_mes=embeds_mes,
+                    discord_message=discord_message,
+                )
 
 
 def create_embeds(titles, descriptions):

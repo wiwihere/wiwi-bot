@@ -53,9 +53,8 @@ WEBHOOKS = {
 WEBHOOKS_FAST = {
     "raid": get_env("WEBHOOK_BOT_CHANNEL_RAID_FAST"),
     "strike": get_env("WEBHOOK_BOT_CHANNEL_STRIKE_FAST"),
-    "fractal": get_env("WEBHOOK_BOT_CHANNEL_FRACTAL_FAST"),
+    "fractal": None,  # Not used
 }
-FAST_MESSAGE_COUNT = get_env("FAST_MESSAGE_COUNT")  # Unique messages in fast discord channel
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
     "raid": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_RAIDS"),

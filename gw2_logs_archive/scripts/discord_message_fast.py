@@ -17,6 +17,8 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
+import datetime
+
 from gw2_logs.models import (
     DiscordMessage,
     DpsLog,
@@ -62,7 +64,7 @@ i = 1
 for itype_group in ITYPE_GROUPS:
     message_name = f"FAST_{itype_group}_message_{i}"
 
-    if len(settings.WEBHOOKS_FAST[itype_group]) > 20:
+    if settings.WEBHOOKS_FAST[itype_group] is not None:
         try:
             if (itype_group == "strike") and (ITYPE_GROUPS["strike"] == ITYPE_GROUPS["raid"]):
                 message_name2 = f"FAST_raid_message_{i}"
@@ -75,6 +77,8 @@ for itype_group in ITYPE_GROUPS:
                     disc_mess.message_id
 
                     disc_mess2 = DiscordMessage.objects.create(message_id=disc_mess.message_id, name=message_name)
+            else:
+                disc_mess = DiscordMessage.objects.get(name=message_name)
 
         except DiscordMessage.DoesNotExist:
             logger.info(f"Creating new fast message {message_name}")
@@ -83,3 +87,5 @@ for itype_group in ITYPE_GROUPS:
 
             disc_mess = DiscordMessage.objects.create(message_id=mess.id, name=message_name)
             disc_mess.increase_counter()
+
+    datetime.date.today().strftime("%a")
