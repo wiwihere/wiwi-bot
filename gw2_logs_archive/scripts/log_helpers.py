@@ -404,7 +404,7 @@ def create_or_update_discord_message(
         )
 
         discord_message.increase_counter()
-        logger.info(f"Updating discord message: {group.name}")
+        logger.info(f"Updating discord message: {discord_message.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
         mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
@@ -416,11 +416,11 @@ def create_or_update_discord_message(
         elif isinstance(group, InstanceClearGroup):
             name = group.name
 
-        disc_mess = DiscordMessage.objects.create(message_id=mess.id, name=name)
-        disc_mess.increase_counter()
-        group.discord_message = disc_mess
+        discord_message = DiscordMessage.objects.create(message_id=mess.id, name=name)
+        discord_message.increase_counter()
+        group.discord_message = discord_message
         group.save()
-        logger.info(f"New discord message created: {group.name}")
+        logger.info(f"New discord message created: {discord_message.name}")
 
 
 # %%
