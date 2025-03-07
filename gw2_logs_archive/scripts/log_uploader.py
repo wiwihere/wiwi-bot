@@ -384,6 +384,9 @@ class DpsLogInteraction:
             json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
             dpslog = cls.from_detailed_logs(log_path, json_detailed)
 
+            if dpslog is False:
+                return False
+
         return cls(dpslog=dpslog)
 
     @classmethod
@@ -403,6 +406,7 @@ class DpsLogInteraction:
 
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
             move_failed_upload(log_path)
+            return False
 
         if encounter.name == "Temple of Febe":
             phasetime_str = cls._get_phasetime_str(json_detailed=json_detailed)
