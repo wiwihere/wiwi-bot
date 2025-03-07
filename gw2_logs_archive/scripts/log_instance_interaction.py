@@ -16,6 +16,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 from gw2_logs.models import (
+    DiscordMessage,
     DpsLog,
     Encounter,
     Instance,
@@ -26,7 +27,6 @@ from scripts.log_helpers import (
     EMBED_COLOR,
     ITYPE_GROUPS,
     PLAYER_EMOTES,
-    WEBHOOKS,
     WIPE_EMOTES,
     create_discord_time,
     create_or_update_discord_message,
@@ -510,9 +510,20 @@ class InstanceClearGroupInteraction:
         # Create/update the message
         create_or_update_discord_message(
             group=self.iclear_group,
-            hook=WEBHOOKS[self.iclear_group.type],
+            hook=settings.WEBHOOKS[self.iclear_group.type],
             embeds_mes=embeds_mes,
         )
+
+        if settings.WEBHOOKS_FAST[self.iclear_group.type] is not None:
+            message_name = f"FAST_{self.iclear_group.type}_message_1"
+            discord_message = DiscordMessage.objects.get(name=message_name)
+
+            create_or_update_discord_message(
+                group=self.iclear_group,
+                hook=settings.WEBHOOKS_FAST[self.iclear_group.type],
+                embeds_mes=embeds_mes,
+                discord_message=discord_message,
+            )
 
 
 def create_embeds(titles, descriptions):
@@ -626,6 +637,6 @@ if __name__ == "__main__":
 
         create_or_update_discord_message(
             group=icgi.iclear_group,
-            hook=WEBHOOKS[icgi.iclear_group.type],
+            hook=settings.WEBHOOKS[icgi.iclear_group.type],
             embeds_mes=embeds_mes,
         )

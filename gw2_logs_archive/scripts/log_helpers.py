@@ -7,7 +7,7 @@ import os
 import time
 from dataclasses import dataclass
 from itertools import chain
-from typing import Union
+from typing import Optional, Union
 
 if __name__ == "__main__":
     from _setup_django import init_django
@@ -373,7 +373,11 @@ def get_avg_duration_str(group):
 
 
 def create_or_update_discord_message(
-    group: Union[Instance, InstanceGroup, InstanceClearGroup], hook, embeds_mes: list, thread=MISSING
+    group: Union[Instance, InstanceGroup, InstanceClearGroup],
+    hook,
+    embeds_mes: list,
+    thread=MISSING,
+    discord_message: Optional[DiscordMessage] = None,
 ):
     """Send message to discord
 
@@ -381,18 +385,25 @@ def create_or_update_discord_message(
     hook: log_helper.WEBHOOK[itype]
     embeds_mes: [Embed, Embed]
     thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    discord_message:
+        When none, read from the group. Provided to update a current message
+        for instance, when updating the FAST channel.
     """
 
     webhook = SyncWebhook.from_url(hook)
 
     # Try to update message. If message cant be found, create a new message instead.
     try:
+        if discord_message is None:
+            discord_message = group.discord_message
+
         webhook.edit_message(
-            message_id=group.discord_message.message_id,
+            message_id=discord_message.message_id,
             embeds=embeds_mes,
             thread=thread,
         )
-        group.discord_message.increase_counter()
+
+        discord_message.increase_counter()
         logger.info(f"Updating discord message: {group.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
