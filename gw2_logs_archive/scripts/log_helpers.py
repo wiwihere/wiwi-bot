@@ -421,15 +421,19 @@ def create_or_update_discord_message(
         logger.info(f"New discord message created: {discord_message.name}")
 
 
-def create_or_update_discord_fast_message(
+def create_or_update_discord_message_current_week(
+    group,
     hook,
     embeds_mes: list,
     thread=MISSING,
     discord_message: Optional[DiscordMessage] = None,
 ):
-    """Send message to discord
+    """Send message to discord. This will update or create the message in the current
+    week channel. This channel only holds logs for the current week.
 
-    group: instance_group or iclear_group
+    Parameters
+    ----------
+    group: iclear_group
     hook: log_helper.WEBHOOK[itype]
     embeds_mes: [Embed, Embed]
     thread: Thread(settings.LEADERBOARD_THREADS[itype])
@@ -438,33 +442,51 @@ def create_or_update_discord_fast_message(
         for instance, when updating the FAST channel.
     """
 
-    webhook = SyncWebhook.from_url(hook)
+    weekdate = int(f"{group.start_time.strftime('%Y%V')}")  # e.g. 202510 -> year2025, week10
+    weekdate_current = int(f"{datetime.date.today().strftime('%Y%V')}")
 
-    # Try to update message. If message cant be found, create a new message instead.
-    try:
-        webhook.edit_message(
-            message_id=discord_message.message_id,
-            embeds=embeds_mes,
-            thread=thread,
-        )
+    # Only update current week.
+    if weekdate == weekdate_current:
+        # Remove old messages from previous weeks from the channel
+        dms = DiscordMessage.objects.filter(weekdate__lt=weekdate_current)
+        for dm in dms:
+            if dm.message_id is not None:
+                logger.info(f"Removing discord message {dm.message_id} from date {dm.weekdate}")
+                webhook = SyncWebhook.from_url(settings.WEBHOOKS_CURRENT_WEEK[group.type])
+                webhook.delete_message(dm.message_id)
+                dm.message_id = None
+                dm.weekdate = None
+                dm.save()
 
-        discord_message.increase_counter()
-        logger.info(f"Updating discord message: {discord_message.name}")
+        # Update the message weekdate
+        day_str = group.start_time.strftime("%a")
+        message_name = f"current_week_message_{day_str}"
+        discord_message, created = DiscordMessage.objects.get_or_create(name=message_name)
+        if discord_message.weekdate is None:
+            discord_message.weekdate = weekdate
+            discord_message.save()
 
-    except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
-        mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+        webhook = SyncWebhook.from_url(hook)
 
-        discord_message.message_id = mess.id
-        discord_message.increase_counter()
-        discord_message.save()
+        # Try to update message. If message cant be found, create a new message instead.
+        try:
+            webhook.edit_message(
+                message_id=discord_message.message_id,
+                embeds=embeds_mes,
+                thread=thread,
+            )
 
-        logger.info(f"New discord message created: {discord_message.name}")
+            discord_message.increase_counter()
+            logger.info(f"Updating discord message: {discord_message.name}")
 
+        except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
+            mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
 
-def clear_fast_raid_logs(hook):
-    """Removes old messages from  the fast raid logs channel"""
+            discord_message.message_id = mess.id
+            discord_message.increase_counter()
+            discord_message.save()
 
-    webhook = SyncWebhook.from_url(hook)
+            logger.info(f"New discord message created: {discord_message.name}")
 
 
 # %%

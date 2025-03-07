@@ -41,9 +41,10 @@ def update_discord_messages_all():
 
 # %%
 if __name__ == "__main__":
-    y, m, d = 2025, 3, 6
-    y, m, d = 2025, 2, 24
+    # y, m, d = 2025, 3, 6
+    # y, m, d = 2025, 2, 24
+    y, m, d = 2025, 2, 27
     itype_group = "raid"
 
-    update_discord_message_single(y=y, m=m, d=d)
-    # update_discord_messages_from_date(y=y, m=m, d=d)
+    # update_discord_message_single(y=y, m=m, d=d)
+    update_discord_messages_from_date(y=y, m=m, d=d)

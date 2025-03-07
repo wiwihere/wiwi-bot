@@ -29,8 +29,8 @@ from scripts.log_helpers import (
     PLAYER_EMOTES,
     WIPE_EMOTES,
     create_discord_time,
-    create_or_update_discord_fast_message,
     create_or_update_discord_message,
+    create_or_update_discord_message_current_week,
     get_duration_str,
     get_rank_emote,
     zfill_y_m_d,
@@ -520,34 +520,12 @@ class InstanceClearGroupInteraction:
         )
 
         # Create/update message in the fast channel.
-        if settings.WEBHOOKS_FAST[self.iclear_group.type] is not None:
-            weekdate = int(f"{self.iclear_group.start_time.strftime('%Y%V')}")
-            weekdate_current = int(f"{datetime.date.today().strftime('%Y%V')}")
-
-            # Only update current week.
-            if weekdate == weekdate_current:
-                dms = DiscordMessage.objects.filter(weekdate__lt=weekdate_current)
-                from discord import SyncWebhook
-
-                for dm in dms:
-                    if dm.message_id is not None:
-                        logger.info(f"Removing discord message {dm.message_id} from date {dm.weekdate}")
-                        webhook = SyncWebhook.from_url(settings.WEBHOOKS_FAST[self.iclear_group.type])
-                        webhook.delete_message(dm.message_id)
-                        dm.message_id = None
-                        dm.save()
-
-                day_str = self.iclear_group.start_time.strftime("%a")
-                message_name = f"FAST_message_{day_str}"
-                discord_message, created = DiscordMessage.objects.get_or_create(name=message_name)
-                discord_message.weekdate = weekdate
-                discord_message.save()
-
-                create_or_update_discord_fast_message(
-                    hook=settings.WEBHOOKS_FAST[self.iclear_group.type],
-                    embeds_mes=embeds_mes,
-                    discord_message=discord_message,
-                )
+        if settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type] is not None:
+            create_or_update_discord_message_current_week(
+                group=self.iclear_group,
+                hook=settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type],
+                embeds_mes=embeds_mes,
+            )
 
 
 def create_embeds(titles, descriptions):

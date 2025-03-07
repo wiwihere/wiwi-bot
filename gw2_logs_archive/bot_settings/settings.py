@@ -50,11 +50,16 @@ WEBHOOKS = {
     "cerus_cm": get_env("WEBHOOK_BOT_CHANNEL_CERUS_CM"),
 }
 
-WEBHOOKS_FAST = {
-    "raid": get_env("WEBHOOK_BOT_CHANNEL_RAID_FAST"),
-    "strike": get_env("WEBHOOK_BOT_CHANNEL_STRIKE_FAST"),
+WEBHOOKS_CURRENT_WEEK = {
+    "raid": get_env("WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK"),
+    "strike": get_env("WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK"),
     "fractal": None,  # Not used
 }
+
+for key in WEBHOOKS_CURRENT_WEEK.keys():
+    if WEBHOOKS_CURRENT_WEEK[key] == "optional":
+        WEBHOOKS_CURRENT_WEEK[key] = None
+
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
     "raid": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_RAIDS"),
