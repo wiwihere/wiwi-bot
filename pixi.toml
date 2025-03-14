@@ -1,0 +1,24 @@
+[project]
+channels = ["conda-forge"]
+name = "wiwi-bot"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.12.*"
+pandas = "*"
+jupyterlab = "*"
+ipywidgets = "*"
+django = "==5.1.6"
+python-dotenv = "*"
+tzlocal = "*"
+ruff = "*"
+psycopg2 = "*"
+tqdm = "*"
+pip = "24.*"
+
+
+[pypi-dependencies]
+discord = "*"

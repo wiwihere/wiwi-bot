@@ -17,3 +17,4 @@ dependencies:
     - tzlocal
     - ruff
     - psycopg2
+    - tqdm
