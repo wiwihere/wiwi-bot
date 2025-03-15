@@ -1,10 +1,14 @@
 [project]
 channels = ["conda-forge"]
-name = "wiwi-bot"
+name = "discord_py312"
 platforms = ["win-64"]
 version = "0.1.0"
 
 [tasks]
+django = "python gw2_logs_archive/manage.py"
+sort_imports = "python -m ruff check . --select I --fix"
+fmt = "python -m ruff format ./**/*.py --force-exclude"
+style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
 
 [dependencies]
 python = "3.12.*"
