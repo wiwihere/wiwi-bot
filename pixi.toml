@@ -1,0 +1,36 @@
+[project]
+channels = ["conda-forge"]
+name = "gw2-logs-archive"
+platforms = ["win-64"]
+version = "0.1.0"
+repository = "https://https://github.com/wiwihere/wiwi-bot"
+
+[tasks]
+django = "python gw2_logs_archive/manage.py"
+server = "python gw2_logs_archive/manage.py runserver"
+sort_imports = "python -m ruff check . --select I --fix"
+fmt = "python -m ruff format ./**/*.py --force-exclude"
+style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
+pullmain = { cmd = "git pull origin main"}
+
+[dependencies]
+pandas = "*"
+jupyterlab = "*"
+ipywidgets = "*"
+django = "==5.1.6"
+python-dotenv = "*"
+tzlocal = "*"
+ruff = "*"
+psycopg2 = "*"
+tqdm = "*"
+pip = "24.*"
+
+
+[pypi-dependencies]
+discord = "*"
+
+[feature.discord_py312.dependencies]
+python = "3.12.*"
+
+[environments]
+default = ["discord_py312"]
