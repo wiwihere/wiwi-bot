@@ -57,8 +57,8 @@ to use any other python distribution to your liking.
 
 ## Software
 <!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
-1. Download [pixi_installer.cmd](https://github.com/wiwihere/wiwi-bot/blob/main/pixi_installer.cmd) OR pull the repo with github desktop.
-2. Run `pixi_installer.cmd` twice. This will install Git, Pixi and the gw2_logs_archive software. 
+1. Download [install_gw2_discord_logs.cmd](https://github.com/wiwihere/wiwi-bot/blob/main/install_gw2_discord_logs.cmd) OR pull the repo with github desktop.
+2. Run `install_gw2_discord_logs.cmd` twice. This will install Git, Pixi and the gw2_logs_archive software. 
 3. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
 ![activate logging](img/activate_logging.png)
 
