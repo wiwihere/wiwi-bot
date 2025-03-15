@@ -57,26 +57,22 @@ to use any other python distribution to your liking.
 
 ## Software
 <!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
-1. Download this github page as zip (Code -> Download ZIP) and place it anywhere. Unpack the zip. 
--- optional -- To later be able to update easily, install https://github.com/apps/desktop and use that to download this repo. 
-2. Install the python environment. Download [miniforge](https://github.com/conda-forge/miniforge). Make sure to tick the option to add python 3.10 to system path.
-3. Run `Miniforge Prompt` as **admin**. And run the following code;
-```
-mamba env create -f "C:\Users\Wiwi\Documents\github\wiwi-bot\environment.yml" #Change to download location
-```
+1. Download [pixi_installer.cmd](https://github.com/wiwihere/wiwi-bot/blob/main/pixi_installer.cmd) OR pull the repo with github desktop.
+2. Run `pixi_installer.cmd` twice. This will install Git, Pixi and the gw2_logs_archive software. 
+3. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
+![activate logging](img/activate_logging.png)
+
+3. -- optional -- To later be able to update easily, install https://github.com/apps/desktop and use that to download this repo. 
 4. -- optional -- Use the IDE of your choice if you need to debug errors or want a bit more control. I use [vs-code-insiders](https://code.visualstudio.com/insiders):\
     a. Install the python and jupyter extensions.\
     b. File -> Open Folder ->  select the folder with the unpacked zip from 1.\
     c. Open the file `wiwi-bot/gw2_logs_archive/scripts/import_dps_report.py`\
     d. On the bottom right click the python interpreter ![select interpreter](img/vscode_select_interpreter.png) and select the python env we installed at step 2; ![python env](img/vscode_python_env.png).\
     e. Run the code with `shift+enter` or by pressing ![alt text](img/vscode_runcell.png) above the code blocks.
-5. Enable logging to file in [arcdps](https://www.deltaconnected.com/arcdps/), can be done in-game `alt+shift+t`.\
-![activate logging](img/activate_logging.png)
 
 ## Initial setup
 A couple tokens and keys need to be set so the results can be posted to discord.
 1. Rename `.env-example` to `.env`.
-    - .env\CONDA_DIR -> rename `C:\Users\Wiwi\miniforge3` to your own conda or mamba installation (step 2 in software)
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
