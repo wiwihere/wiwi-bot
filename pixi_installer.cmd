@@ -1,8 +1,11 @@
+
 @echo off
+@REM enabledelayedexpansion allows overwriting LOCAL_DIR
+setlocal enabledelayedexpansion
 
 :: Define repository details
-set REPO_URL=https://github.com/WiwiHere/wiwi-bot.git
-set REPO_DIR=%~dp0
+set REPO_URL=https://github.com/WiwiHere/wiwi-bot
+set LOCAL_DIR=%~dp0
 
 
 :: 1️⃣ Install Git (if not installed)
@@ -30,19 +33,30 @@ if %errorlevel% neq 0 (
 )
 
 :: 3️⃣ Clone or Update GitHub Repo
-if exist "%REPO_DIR%\pixi.toml" (
+if exist "%LOCAL_DIR%\pixi.toml" (
     echo Updating existing repository...
-    cd "%REPO_DIR%"
+    cd "%LOCAL_DIR%"
     git pull origin pixi
 ) else (
     echo Cloning repository...
-    git clone "%REPO_URL%" "%REPO_DIR%\temp"
-    cd %REPO_DIR%
-    robocopy temp . /E /MOVE
+    set LOCAL_DIR="!LOCAL_DIR!gw2_logs_archive2"
+    git clone "%REPO_URL%.git" !LOCAL_DIR!
+    cd !LOCAL_DIR!
     git pull origin pixi
 )
 
 :: 4️⃣ Install env
 echo Installing project enviroment...
-cd /d %REPO_DIR%
+cd /d !LOCAL_DIR!
 pixi install
+
+
+echo.
+echo Setup complete!
+echo.
+echo The log manager has been installed in; %CD%
+echo Feel free to place it anywhere.
+echo Initial setup requires a few more steps. Mostly setting up the .env
+echo See %REPO_URL% for details.
+
+pause
