@@ -7,6 +7,7 @@ repository = "https://https://github.com/wiwihere/wiwi-bot"
 
 [tasks]
 django = "python gw2_logs_archive/manage.py"
+server = "python gw2_logs_archive/manage.py runserver"
 sort_imports = "python -m ruff check . --select I --fix"
 fmt = "python -m ruff format ./**/*.py --force-exclude"
 style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
