@@ -10,7 +10,8 @@ django = "python gw2_logs_archive/manage.py"
 sort_imports = "python -m ruff check . --select I --fix"
 fmt = "python -m ruff format ./**/*.py --force-exclude"
 style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
-download_data = { cmd = "curl -L -o wiwi-bot.zip https://github.com/wiwihere/wiwi-bot/archive/main.zip && tar -xf wiwi-bot.zip && mv wiwi-bot-main wiwi-bot", outputs = ["wiwi-bot"] }
+download_data = { cmd = "curl -L -o wiwi-bot.zip https://github.com/wiwihere/wiwi-bot/archive/main.zip && tar -xf wiwi-bot.zip && robocopy wiwi-bot-main ./test /E /MOVE", outputs = ["wiwi-bot"] }
+download_datas = { cmd = "git pull origin pixi"}
 
 [dependencies]
 pandas = "*"
