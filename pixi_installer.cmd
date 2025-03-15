@@ -38,13 +38,13 @@ if %errorlevel% neq 0 (
 if exist "%LOCAL_DIR%\pixi.toml" (
     echo Updating existing repository...
     cd "%LOCAL_DIR%"
-    git pull origin pixi
+    git pull origin main
 ) else (
     echo Cloning repository...
     set LOCAL_DIR="!LOCAL_DIR!gw2_logs_archive"
     git clone "%REPO_URL%.git" !LOCAL_DIR!
     cd !LOCAL_DIR!
-    git pull origin pixi
+    git pull origin main
 )
 
 :: 4️⃣ Install env
