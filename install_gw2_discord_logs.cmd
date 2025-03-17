@@ -21,7 +21,7 @@ if %errorlevel% neq 0 (
 
     set GITCMD=".minimal_git\cmd\git.exe"
     set GITLOC="%CD%\.minimal_git\cmd\git.exe"
-
+    echo Using minimal git
 ) else (
     set GITCMD="git"
     for /f "delims=" %%i in ('where git') do set GITLOC=%%i
