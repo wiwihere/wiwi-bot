@@ -19,15 +19,14 @@ if %errorlevel% neq 0 (
         del min_git.zip
     )
 
-    set GITCMD=".minimal_git\cmd\git.exe"
-    set GITLOC="%CD%\.minimal_git\cmd\git.exe"
-    echo Using minimal git
+    set GITCMD=.minimal_git\cmd\git.exe
+    set GITLOC=.minimal_git\cmd\git.exe
+    echo Using minimal git !GITLOC!
 ) else (
     set GITCMD="git"
     for /f "delims=" %%i in ('where git') do set GITLOC=%%i
     echo Git is already installed.
 )
-
 
 :: 2️⃣ Install Pixi (if not installed)
 where pixi >nul 2>nul
@@ -46,14 +45,16 @@ if %errorlevel% neq 0 (
 :: 3️⃣ Clone or Update GitHub Repo
 if exist "%LOCAL_DIR%\pixi.toml" (
     echo Updating existing repository...
-    cd "%LOCAL_DIR%"
+    cd !LOCAL_DIR!
     %GITCMD% pull origin main
 ) else (
-    echo Cloning repository...
-    set LOCAL_DIR="!LOCAL_DIR!gw2_discord_logs"
+    set LOCAL_DIR=!LOCAL_DIR!gw2_discord_logs\
+    echo Cloning repository to !LOCAL_DIR!...
     %GITCMD% clone "%REPO_URL%.git" !LOCAL_DIR!
     cd !LOCAL_DIR!
     %GITCMD% pull origin main
+
+    move ..\.minimal_git !LOCAL_DIR!
 )
 
 :: 4️⃣ Install env
