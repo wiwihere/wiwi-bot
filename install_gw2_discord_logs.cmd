@@ -9,16 +9,16 @@ set LOCAL_DIR=%~dp0
 
 
 :: 1️⃣ Install Git (if not installed)
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Git not found. Installing...
-    curl -L -o git-installer.exe https://github.com/git-for-windows/git/releases/latest/download/Git-64-bit.exe
-    start /wait git-installer.exe /VERYSILENT /NORESTART
-    del git-installer.exe
-    echo Git installed.
-) else (
-    echo Git is already installed.
-)
+@REM where git >nul 2>nul
+@REM if %errorlevel% neq 0 (
+@REM     echo Git not found. Installing...
+@REM     curl -L -o git-installer.exe https://github.com/git-for-windows/git/releases/latest/download/Git-64-bit.exe
+@REM     start /wait git-installer.exe /VERYSILENT /NORESTART
+@REM     del git-installer.exe
+@REM     echo Git installed.
+@REM ) else (
+@REM     echo Git is already installed.
+@REM )
 
 :: 2️⃣ Install Pixi (if not installed)
 where pixi >nul 2>nul
