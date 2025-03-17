@@ -9,16 +9,25 @@ set LOCAL_DIR=%~dp0
 
 
 :: 1️⃣ Install Git (if not installed)
-@REM where git >nul 2>nul
-@REM if %errorlevel% neq 0 (
-@REM     echo Git not found. Installing...
-@REM     curl -L -o git-installer.exe https://github.com/git-for-windows/git/releases/latest/download/Git-64-bit.exe
-@REM     start /wait git-installer.exe /VERYSILENT /NORESTART
-@REM     del git-installer.exe
-@REM     echo Git installed.
-@REM ) else (
-@REM     echo Git is already installed.
-@REM )
+where git >nul 2>nul
+if %errorlevel% neq 0 (
+    if not exist .minimal_git\cmd\git.exe (
+        echo Git not found. Installing...
+        curl -L -o min_git.zip https://github.com/git-for-windows/git/releases/download/v2.49.0.windows.1/MinGit-2.49.0-64-bit.zip
+        mkdir .minimal_git
+        tar -xf min_git.zip -C .minimal_git
+        del min_git.zip
+    )
+
+    set GITCMD=".minimal_git\cmd\git.exe"
+    set GITLOC="%CD%\.minimal_git\cmd\git.exe"
+
+) else (
+    set GITCMD="git"
+    for /f "delims=" %%i in ('where git') do set GITLOC=%%i
+    echo Git is already installed.
+)
+
 
 :: 2️⃣ Install Pixi (if not installed)
 where pixi >nul 2>nul
@@ -38,13 +47,13 @@ if %errorlevel% neq 0 (
 if exist "%LOCAL_DIR%\pixi.toml" (
     echo Updating existing repository...
     cd "%LOCAL_DIR%"
-    git pull origin main
+    %GITCMD% pull origin main
 ) else (
     echo Cloning repository...
     set LOCAL_DIR="!LOCAL_DIR!gw2_discord_logs"
-    git clone "%REPO_URL%.git" !LOCAL_DIR!
+    %GITCMD% clone "%REPO_URL%.git" !LOCAL_DIR!
     cd !LOCAL_DIR!
-    git pull origin main
+    %GITCMD% pull origin main
 )
 
 :: 4️⃣ Install env
@@ -56,7 +65,7 @@ pixi install
 echo.
 echo Setup complete!
 echo.
-for /f "delims=" %%i in ('where git') do echo Git installed in %%i
+echo Git installed in %GITLOC%
 for /f "delims=" %%i in ('where pixi') do echo Pixi installed in %%i
 echo Logs manager installed in; %CD%
 
