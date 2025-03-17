@@ -12,6 +12,8 @@ sort_imports = "python -m ruff check . --select I --fix"
 fmt = "python -m ruff format ./**/*.py --force-exclude"
 style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
 pullmain = { cmd = "git pull origin main"}
+code = "code"
+code_insiders = "code-insiders"
 
 [dependencies]
 pandas = "*"
