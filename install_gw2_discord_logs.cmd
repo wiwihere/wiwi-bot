@@ -13,7 +13,11 @@ where git >nul 2>nul
 if %errorlevel% neq 0 (
     if not exist .minimal_git\cmd\git.exe (
         echo Git not found. Installing...
-        curl -L -o min_git.zip https://github.com/git-for-windows/git/releases/download/v2.49.0.windows.1/MinGit-2.49.0-64-bit.zip
+        @REM curl -L -o min_git.zip https://github.com/git-for-windows/git/releases/download/v2.49.0.windows.1/MinGit-2.49.0-64-bit.zip
+        @REM find the latest mingit release version
+        for /f "delims=" %%a in ('powershell -Command "$url = (Invoke-RestMethod -Uri 'https://api.github.com/repos/git-for-windows/git/releases/latest').assets | Where-Object { $_.name -match 'MinGit-[0-9.]+-64-bit.zip' } | Select-Object -ExpandProperty browser_download_url; Write-Output $url"') do set URL=%%a
+
+        echo Downloading from !URL!
         mkdir .minimal_git
         tar -xf min_git.zip -C .minimal_git
         del min_git.zip
@@ -39,7 +43,8 @@ if %errorlevel% neq 0 (
     echo .
     goto end
 ) else (
-    echo Pixi is already installed.
+    echo Pixi is already installed. Checking for update.
+    pixi self-update
 )
 
 :: 3️⃣ Clone or Update GitHub Repo
