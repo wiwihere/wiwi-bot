@@ -1,4 +1,4 @@
 @echo off
 
-call  %~dp0utilities/django.cmd leadboards_command
+call  pixi run django leadboards_command
 pause
