@@ -39,7 +39,7 @@ class Command(BaseCommand):
         parser.add_argument("--y", type=int, nargs="?", default=None)
         parser.add_argument("--m", type=int, nargs="?", default=None)
         parser.add_argument("--d", type=int, nargs="?", default=None)
-        parser.add_argument("--itype_groups", nargs="*")  # default doesnt work wtih nargs="*"
+        parser.add_argument("--itype_groups", nargs="*")  # default doesnt work with nargs="*"
 
     def handle(self, *args, **options):
         y = options["y"]

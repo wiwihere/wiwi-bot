@@ -11,12 +11,24 @@ set LOCAL_DIR=%~dp0
 :: 1️⃣ Install Git (if not installed)
 where git >nul 2>nul
 if %errorlevel% neq 0 (
-    echo Git not found. Installing...
-    curl -L -o git-installer.exe https://github.com/git-for-windows/git/releases/latest/download/Git-64-bit.exe
-    start /wait git-installer.exe /VERYSILENT /NORESTART
-    del git-installer.exe
-    echo Git installed.
+    if not exist .minimal_git\cmd\git.exe (
+        echo Git not found. Installing...
+        @REM curl -L -o min_git.zip https://github.com/git-for-windows/git/releases/download/v2.49.0.windows.1/MinGit-2.49.0-64-bit.zip
+        @REM find the latest mingit release version
+        for /f "delims=" %%a in ('powershell -Command "$url = (Invoke-RestMethod -Uri 'https://api.github.com/repos/git-for-windows/git/releases/latest').assets | Where-Object { $_.name -match 'MinGit-[0-9.]+-64-bit.zip' } | Select-Object -ExpandProperty browser_download_url; Write-Output $url"') do set URL=%%a
+
+        echo Downloading from !URL!
+        mkdir .minimal_git
+        tar -xf min_git.zip -C .minimal_git
+        del min_git.zip
+    )
+
+    set GITCMD=.minimal_git\cmd\git.exe
+    set GITLOC=.minimal_git\cmd\git.exe
+    echo Using minimal git !GITLOC!
 ) else (
+    set GITCMD="git"
+    for /f "delims=" %%i in ('where git') do set GITLOC=%%i
     echo Git is already installed.
 )
 
@@ -31,20 +43,23 @@ if %errorlevel% neq 0 (
     echo .
     goto end
 ) else (
-    echo Pixi is already installed.
+    echo Pixi is already installed. Checking for update.
+    pixi self-update
 )
 
 :: 3️⃣ Clone or Update GitHub Repo
 if exist "%LOCAL_DIR%\pixi.toml" (
     echo Updating existing repository...
-    cd "%LOCAL_DIR%"
-    git pull origin main
-) else (
-    echo Cloning repository...
-    set LOCAL_DIR="!LOCAL_DIR!gw2_discord_logs"
-    git clone "%REPO_URL%.git" !LOCAL_DIR!
     cd !LOCAL_DIR!
-    git pull origin main
+    %GITCMD% pull origin main
+) else (
+    set LOCAL_DIR=!LOCAL_DIR!gw2_discord_logs\
+    echo Cloning repository to !LOCAL_DIR!...
+    %GITCMD% clone "%REPO_URL%.git" !LOCAL_DIR!
+    cd !LOCAL_DIR!
+    %GITCMD% pull origin main
+
+    move ..\.minimal_git !LOCAL_DIR!
 )
 
 :: 4️⃣ Install env
@@ -56,7 +71,7 @@ pixi install
 echo.
 echo Setup complete!
 echo.
-for /f "delims=" %%i in ('where git') do echo Git installed in %%i
+echo Git installed in %GITLOC%
 for /f "delims=" %%i in ('where pixi') do echo Pixi installed in %%i
 echo Logs manager installed in; %CD%
 

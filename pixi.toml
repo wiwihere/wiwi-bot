@@ -8,29 +8,25 @@ repository = "https://https://github.com/wiwihere/wiwi-bot"
 [tasks]
 django = "python gw2_logs_archive/manage.py"
 server = "python gw2_logs_archive/manage.py runserver"
-sort_imports = "python -m ruff check . --select I --fix"
+sort = "python -m ruff check ./**/*.py --select I --fix --force-exclude"
 fmt = "python -m ruff format ./**/*.py --force-exclude"
-style = {depends-on = ["sort_imports", "fmt"]} # `pixi run style`
+style = {depends-on = ["sort", "fmt"]}
 pullmain = { cmd = "git pull origin main"}
+code = "code"
+code_insiders = "code-insiders"
 
 [dependencies]
-pandas = "*"
-jupyterlab = "*"
-ipywidgets = "*"
+python = "3.12.*"
 django = "==5.1.6"
-python-dotenv = "*"
-tzlocal = "*"
-ruff = "*"
-psycopg2 = "*"
-tqdm = "*"
+ipywidgets = "*"
+jupyterlab = "*"
+pandas = "*"
 pip = "24.*"
-
+psycopg2 = "*"
+python-dotenv = "*"
+ruff = "*"
+tzlocal = "*"
+tqdm = "*"
 
 [pypi-dependencies]
 discord = "*"
-
-[feature.discord_py312.dependencies]
-python = "3.12.*"
-
-[environments]
-default = ["discord_py312"]
