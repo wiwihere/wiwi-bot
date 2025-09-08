@@ -12,4 +12,6 @@
         119
     ],
     "autoDocstring.docstringFormat": "numpy",
+    "python.analysis.extraPaths": ["../python-workflow-demo"]  
+    // extra path needed until https://github.com/prefix-dev/pixi/issues/2356 is resolved
 }

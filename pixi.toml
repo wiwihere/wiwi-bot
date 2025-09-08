@@ -16,23 +16,17 @@ code = "code"
 code_insiders = "code-insiders"
 
 [dependencies]
-pandas = "*"
-jupyterlab = "*"
-ipywidgets = "*"
+python = "3.12.*"
 django = "==5.1.6"
-python-dotenv = "*"
-tzlocal = "*"
-ruff = "*"
-psycopg2 = "*"
-tqdm = "*"
+ipywidgets = "*"
+jupyterlab = "*"
+pandas = "*"
 pip = "24.*"
-
+psycopg2 = "*"
+python-dotenv = "*"
+ruff = "*"
+tzlocal = "*"
+tqdm = "*"
 
 [pypi-dependencies]
 discord = "*"
-
-[feature.discord_py312.dependencies]
-python = "3.12.*"
-
-[environments]
-default = ["discord_py312"]
