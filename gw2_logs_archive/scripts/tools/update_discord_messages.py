@@ -46,5 +46,7 @@ if __name__ == "__main__":
     y, m, d = today_y_m_d()
     itype_group = "raid"
 
-    update_discord_message_single(y=y, m=m, d=d)
+    # update_discord_message_single(y=y, m=m, d=d)
     update_discord_messages_from_date(y=y, m=m, d=d)
+
+# %%
