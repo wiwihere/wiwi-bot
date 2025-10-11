@@ -292,13 +292,15 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
         # Top 3
         if rank in [1, 2, 3]:
             # Calculate seconds improvement over previous ranked log;
-            dur_sec = (group[rank].duration - indiv.duration).seconds
-            dur_micro = (group[rank].duration - indiv.duration).microseconds / 1e6
-            dur = str(round(dur_sec + dur_micro, 1)).replace(".","_")
+            try:
+                dur_sec = (group[rank].duration - indiv.duration).seconds
+                dur_micro = (group[rank].duration - indiv.duration).microseconds / 1e6
+                dur = str(round(dur_sec + dur_micro, 1)).replace(".", "_")
+            except IndexError:
+                dur = "_inf_"
 
             # e.g. 1_2s_r1_of10 -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
             rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group), dur)
-            
 
         else:
             if indiv.success:
