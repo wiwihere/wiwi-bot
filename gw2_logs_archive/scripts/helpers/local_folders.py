@@ -116,7 +116,7 @@ class LogPathsDate:
 
         for folder in self.log_search_dirs:
             if not folder.exists():
-                raise ValueError(f"Log directory {dir} does not exist. Check your .env")
+                raise ValueError(f"Log directory {folder} does not exist. Check your .env")
 
     def _to_dataframe(self) -> pd.DataFrame:
         """Convert the logs to a pandas DataFrame.
