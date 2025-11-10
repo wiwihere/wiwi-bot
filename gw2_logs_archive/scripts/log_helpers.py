@@ -123,10 +123,10 @@ def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
         invalid_str = " invalid"
 
     d = {
-        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("r{}_of{}_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("r{}_of{}_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("r{}_of{}_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("r{}_of{}_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='red_full_medal'), tag)()}".format("r{}_of{}_slower{}s"),
+        1: f"{getattr(Emoji.objects.get(name='red_line_medal'), tag)()}".format("r{}_of{}_slower{}s"),
+        2: f"{getattr(Emoji.objects.get(name='green_line_medal'), tag)()}".format("r{}_of{}_slower{}s"),
+        3: f"{getattr(Emoji.objects.get(name='green_full_medal'), tag)()}".format("r{}_of{}_slower{}s"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),
@@ -157,8 +157,8 @@ RANK_EMOTES_CUSTOM_INVALID = rank_func(custom_emoji_name=True, invalid=True)
 
 RANK_EMOTES_CUPS = {
     1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("r{}_of{}_faster{}s"),
-    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("r{}_of{}_faster{}s"),
-    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r{}_of{}_faster{}s"),
+    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("r{}_of{}_slower{}s"),
+    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r{}_of{}_slower{}s"),
 }
 
 
@@ -252,6 +252,24 @@ def get_emboldened_wing(log_date: datetime.datetime):
     return current_wing
 
 
+def make_duration_str(group, rank: int, indiv):
+    try:
+        if rank != 1:
+            rank = 0
+
+        if rank == 1:
+            dur_sec = (group[rank].duration - indiv.duration).seconds
+            dur_micro = (group[rank].duration - indiv.duration).microseconds / 1e6
+        else:
+            dur_sec = (indiv.duration - group[rank].duration).seconds
+            dur_micro = (indiv.duration - group[rank].duration).microseconds / 1e6
+
+        dur = str(round(dur_sec + dur_micro, 1)).replace(".", "_")
+    except IndexError:
+        dur = "_inf_"
+    return dur
+
+
 def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     """Find the rank of the indiv in the group.
 
@@ -289,16 +307,11 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
     elif indiv.success:
         rank = group.index(indiv) + 1
 
+        # Calculate seconds slower or for fastest run speed improvement over previous ranked log;
+        dur = make_duration_str(group, rank, indiv)
+
         # Top 3
         if rank in [1, 2, 3]:
-            # Calculate seconds improvement over previous ranked log;
-            try:
-                dur_sec = (group[rank].duration - indiv.duration).seconds
-                dur_micro = (group[rank].duration - indiv.duration).microseconds / 1e6
-                dur = str(round(dur_sec + dur_micro, 1)).replace(".", "_")
-            except IndexError:
-                dur = "_inf_"
-
             # e.g. 1_2s_r1_of10 -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
             rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group), dur)
 
@@ -322,7 +335,8 @@ def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
                     rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(
                         rank,
                         len(group),
-                        int(percentile_rank),
+                        # int(percentile_rank),
+                        dur,
                     )
 
     return rank_str
