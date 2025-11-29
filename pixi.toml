@@ -7,7 +7,7 @@ repository = "https://https://github.com/wiwihere/wiwi-bot"
 
 [tasks]
 django = "python gw2_logs_archive/manage.py"
-server = "python gw2_logs_archive/manage.py runserver"
+server = """cmd /c 'start python gw2_logs_archive/manage.py runserver' && cmd /c start 'http://localhost:8000/admin'"""
 sort = "python -m ruff check ./**/*.py --select I --fix --force-exclude"
 fmt = "python -m ruff format ./**/*.py --force-exclude"
 style = {depends-on = ["sort", "fmt"]}
