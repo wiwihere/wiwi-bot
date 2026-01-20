@@ -14,6 +14,7 @@ if __name__ == "__main__":
     init_django(__file__)
 
 import scripts.leaderboards as leaderboards
+from gw2_logs.models import DpsLog
 from scripts.ei_parser import EliteInsightsParser
 from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
@@ -27,8 +28,6 @@ from scripts.log_instance_interaction import (
     InstanceClearGroupInteraction,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
-
-from gw2_logs_archive.gw2_logs.models import DpsLog
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +88,7 @@ class Command(BaseCommand):
         log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
         def parse_or_upload_log(
-            log: LogFile,
+            logfile: LogFile,
             processing_type: Literal["local", "upload"],
             ei_parser: EliteInsightsParser,
         ) -> DpsLog | None:
@@ -104,7 +103,7 @@ class Command(BaseCommand):
                 upload -> proces log externally on dps.report
             ei_parser : EliteInsightsParser
             """
-            log_path = log.path
+            log_path = logfile.path
             # 2. Parse locally with EI
             if processing_type == "local":
                 parsed_path = ei_parser.parse_log(evtc_path=log_path)
@@ -116,7 +115,7 @@ class Command(BaseCommand):
 
             # 3. Upload to dps.report
             elif processing_type == "upload":
-                if log.local_processed:  # Log must be parsed locally before uploading
+                if logfile.local_processed:  # Log must be parsed locally before uploading
                     # Upload log
                     log_upload = LogUploader.from_path(log_path, only_url=True)
                     parsed_log = log_upload.run()
@@ -125,78 +124,84 @@ class Command(BaseCommand):
 
             return parsed_log
 
-        # Flow start
-        while True:
-            icgi = None
+        def process_logs_once(
+            *,
+            processing_type: Literal["local", "upload"],
+            log_paths: LogPathsDate,
+            ei_parser: EliteInsightsParser,
+            y: int,
+            m: int,
+            d: int,
+            current_sleeptime: int,
+        ) -> bool:
+            # 1. Find unprocessed logs for date
+            logs_df = log_paths.update_available_logs()
+            loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
 
-            for processing_type in ["local", "upload"] + ["local"] * 9:
-                # 1. Find unprocessed logs for date
-                logs_df = log_paths.update_available_logs()
+            # Process each log
+            for idx, row in enumerate(loop_df.itertuples()):
+                logfile: LogFile = row.log
 
-                # Process each log
-                loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
-                for idx, row in enumerate(loop_df.itertuples()):
-                    log: LogFile = row.log
+                parsed_log = parse_or_upload_log(logfile=logfile, processing_type=processing_type, ei_parser=ei_parser)
 
-                    parsed_log = parse_or_upload_log(log=log, processing_type=processing_type, ei_parser=ei_parser)
+                # 4. Create/update InstanceClearGroup
+                fractal_success = False
 
-                    # 4. Create/update InstanceClearGroup
-                    fractal_success = False
-
-                    if parsed_log is None:
-                        if processing_type == "local":
-                            logger.warning(
-                                f"Parsing didn't work, too short log maybe. {log.path}. Skipping all further processing."
-                            )
-                            log.mark_local_processed()
-                            log.mark_upload_processed()
-
-                    if parsed_log is not None:
-                        if processing_type == "local":
-                            log.mark_local_processed()
-                            if parsed_log.url != "":
-                                log.mark_upload_processed()
-
-                        if processing_type == "upload":
-                            log.mark_upload_processed()
-
-                        if fractal_success is True and parsed_log.encounter.instance.instance_group.name == "fractal":
-                            continue
-
-                        self = icgi = InstanceClearGroupInteraction.create_from_date(
-                            y=y, m=m, d=d, itype_group=parsed_log.encounter.instance.instance_group.name
+                if parsed_log is None:
+                    if processing_type == "local":
+                        logger.warning(
+                            f"Parsing didn't work, too short log maybe. {logfile.path}. Skipping all further processing."
                         )
+                        logfile.mark_local_processed()
+                        logfile.mark_upload_processed()
 
-                        # 5. Build and send Discord message
-                        if icgi is not None:
-                            # Set the same discord message id when strikes and raids are combined.
-                            if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
-                                icgi.iclear_group.type in ["raid", "strike"]
-                            ):
-                                if self.iclear_group.discord_message is None:
-                                    group_names = [
-                                        "__".join([f"{j}s", self.iclear_group.name.split("__")[1]])
-                                        for j in ITYPE_GROUPS["raid"]
-                                    ]
-                                    self.iclear_group.discord_message_id = (
-                                        InstanceClearGroup.objects.filter(name__in=group_names)
-                                        .exclude(discord_message=None)
-                                        .values_list("discord_message", flat=True)
-                                        .first()
-                                    )
-                                    self.iclear_group.save()
+                if parsed_log is not None:
+                    if processing_type == "local":
+                        logfile.mark_local_processed()
+                        if parsed_log.url != "":
+                            logfile.mark_upload_processed()
 
-                            # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                            if idx == len(loop_df) - 1:
-                                icgi.send_discord_message()
+                    if processing_type == "upload":
+                        logfile.mark_upload_processed()
 
-                            # 6. Update leaderboards
-                            if icgi.iclear_group.success:
-                                if icgi.iclear_group.type == "fractal":
-                                    leaderboards.create_leaderboard(itype="fractal")
-                                    fractal_success = True
+                    if fractal_success is True and parsed_log.encounter.instance.instance_group.name == "fractal":
+                        continue
+
+                    icgi = InstanceClearGroupInteraction.create_from_date(
+                        y=y, m=m, d=d, itype_group=parsed_log.encounter.instance.instance_group.name
+                    )
+
+                    # 5. Build and send Discord message
+                    if icgi is not None:
+                        icgi.sync_discord_message_id()
+
+                        # Update discord, only do it on the last log, so we dont spam the discord api too often.
+                        if idx == len(loop_df) - 1:
+                            icgi.send_discord_message()
+
+                        # 6. Update leaderboards
+                        if icgi.iclear_group.success:
+                            if icgi.iclear_group.type == "fractal":
+                                leaderboards.create_leaderboard(itype="fractal")
+                                fractal_success = True
 
                     current_sleeptime = MAXSLEEPTIME
+            return log_paths, current_sleeptime
+
+        # Flow start
+        while True:
+            for processing_type in ["local", "upload"] + ["local"] * 9:
+                # FIXME log_paths currently updates log_paths.logs this hidden state needs to be kept up to date
+                log_paths, current_sleeptime = process_logs_once(
+                    processing_type=processing_type,
+                    log_paths=log_paths,
+                    ei_parser=ei_parser,
+                    y=y,
+                    m=m,
+                    d=d,
+                    current_sleeptime=current_sleeptime,
+                )
+
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
 
@@ -214,3 +219,11 @@ class Command(BaseCommand):
             logger.info(f"Run {run_count} done")
 
             run_count += 1
+
+
+if __name__ == "__main__":
+    options = {}
+    options["y"] = 2026
+    options["m"] = 1
+    options["d"] = 19
+    options["itype_groups"] = False

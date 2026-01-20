@@ -490,6 +490,26 @@ class InstanceClearGroupInteraction:
 
         return titles, descriptions
 
+    def sync_discord_message_id(self):
+        """Update the iclear_group discord message id to be the same if raids and strikes
+        are sent to the same channel.
+        """
+        # FIXME errors when strikes are done first on a raid-day.
+        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (self.iclear_group.type in ["raid", "strike"]):
+            if self.iclear_group.discord_message is None:
+                group_names = [
+                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]
+                ]
+
+                self.iclear_group.discord_message_id = (
+                    InstanceClearGroup.objects.filter(name__in=group_names)
+                    .exclude(discord_message=None)
+                    .values_list("discord_message", flat=True)
+                    .first()
+                )
+                logger.debug(f"Updated discord_message_id for {self.iclear_group}")
+                self.iclear_group.save()
+
     def send_discord_message(self):
         """Build the message from embeds and send to discord.
         This will create embeds when there are multiple types linked to the same discord
@@ -600,7 +620,7 @@ def create_embeds(titles, descriptions):
 # %%
 
 if __name__ == "__main__":
-    y, m, d = 2025,9, 8
+    y, m, d = 2025, 9, 8
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
