@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import Literal
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -26,6 +27,8 @@ from scripts.log_instance_interaction import (
     InstanceClearGroupInteraction,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+from gw2_logs_archive.gw2_logs.models import DpsLog
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +88,43 @@ class Command(BaseCommand):
 
         log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
+        def parse_or_upload_log(
+            log: LogFile,
+            processing_type: Literal["local", "upload"],
+            ei_parser: EliteInsightsParser,
+        ) -> DpsLog | None:
+            """Proces a single log
+
+            Parameters
+            ----------
+            log : LogFile
+                The log class that tracks the processing and hold the path to the logfile
+            processing_type : Literal["local", "upload"]
+                local -> proces log locally with the EliteInsightsParser
+                upload -> proces log externally on dps.report
+            ei_parser : EliteInsightsParser
+            """
+            log_path = log.path
+            # 2. Parse locally with EI
+            if processing_type == "local":
+                parsed_path = ei_parser.parse_log(evtc_path=log_path)
+                dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
+                if dli is False:
+                    parsed_log = None
+                else:
+                    parsed_log = dli.dpslog
+
+            # 3. Upload to dps.report
+            elif processing_type == "upload":
+                if log.local_processed:  # Log must be parsed locally before uploading
+                    # Upload log
+                    log_upload = LogUploader.from_path(log_path, only_url=True)
+                    parsed_log = log_upload.run()
+                else:
+                    parsed_log = None
+
+            return parsed_log
+
         # Flow start
         while True:
             icgi = None
@@ -97,35 +137,21 @@ class Command(BaseCommand):
                 loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
                 for idx, row in enumerate(loop_df.itertuples()):
                     log: LogFile = row.log
-                    log_path = log.path
 
-                    # 2. Parse locally with EI
-                    if processing_type == "local":
-                        parsed_path = ei_parser.parse_log(evtc_path=log_path)
-                        dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
-                        if dli is False:
-                            logger.warning(
-                                f"Parsing didnt work, too short log maybe. {log_path}. Skipping all further processing."
-                            )
-                            log.mark_local_processed()
-                            log.mark_upload_processed()
-                            continue
-
-                        parsed_log = dli.dpslog
-
-                    # 3. Upload to dps.report
-                    elif processing_type == "upload":
-                        if log.local_processed:  # Log must be parsed locally before uploading
-                            # Upload log
-                            log_upload = LogUploader.from_path(log_path, only_url=True)
-                            parsed_log = log_upload.run()
-                        else:
-                            parsed_log = False
+                    parsed_log = parse_or_upload_log(log=log, processing_type=processing_type, ei_parser=ei_parser)
 
                     # 4. Create/update InstanceClearGroup
                     fractal_success = False
 
-                    if parsed_log is not False:
+                    if parsed_log is None:
+                        if processing_type == "local":
+                            logger.warning(
+                                f"Parsing didn't work, too short log maybe. {log.path}. Skipping all further processing."
+                            )
+                            log.mark_local_processed()
+                            log.mark_upload_processed()
+
+                    if parsed_log is not None:
                         if processing_type == "local":
                             log.mark_local_processed()
                             if parsed_log.url != "":
