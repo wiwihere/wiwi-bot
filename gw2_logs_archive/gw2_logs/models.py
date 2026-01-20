@@ -1,5 +1,4 @@
 from itertools import chain
-from turtle import mode
 
 from django.db import models
 
