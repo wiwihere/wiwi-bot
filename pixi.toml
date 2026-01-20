@@ -27,6 +27,8 @@ python-dotenv = "*"
 ruff = "*"
 tzlocal = "*"
 tqdm = "*"
+plotly = "*"
+
 
 [pypi-dependencies]
 discord = "*"
