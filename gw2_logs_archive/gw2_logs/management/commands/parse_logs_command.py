@@ -33,6 +33,16 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+    """
+    FLOW:
+    1. Find unprocessed logs for date
+    2. Parse locally with EI
+    3. Upload to dps.report
+    4. Create/update InstanceClearGroup
+    5. Build and send Discord message
+    6. Update leaderboards and exit
+    """
+
     help = "Parse logs and create message on discord"
 
     def add_arguments(self, parser):
@@ -42,6 +52,7 @@ class Command(BaseCommand):
         parser.add_argument("--itype_groups", nargs="*")  # default doesnt work with nargs="*"
 
     def handle(self, *args, **options):
+        # Initialize variables
         y = options["y"]
         m = options["m"]
         d = options["d"]
@@ -74,11 +85,12 @@ class Command(BaseCommand):
 
         log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
+        # Flow start
         while True:
             icgi = None
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
-                # Find logs in directory
+                # 1. Find unprocessed logs for date
                 logs_df = log_paths.update_available_logs()
 
                 # Process each log
@@ -87,8 +99,8 @@ class Command(BaseCommand):
                     log: LogFile = row.log
                     log_path = log.path
 
+                    # 2. Parse locally with EI
                     if processing_type == "local":
-                        # Local processing
                         parsed_path = ei_parser.parse_log(evtc_path=log_path)
                         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
                         if dli is False:
@@ -101,6 +113,7 @@ class Command(BaseCommand):
 
                         parsed_log = dli.dpslog
 
+                    # 3. Upload to dps.report
                     elif processing_type == "upload":
                         if log.local_processed:  # Log must be parsed locally before uploading
                             # Upload log
@@ -109,7 +122,7 @@ class Command(BaseCommand):
                         else:
                             parsed_log = False
 
-                    # Create ICGI and update discord message
+                    # 4. Create/update InstanceClearGroup
                     fractal_success = False
 
                     if parsed_log is not False:
@@ -128,6 +141,7 @@ class Command(BaseCommand):
                             y=y, m=m, d=d, itype_group=parsed_log.encounter.instance.instance_group.name
                         )
 
+                        # 5. Build and send Discord message
                         if icgi is not None:
                             # Set the same discord message id when strikes and raids are combined.
                             if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (
@@ -150,6 +164,7 @@ class Command(BaseCommand):
                             if idx == len(loop_df) - 1:
                                 icgi.send_discord_message()
 
+                            # 6. Update leaderboards
                             if icgi.iclear_group.success:
                                 if icgi.iclear_group.type == "fractal":
                                     leaderboards.create_leaderboard(itype="fractal")
@@ -159,6 +174,8 @@ class Command(BaseCommand):
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
 
+            # 6. Update leaderboards and exit
+            # Only update when there hasnt been a new log parsed for the duration of sleeptime.
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
                 logger.info("Updating leaderboards")
                 leaderboards.create_leaderboard(itype="fractal")
