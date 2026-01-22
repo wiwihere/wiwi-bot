@@ -25,7 +25,7 @@ def _parse_or_upload_log(
     processing_type: Literal["local", "upload"],
     ei_parser: EliteInsightsParser,
 ) -> DpsLog | None:
-    """Proces a single log
+    """Parse (EliteInsights, local) or upload (dps.report, upload) a single log file depending on processing type.
 
     Parameters
     ----------
@@ -33,8 +33,14 @@ def _parse_or_upload_log(
         The log class that tracks the processing and hold the path to the logfile
     processing_type : Literal["local", "upload"]
         local -> proces log locally with the EliteInsightsParser
-        upload -> proces log externally on dps.report
+        upload -> upload the log to dps.report and retrieve the result
     ei_parser : EliteInsightsParser
+
+    Returns
+    -------
+    DpsLog | None
+        Parsed DpsLog on success, or None if parsing/upload failed
+        or the log is not eligible for the requested processing step.
     """
     log_path = logfile.path
     # 2. Parse locally with EI
@@ -67,8 +73,36 @@ def process_logs_once(
     m: int,
     d: int,
 ) -> bool:
+    """
+    Process all unprocessed logs once for a given date and processing type.
+
+    This function:
+    - Detects unprocessed logs for the given date
+    - Parses or uploads each log
+    - Marks logs as processed
+    - Creates or updates InstanceClearGroups
+    - Syncs and optionally sends Discord messages
+    - Updates leaderboards when a clear is completed
+
+    Parameters
+    ----------
+    processing_type : Literal["local", "upload"]
+        Which processing step to run for the logs.
+    log_paths : LogPathsDate
+        LogPathsDate instance managing available logs and state.
+    ei_parser : EliteInsightsParser
+        Configured Elite Insights parser instance.
+    y, m, d : int
+        Date used for InstanceClearGroup grouping.
+
+    Returns
+    -------
+    bool
+        True if at least one log was processed, False otherwise.
+    """
     # 1. Find unprocessed logs for date
     logs_df = log_paths.update_available_logs()
+    # Filter for unprocessed logs
     loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
 
     # Process each log
@@ -79,7 +113,7 @@ def process_logs_once(
         parsed_log = _parse_or_upload_log(logfile=logfile, processing_type=processing_type, ei_parser=ei_parser)
 
         # 4. Create/update InstanceClearGroup
-        fractal_success = False
+        fractal_success = False  # FIXME dead
 
         if parsed_log is None:
             if processing_type == "local":
@@ -110,8 +144,8 @@ def process_logs_once(
                 icgi.sync_discord_message_id()
 
                 # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                # if idx == len(loop_df) - 1:
-                #     icgi.send_discord_message()
+                if idx == len(loop_df) - 1:
+                    icgi.send_discord_message()
 
                 # 6. Update leaderboards
                 if icgi.iclear_group.success:
