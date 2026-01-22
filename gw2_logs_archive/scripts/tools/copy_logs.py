@@ -10,11 +10,12 @@ if __name__ == "__main__":
 
     init_django(__file__)
 
-from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     create_folder_names,
     today_y_m_d,
 )
+
+from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,11 @@ def copy_logs(y, m, d, itype_groups):
 
     # Find logs in directory
     allowed_folder_names = create_folder_names(itype_groups=itype_groups)
-    log_paths = LogPathsDate(
+    log_paths = LogFilesDate(
         y=y, m=m, d=d, allowed_folder_names=allowed_folder_names, log_search_dirs=[log_dir_source]
     )
 
-    logs_df = log_paths.update_available_logs()
+    logs_df = log_paths.refresh_and_get_logs()
 
     # Process each log
     for row in logs_df.itertuples():

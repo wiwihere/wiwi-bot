@@ -22,7 +22,6 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from scripts.ei_parser import EliteInsightsParser
-from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
@@ -34,6 +33,8 @@ from scripts.log_helpers import (
 )
 from scripts.log_instance_interaction import create_embeds
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def run_cerus_cm(y, m, d):
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
+    log_paths = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
 
     while True:
         # if True:
@@ -74,7 +75,7 @@ def run_cerus_cm(y, m, d):
             descriptions = None
 
             # Find logs in directory
-            logs_df = log_paths.update_available_logs()
+            logs_df = log_paths.refresh_and_get_logs()
 
             # Process each log
             loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]

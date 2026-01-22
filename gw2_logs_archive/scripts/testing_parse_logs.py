@@ -20,7 +20,6 @@ if __name__ == "__main__":
 import scripts.leaderboards as leaderboards
 from gw2_logs.models import InstanceClearGroup
 from scripts.ei_parser import EliteInsightsParser
-from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     create_folder_names,
@@ -29,6 +28,8 @@ from scripts.log_helpers import (
 )
 from scripts.log_instance_interaction import InstanceClearGroupInteraction
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 # importlib.reload(log_uploader)
 logger = logging.getLogger(__name__)
@@ -68,11 +69,11 @@ if True:
         while True:
             icgi = None
 
-            log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
+            log_paths = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
             for processing_type in ["local", "upload"] + ["local"] * 9:
                 # Find logs in directory
-                logs_df = log_paths.update_available_logs()
+                logs_df = log_paths.refresh_and_get_logs()
 
                 # Process each log
                 loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]

@@ -11,11 +11,12 @@ if __name__ == "__main__":
 import scripts.leaderboards as leaderboards
 from gw2_logs.models import DpsLog
 from scripts.ei_parser import EliteInsightsParser
-from scripts.helpers.local_folders import LogFile, LogPathsDate
 from scripts.log_instance_interaction import (
     InstanceClearGroupInteraction,
 )
 from scripts.log_uploader import DpsLogInteraction, LogUploader
+
+from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ def _parse_or_upload_log(
 def process_logs_once(
     *,
     processing_type: Literal["local", "upload"],
-    log_paths: LogPathsDate,
+    log_paths: LogFilesDate,
     ei_parser: EliteInsightsParser,
     y: int,
     m: int,
@@ -101,7 +102,7 @@ def process_logs_once(
         True if at least one log was processed, False otherwise.
     """
     # 1. Find unprocessed logs for date
-    logs_df = log_paths.update_available_logs()
+    logs_df = log_paths.refresh_and_get_logs()
     # Filter for unprocessed logs
     loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
 

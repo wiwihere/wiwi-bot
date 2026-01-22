@@ -12,7 +12,6 @@ if __name__ == "__main__":
 
 import scripts.leaderboards as leaderboards
 from scripts.ei_parser import EliteInsightsParser
-from scripts.helpers.local_folders import LogPathsDate
 from scripts.log_helpers import (
     create_folder_names,
     today_y_m_d,
@@ -20,8 +19,12 @@ from scripts.log_helpers import (
 )
 from scripts.log_processing.runner import process_logs_once
 
+from gw2_logs_archive.scripts.log_processing.log_files import LogFilesDate
+
 logger = logging.getLogger(__name__)
 
+SLEEPTIME = 30
+MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
 # %%
 
 
@@ -66,8 +69,6 @@ class Command(BaseCommand):
         allowed_folder_names = create_folder_names(itype_groups=itype_groups)
 
         run_count = 0
-        SLEEPTIME = 30
-        MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
         current_sleeptime = MAXSLEEPTIME
 
         # Initialize local parser
@@ -76,10 +77,11 @@ class Command(BaseCommand):
             out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
         )
 
-        log_paths = LogPathsDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
-        PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
+        log_paths = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
         # Flow start
+        PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
+
         while True:
             for processing_type in PROCESSING_SEQUENCE:
                 processed_any = process_logs_once(

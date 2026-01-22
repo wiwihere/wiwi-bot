@@ -1,5 +1,6 @@
 # %%
 import logging
+import os
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -41,9 +42,17 @@ class LogFile:
 
         # Try to find the boss name of the log file. If not possible, we need to parse it first.
         try:
-            self.boss_name = str(self.path).split("arcdps.cbtlogs")[1].split("\\")[1]
+            # Its the first folder inside arcdps.cbtlogs
+            self.boss_name = str(self.path).split("arcdps.cbtlogs")[1].split(os.sep)[1]
         except IndexError as e:
             logger.info("Failed to find bossname, will use log.")
+            self.boss_name = None
+
+        parts = self.path.parts
+        if "arcdps.cbtlogs" in parts:
+            idx = parts.index("arcdps.cbtlogs")
+            self.boss_name = parts[idx + 1] if len(parts) > idx + 1 else None
+        else:
             self.boss_name = None
 
         self._path_short = None
@@ -73,14 +82,15 @@ class LogFile:
 
 
 @dataclass
-class LogPathsDate:
+class LogFilesDate:
     y: int
     m: int
     d: int
     log_search_dirs: list[Path] | None = None
     allowed_folder_names: list[str] | None = None
-    """This class finds logs by date and returns the paths to them as a dataframe.
-    
+    """This class finds logs by date and tracks them in the internal state self.logs 
+    It returns the paths to the logs as a dataframe.
+
     Parameters
     ----------
     y (int): The year of the date.
@@ -96,7 +106,7 @@ class LogPathsDate:
 
     Methods
     -------
-    update_available_logs()
+    refresh_and_get_logs()
         Finds the currently available logs by date and returns a dataframe.
     """
 
@@ -119,8 +129,8 @@ class LogPathsDate:
                 raise ValueError(f"Log directory {folder} does not exist. Check your .env")
 
     def _to_dataframe(self) -> pd.DataFrame:
-        """Convert the logs to a pandas DataFrame.
-        used by self.update_available_logs to return a df
+        """Convert the logs in self.logs to a pandas DataFrame.
+        used by self.refresh_and_get_logs to return a df
         """
         data = [
             {
@@ -143,9 +153,10 @@ class LogPathsDate:
         df.reset_index(inplace=True, drop=True)
         return df
 
-    def update_available_logs(self) -> pd.DataFrame:
+    def refresh_and_get_logs(self) -> pd.DataFrame:
         """Find all log files on a specific date.
-        Returns sorted list on maketime
+        Mutates internal state: adds newly discovered logs to self.logs.
+        Returns a DataFrame snapshot of the current state.
         """
 
         log_paths = list(
@@ -157,13 +168,13 @@ class LogPathsDate:
             if logfile.id in self.logs:
                 continue
 
-            # Check if the log file is allowed to be processedd
+            # Check if the log file is allowed to be processed
             if self.allowed_folder_names is not None:
                 if logfile.boss_name is not None:
                     if logfile.boss_name not in self.allowed_folder_names:
                         logger.info(f"Skipped {logfile.path_short} because it is not in the allowed_folder_names")
-                        logfile.local_processed = True
-                        logfile.upload_processed = True
+                        logfile.mark_local_processed()
+                        logfile.mark_upload_processed()
 
             self.logs[logfile.id] = logfile
 
@@ -175,9 +186,9 @@ if __name__ == "__main__":
     y, m, d = 2025, 1, 23
     log_dirs = [settings.DPS_LOGS_DIR]
 
-    self = logpaths = LogPathsDate(y, m, d, log_dirs)
-    self.get_logs()
-    df = self.to_dataframe()
+    self = logpaths = LogFilesDate(y, m, d, log_dirs)
+    self.refresh_and_get_logs()
+    df = self._to_dataframe()
 
     for log_row in df.where(~df["local_processed"]).itertuples():
         log = log_row.log
