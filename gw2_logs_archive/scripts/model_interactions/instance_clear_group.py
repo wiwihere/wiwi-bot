@@ -7,7 +7,6 @@ if __name__ == "__main__":
 import datetime
 import logging
 from dataclasses import dataclass
-from itertools import chain
 
 import numpy as np
 import pandas as pd
@@ -19,6 +18,8 @@ from gw2_logs.models import (
     Instance,
     InstanceClearGroup,
 )
+from scripts.discord_interaction.build_embeds import create_discord_embeds
+from scripts.discord_interaction.build_message import create_discord_message
 
 # from scripts.discord_helpers import create_discord_embeds, create_discord_message
 from scripts.log_helpers import (
@@ -292,8 +293,8 @@ class InstanceClearGroupInteraction:
         for icg in grp_lst:
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
 
-            # titles, descriptions = create_discord_message(icgi)
-            # icg_embeds = create_discord_embeds(titles, descriptions)
+            titles, descriptions = create_discord_message(icgi)
+            icg_embeds = create_discord_embeds(titles, descriptions)
             embeds.update(icg_embeds)
         embeds_mes = list(embeds.values())
 
