@@ -35,6 +35,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class FirstBossTracker:
+    """Tracks whether the first successful log has been encountered."""
+
+    def __init__(self):
+        self.is_first = True
+
+    def consume(self, success: bool):
+        """Flip to false after first success."""
+        if self.is_first and success:
+            logger.info("First boss cleared")
+            self.is_first = False
+
+
 def _create_message_title(icgi: "InstanceClearGroupInteraction") -> str:
     """Header is the date and the total cleartime if all bosses are success"""
     icg = icgi.iclear_group
@@ -85,7 +98,7 @@ def _create_log_delay_str(
     log: DpsLog,
     all_logs: list[DpsLog],
     all_success_logs: list[DpsLog],
-    first_boss: bool,
+    first_boss_tracker: FirstBossTracker,
     encounter_wipes: QuerySet[DpsLog],
     encounter_success: QuerySet[DpsLog],
 ) -> str:
@@ -96,7 +109,7 @@ def _create_log_delay_str(
     """
     delay_str = get_duration_str(0)  # Default no duration between previous and start log.
 
-    if first_boss:
+    if first_boss_tracker.is_first:
         # If there was a wipe on the first boss we calculate diff between start of
         # wipe run and start of kill run
         if len(encounter_wipes) > 0:
@@ -105,6 +118,7 @@ def _create_log_delay_str(
                 diff_time = log.start_time + log.duration - all_logs[0].start_time
 
             delay_str = get_duration_str(diff_time.seconds)
+
     else:
         # Calculate duration between start of kill run with previous kill run
         if log.success:
@@ -157,8 +171,8 @@ def _create_log_message_line(
     instance_logs: list[DpsLog],
     all_success_logs: list[DpsLog],
     all_logs: list[DpsLog],
-    first_boss: bool,
-) -> Tuple[str, bool]:
+    first_boss_tracker: FirstBossTracker,
+) -> str:
     r"""Full text line as shown on discord.
     first_boss flips to False on the first successful log and never back.
 
@@ -175,13 +189,13 @@ def _create_log_message_line(
         log=log,
         all_logs=all_logs,
         all_success_logs=all_success_logs,
-        first_boss=first_boss,
+        first_boss_tracker=first_boss_tracker,
         encounter_wipes=encounter_wipes,
         encounter_success=encounter_success,
     )
     # Only after a successful log the first_boss is cleared.
     if log.success:
-        first_boss = False
+        first_boss_tracker.consume(success=log.success)
 
     # Wipes also get an url, can be click the emote to go there.
     # Dont show wipes that are under 15 seconds.
@@ -200,15 +214,15 @@ def _create_log_message_line(
         if not encounter_success:
             if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
                 log_message_line = f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
-    return log_message_line, first_boss
+    return log_message_line
 
 
 def _create_instance_header(
     iclear: InstanceClear,
     all_success_logs: list[DpsLog],
     all_logs: list[DpsLog],
-    first_boss: bool,
-) -> Tuple[str, str, bool]:
+    first_boss_tracker: FirstBossTracker,
+) -> Tuple[str, str]:
     r"""Create the header of an instance. For raid wings this would result in something like this;
 
     title_instance:
@@ -239,16 +253,17 @@ def _create_instance_header(
     description_instance = ""
     instance_logs = list(iclear.dps_logs.order_by("start_time"))
     for log in instance_logs:
-        log_message_line, first_boss = _create_log_message_line(
+        logger.debug(f"{iclear} - {log} - Creating logline ")
+        log_message_line = _create_log_message_line(
             log=log,
             instance_logs=instance_logs,
             all_success_logs=all_success_logs,
             all_logs=all_logs,
-            first_boss=first_boss,
+            first_boss_tracker=first_boss_tracker,
         )
         description_instance += log_message_line
 
-    return title_instance, description_instance, first_boss
+    return title_instance, description_instance
 
 
 def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, str]:
@@ -263,6 +278,10 @@ def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, 
         chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in icgi.icg_iclears_all])
     )
 
+    logger.debug(
+        f"{icg.name} - Creating discord message; {len(all_logs)} logs, {len(all_success_logs)} success logs, {len(icgi.icg_iclears_all)} wings"
+    )
+
     descriptions = {}
     titles = {}
 
@@ -273,13 +292,14 @@ def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, 
     descriptions[icg.type] = {"main": description_main}
 
     # Loop over the instance clears (Spirit Vale, Salvation Pass, Soto Strikes, etc)
-    first_boss = True  # Tracks if a log is the first boss of all logs.
+    first_boss_tracker = FirstBossTracker()  # Tracks if a log is the first boss of all logs.
     for iclear in icgi.icg_iclears_all:
-        title_instance, description_instance, first_boss = _create_instance_header(
+        logger.debug(f"{iclear} - Creating header")
+        title_instance, description_instance = _create_instance_header(
             iclear=iclear,
             all_success_logs=all_success_logs,
             all_logs=all_logs,
-            first_boss=first_boss,
+            first_boss_tracker=first_boss_tracker,
         )
         # Add the field text to the embed. Raids and strikes have a
         # larger chance that the field_value is larger than 1024 charcters.
