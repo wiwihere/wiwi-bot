@@ -14,8 +14,6 @@ from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import requests
 from dateutil.parser import parse
 from django.conf import settings
@@ -31,7 +29,6 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_processing.ei_parser import EliteInsightsParser
 
 logger = logging.getLogger(__name__)
 

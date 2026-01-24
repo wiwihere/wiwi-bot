@@ -9,31 +9,44 @@ import json
 import logging
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 from django.conf import settings
-from django.core.management import call_command
+from scripts.log_processing.ei_updater import EliteInsightsUpdater
 
 logger = logging.getLogger(__name__)
 
-EI_PARSER_FOLDER = settings.PROJECT_DIR.joinpath("GW2EI_parser")
 EI_SETTINGS_DEFAULT = settings.BASE_DIR.joinpath("bot_settings", "gw2ei_settings_default.conf")
 
 
 class EliteInsightsParser:
-    def __init__(self):
-        """Interaction with EliteInsights CLI"""
-        self.EI_exe = EI_PARSER_FOLDER.joinpath("GuildWars2EliteInsights-CLI.exe")
+    def __init__(self, auto_update: bool = True, auto_update_check: bool = True, days_between_checks: int = 6):
+        """Interaction with EliteInsights CLI
+
+        Parameters
+        ----------
+        auto_update : bool, default True
+            Whether to automatically update EliteInsights parser on init.
+        auto_update_check : bool, default True
+            Whether to check the date before updating the parser.
+        days_between_checks : int, default 6
+            Number of days between automatic update checks.
+        """
         self.out_dir = None  # Set in .create_settings
         self.settings = None  # Set in .create_settings
 
-        self.download_or_update_EI()
+        # Paths
+        self.ei_parser_folder = settings.PROJECT_DIR.joinpath("GW2EI_parser")
+        self.EI_exe = self.ei_parser_folder.joinpath("GuildWars2EliteInsights-CLI.exe")
 
-    def download_or_update_EI(self):
-        """Download or update EliteInsights CLI
+        self.updater = EliteInsightsUpdater(self.ei_parser_folder)
 
-        Automatically checks version only once every week.
-        """
-        call_command("update_elite_insights_version", auto_update_check=True)
+        if auto_update:
+            # Download or update EliteInsights CLI
+            # Automatically checks version only once every week.
+            self.updater.update(auto_update_check=auto_update_check, days_between_checks=days_between_checks)
+        if not self.EI_exe.exists():
+            self.updater.update(auto_update_check=False)
 
     def create_settings(
         self,
@@ -67,7 +80,7 @@ class EliteInsightsParser:
         setting_output_path.write_text(settings_output)
         self.settings = setting_output_path
 
-    def parse_log(self, evtc_path: Path) -> Path:
+    def parse_log(self, evtc_path: Path) -> Optional[Path]:
         """Parse to json locally. Uploading to dps.report is not implemented.
         returns evtc_path=None when process doesnt parse the log. For instance due to
         Program: Fight is too short: 0 < 2200
@@ -90,12 +103,19 @@ class EliteInsightsParser:
             logger.info(f"Log {evtc_path.name} already parsed")
         else:
             # Call the parser
-            res = subprocess.run([str(self.EI_exe), "-c", f"{self.settings}", evtc_path])
+            res = subprocess.run(
+                [str(self.EI_exe), "-c", f"{self.settings}", evtc_path], capture_output=True, text=True
+            )
+
+            if res.returncode != 0:
+                logger.warning(f"EI failed for {evtc_path.name}: {res.stderr}")
+                return None
+
             js_path = self._find_parsed_json(evtc_path=evtc_path)
 
         return js_path
 
-    def _find_parsed_json(self, evtc_path: Path) -> Path:
+    def _find_parsed_json(self, evtc_path: Path) -> Optional[Path]:
         """Output gets a bit of a different name, find it."""
         evtc_path = Path(evtc_path)
 
@@ -103,9 +123,11 @@ class EliteInsightsParser:
         if len(files) > 0:
             file = files[0]
             return file
+        else:
+            logger.warning(f"File {evtc_path} not found.")
 
     @staticmethod
-    def load_json_gz(js_path):
+    def load_json_gz(js_path: Path) -> dict:
         """Load zipped json as detailed json"""
 
         with gzip.open(js_path, "r") as fin:
