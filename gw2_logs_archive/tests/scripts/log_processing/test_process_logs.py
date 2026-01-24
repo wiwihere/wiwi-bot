@@ -9,9 +9,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 from gw2_logs.models import DpsLog
-
-from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
-from gw2_logs_archive.scripts.log_processing.logfile_processing import process_logs_once
+from scripts.log_processing.log_files import LogFile, LogFilesDate
+from scripts.log_processing.logfile_processing import process_logs_once
 
 
 @pytest.fixture
@@ -37,8 +36,8 @@ def mock_eiparser():
     return MagicMock()
 
 
-@patch("gw2_logs_archive.scripts.log_processing.logfile_processing._parse_or_upload_log")
-@patch("gw2_logs_archive.scripts.log_processing.logfile_processing.InstanceClearGroupInteraction")
+@patch("scripts.log_processing.logfile_processing._parse_or_upload_log")
+@patch("scripts.log_processing.logfile_processing.InstanceClearGroupInteraction")
 def test_process_logs_once_fully_mocked(
     mock_parse_or_upload,
     mock_icgi_cls,
