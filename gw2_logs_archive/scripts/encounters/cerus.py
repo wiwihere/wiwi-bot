@@ -22,7 +22,6 @@ from gw2_logs.models import (
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.send_message import create_or_update_discord_message
-from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
@@ -31,6 +30,7 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
+from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_uploader import LogUploader
 from scripts.model_interactions.dps_log import DpsLogInteraction

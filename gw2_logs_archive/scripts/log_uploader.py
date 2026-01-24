@@ -24,7 +24,6 @@ from gw2_logs.models import (
     Encounter,
     Player,
 )
-from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     create_unix_time,
     get_duration_str,
@@ -32,6 +31,7 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
+from scripts.log_processing.ei_parser import EliteInsightsParser
 
 logger = logging.getLogger(__name__)
 

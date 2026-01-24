@@ -10,12 +10,12 @@ import time
 import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     create_folder_names,
     today_y_m_d,
     zfill_y_m_d,
 )
+from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFilesDate
 from scripts.log_processing.logfile_processing import process_logs_once
 

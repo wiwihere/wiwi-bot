@@ -20,11 +20,11 @@ from gw2_logs.models import (
     Encounter,
     Player,
 )
-from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     get_duration_str,
     get_rank_emote,
 )
+from scripts.log_processing.ei_parser import EliteInsightsParser
 
 logger = logging.getLogger(__name__)
 
