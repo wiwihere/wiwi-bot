@@ -1,18 +1,11 @@
 # %%
-import datetime
-import logging
-import os
-import time
-from dataclasses import dataclass
-from itertools import chain
-from typing import Union
-
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
 
-from pathlib import Path
+
+import logging
 
 import discord
 import numpy as np

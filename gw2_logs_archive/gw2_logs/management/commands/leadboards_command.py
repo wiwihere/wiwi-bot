@@ -1,11 +1,11 @@
 # %%
-from django.core.management.base import BaseCommand
-
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
+
 import scripts.leaderboards as leaderboards
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):

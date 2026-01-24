@@ -1,20 +1,17 @@
 # %%
 """Helper functions and variables"""
 
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import datetime
 import logging
-import os
 import time
 from dataclasses import dataclass
 from itertools import chain
 from typing import Optional, Union
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
-from pathlib import Path
 
 import discord
 import numpy as np
@@ -23,7 +20,7 @@ import pytz
 from discord import SyncWebhook
 from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, DpsLog, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
+from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)

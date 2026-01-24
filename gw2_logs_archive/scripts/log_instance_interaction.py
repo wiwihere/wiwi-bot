@@ -1,4 +1,9 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import datetime
 import logging
 from dataclasses import dataclass
@@ -9,12 +14,6 @@ import numpy as np
 import pandas as pd
 from django.conf import settings
 from django.db.models import Q
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
 from gw2_logs.models import (
     DiscordMessage,
     DpsLog,

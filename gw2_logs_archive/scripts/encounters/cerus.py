@@ -1,15 +1,14 @@
 # %%
 
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
+
 
 import datetime
 import logging
-import os
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -32,9 +31,8 @@ from scripts.log_helpers import (
     zfill_y_m_d,
 )
 from scripts.log_instance_interaction import create_embeds
+from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_uploader import DpsLogInteraction, LogUploader
-
-from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 logger = logging.getLogger(__name__)
 

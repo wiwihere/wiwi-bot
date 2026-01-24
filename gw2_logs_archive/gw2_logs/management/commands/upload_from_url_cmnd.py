@@ -1,14 +1,14 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import logging
 from itertools import chain
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
 from scripts import log_uploader
 
 logger = logging.getLogger(__name__)

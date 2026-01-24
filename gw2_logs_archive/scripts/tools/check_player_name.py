@@ -4,10 +4,9 @@ Creates a dataframe with a count of all the logs for each day they were there.
 
 # %%
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
-
+    django_setup.run()
 import numpy as np
 import pandas as pd
 from gw2_logs.models import DpsLog

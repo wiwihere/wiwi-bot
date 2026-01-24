@@ -1,16 +1,12 @@
-# %%
-
 # %% Updating emoji ids in bulk. The ids can be retrieved by printing the
 # emoji like this in discord;   \:emoji_id:
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
 
 from django.conf import settings
-
-from gw2_logs_archive.gw2_logs.models import Emoji
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
+from gw2_logs.models import Emoji
 
 # %%
 

@@ -1,12 +1,12 @@
 # %%
 """Tool to update discord messages for a given date"""
 
-import datetime
-
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
+
+import datetime
 
 from gw2_logs.models import InstanceClearGroup
 from scripts.log_helpers import today_y_m_d
