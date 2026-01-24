@@ -28,7 +28,7 @@ ruff = "*"
 tzlocal = "*"
 tqdm = "*"
 plotly = "*"
-
+pytest = "*"
 
 [pypi-dependencies]
 discord = "*"

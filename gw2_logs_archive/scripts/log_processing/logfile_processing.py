@@ -1,12 +1,11 @@
 # %%
-import logging
-from dataclasses import dataclass
-from typing import Literal, Tuple
-
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
+
+import logging
+from typing import Literal
 
 import scripts.leaderboards as leaderboards
 from gw2_logs.models import DpsLog
@@ -14,9 +13,8 @@ from scripts.ei_parser import EliteInsightsParser
 from scripts.log_instance_interaction import (
     InstanceClearGroupInteraction,
 )
+from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_uploader import DpsLogInteraction, LogUploader
-
-from gw2_logs_archive.scripts.log_processing.log_files import LogFile, LogFilesDate
 
 logger = logging.getLogger(__name__)
 
@@ -108,13 +106,13 @@ def process_logs_once(
 
     # Process each log
     processed_any = False
+    fractal_success = False
     for idx, row in enumerate(loop_df.itertuples()):
         logfile: LogFile = row.log
 
         parsed_log = _parse_or_upload_log(logfile=logfile, processing_type=processing_type, ei_parser=ei_parser)
 
         # 4. Create/update InstanceClearGroup
-        fractal_success = False  # FIXME dead
 
         if parsed_log is None:
             if processing_type == "local":

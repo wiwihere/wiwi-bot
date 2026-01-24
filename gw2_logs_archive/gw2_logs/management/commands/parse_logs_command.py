@@ -1,25 +1,23 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import logging
 import time
 
+import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
-import scripts.leaderboards as leaderboards
 from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     create_folder_names,
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_processing.runner import process_logs_once
-
-from gw2_logs_archive.scripts.log_processing.log_files import LogFilesDate
+from scripts.log_processing.log_files import LogFilesDate
+from scripts.log_processing.logfile_processing import process_logs_once
 
 logger = logging.getLogger(__name__)
 
