@@ -19,6 +19,7 @@ import pandas as pd
 import requests
 from dateutil.parser import parse
 from django.conf import settings
+from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
     Encounter,
@@ -29,6 +30,7 @@ from scripts.log_helpers import (
     create_unix_time,
     get_duration_str,
     get_emboldened_wing,
+    get_rank_emote,
     today_y_m_d,
     zfill_y_m_d,
 )
@@ -147,13 +149,6 @@ class DpsLogInteraction:
             )
         return dpslog
 
-    def from_normal_logs(self):
-        pass
-
-        # dpslog = DpsLog.objects.filter()
-
-        # return cls(dpslog=dpslog)
-
     @staticmethod
     def _get_phasetime_str(json_detailed):
         """For Cerus LCM the time breakbar phases are reached is calculated from detailed logs."""
@@ -177,3 +172,28 @@ class DpsLogInteraction:
         phasetime_str = " | ".join(phasetime_lst)
 
         return phasetime_str
+
+    def get_rank_emote_log(self) -> str:
+        """Look up the rank of the log compared to previous logs.
+        Returns the emotestr with information on the rank and how much slower
+        it was compared to the fastest clear until that point in time.
+        example:
+        '<:r20_of45_slower1804_9s:1240399925502545930>'
+        """
+        encounter_success_all = None
+        if self.dpslog.success:
+            encounter_success_all = list(
+                self.dpslog.encounter.dps_logs.filter(success=True, cm=self.dpslog.cm, emboldened=False)
+                .filter(
+                    Q(start_time__gte=self.dpslog.start_time - datetime.timedelta(days=9999))
+                    & Q(start_time__lte=self.dpslog.start_time)
+                )
+                .order_by("duration")
+            )
+        rank_str = get_rank_emote(
+            indiv=self.dpslog,
+            group=encounter_success_all,
+            core_minimum=settings.CORE_MINIMUM[self.dpslog.encounter.instance.instance_group.name],
+            custom_emoji_name=False,
+        )
+        return rank_str

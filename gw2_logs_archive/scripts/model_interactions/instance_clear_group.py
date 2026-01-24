@@ -19,7 +19,8 @@ from gw2_logs.models import (
     Instance,
     InstanceClearGroup,
 )
-from scripts.discord_helpers import create_discord_embeds, create_discord_message
+
+# from scripts.discord_helpers import create_discord_embeds, create_discord_message
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     PLAYER_EMOTES,
@@ -77,7 +78,7 @@ class InstanceClearGroupInteraction:
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
         for instance_name in instances_day:
             logs_instance = logs_day.filter(encounter__instance__name=instance_name)
-            ici = InstanceClearInteraction.from_logs(logs=logs_instance, instance_group=iclear_group)
+            ici = InstanceClearInteraction.update_or_create_from_logs(logs=logs_instance, instance_group=iclear_group)
 
         # Set start time of clear
         if iclear_group.instance_clears.all():
@@ -221,6 +222,39 @@ class InstanceClearGroupInteraction:
                 )
                 self.iclear_group.save()
 
+    def get_rank_emote_icg(self) -> str:
+        """Look up the rank of the instance clear compared to previous logs.
+        Returns the emotestr with information on the rank and how much slower
+        it was compared to the fastest clear until that point in time.
+        example:
+        '<:r20_of45_slower1804_9s:1240399925502545930>'
+        """
+        icg = self.iclear_group
+        icg_type = icg.type
+
+        # This is a str of wings + bosses that is included when looking up rank.
+        duration_encounters: str = icg.duration_encounters
+
+        # Find all older icgs and sort them by duration
+        group = list(
+            InstanceClearGroup.objects.filter(
+                success=True,
+                duration_encounters=duration_encounters,
+                type=icg_type,
+            )
+            .filter(start_time__lte=icg.start_time)
+            .exclude(name__icontains="cm__")
+            .order_by("duration")
+        )
+
+        # Create the rank emote str
+        rank_str = get_rank_emote(
+            indiv=icg,
+            group=group,
+            core_minimum=settings.CORE_MINIMUM[icg_type],
+        )
+        return rank_str
+
     def sync_discord_message_id(self):
         """Update the iclear_group discord message id to be the same if raids and strikes
         are sent to the same channel.
@@ -258,8 +292,8 @@ class InstanceClearGroupInteraction:
         for icg in grp_lst:
             icgi = InstanceClearGroupInteraction.from_name(icg.name)
 
-            titles, descriptions = create_discord_message(icgi)
-            icg_embeds = create_discord_embeds(titles, descriptions)
+            # titles, descriptions = create_discord_message(icgi)
+            # icg_embeds = create_discord_embeds(titles, descriptions)
             embeds.update(icg_embeds)
         embeds_mes = list(embeds.values())
 

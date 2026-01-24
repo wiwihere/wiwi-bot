@@ -4,19 +4,22 @@ if __name__ == "__main__":
 
     django_setup.run()
 
+
 import datetime
 import logging
 from dataclasses import dataclass
 from itertools import chain
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from gw2_logs.models import (
     DpsLog,
     Encounter,
     Instance,
+    InstanceClear,
     InstanceClearGroup,
 )
 from scripts.log_helpers import (
@@ -30,38 +33,52 @@ from scripts.log_helpers import (
     get_rank_emote,
     zfill_y_m_d,
 )
+from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions.instance_clear import InstanceClearInteraction
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 logger = logging.getLogger(__name__)
 
 
-def create_discord_message(icgi):
-    """Create a discord message from the available logs that are linked
-    to the instance clear.
-    """
+class DiscordMessageBuilder:
+    def __init__(
+        self,
+        icgi: "InstanceClearGroupInteraction",
+    ):
+        self.icgi = icgi
+
+
+def _create_message_title(icgi: InstanceClearGroupInteraction) -> str:
+    """Header is the date and the total cleartime if all bosses are success"""
     icg = icgi.iclear_group
+    title = icg.pretty_time
+    if icg.success:
+        # Get rank compared to all previous cleared instancecleargroups
+        rank_str = icgi.get_rank_emote_icg()
+        duration_str = get_duration_str(icg.duration.seconds)
+        title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
-    icgi.all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in icgi.icg_iclears_all]))
-    # Find all iclears. Can be both strike and raid.
-    all_success_logs = list(
-        chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in icgi.icg_iclears_all])
-    )
+    return title
 
-    descriptions = {}
-    titles = {}
 
-    # Put raid, strike, fractal in separate embeds.
-    # for instance_type in instance_types:
-
+def _create_duration_header_with_player_emotes(all_logs: list[DpsLog]) -> str:
+    """Create the embed header with the core, friend and pugs having a different emote, as configured in PLAYER_EMOTES (ducks) for each player.
+    Returns this string with the start and endtime as well, like so;
+    19:45 - 22:00
+    duck duck duck ... etc
+    """
+    # Calculate the median players in the instancecleargroup
     try:
-        core_count = int(np.median([log.core_player_count for log in icgi.all_logs]))
-        friend_count = int(np.median([log.friend_player_count for log in icgi.all_logs]))
-        pug_count = int(np.median([log.player_count for log in icgi.all_logs])) - core_count - friend_count
+        core_count = int(np.median([log.core_player_count for log in all_logs]))
+        friend_count = int(np.median([log.friend_player_count for log in all_logs]))
+        pug_count = int(np.median([log.player_count for log in all_logs])) - core_count - friend_count
     except TypeError:
+        logger.error("Couldnt find core_count")
         core_count = 0
         friend_count = 0
         pug_count = 10
 
-    # Nina's space, add space after 5 ducks for better readability.
+    # Create the string with emotes for each player. After 5 players a space is added
     pug_split_str = f"{PLAYER_EMOTES['core'] * core_count}{PLAYER_EMOTES['friend'] * friend_count}{PLAYER_EMOTES['pug'] * pug_count}".split(
         ">"
     )
@@ -70,153 +87,152 @@ def create_discord_message(icgi):
     pug_str = ">".join(pug_split_str)
 
     # title description with start - end time and colored ducks for core/pugs
-    description = f"""{create_discord_time(icgi.all_logs[0].start_time)} - \
-{create_discord_time(icgi.all_logs[-1].start_time + icgi.all_logs[-1].duration)} \
+    description = f"""{create_discord_time(all_logs[0].start_time)} - \
+{create_discord_time(all_logs[-1].start_time + all_logs[-1].duration)} \
 \n{pug_str}\n
 """
-    # Add total instance group time if all bosses finished.
-    # Loop through all instance clears in the same discord message.
-    title = icgi.iclear_group.pretty_time
-    if icg.success:
-        # Get rank compared to all cleared instancecleargroups
-        duration_encounters = (
-            InstanceClearGroup.objects.filter(type=icg.type).order_by("start_time").last().duration_encounters
-        )
+    return description
 
-        group = list(
-            InstanceClearGroup.objects.filter(
-                success=True,
-                duration_encounters=duration_encounters,
-                type=icg.type,
+
+def create_log_delay_str(
+    log: DpsLog,
+    all_logs: list[DpsLog],
+    all_success_logs: list[DpsLog],
+    first_boss: bool,
+    encounter_wipes: QuerySet[DpsLog],
+    encounter_success: QuerySet[DpsLog],
+) -> str:
+    """Calculate the delay of the log with the previous logs in the cleargroup.
+
+    Example return:
+    "1:48" -> fight started 1min48 after other
+    """
+    delay_str = get_duration_str(0)  # Default no duration between previous and start log.
+
+    if first_boss:
+        # If there was a wipe on the first boss we calculate diff between start of
+        # wipe run and start of kill run
+        if len(encounter_wipes) > 0:
+            diff_time = log.start_time - all_logs[0].start_time
+            if not encounter_success:
+                diff_time = log.start_time + log.duration - all_logs[0].start_time
+
+            delay_str = get_duration_str(diff_time.seconds)
+    else:
+        # Calculate duration between start of kill run with previous kill run
+        if log.success:
+            all_success_logs_idx = all_success_logs.index(log)
+            diff_time = log.start_time - (
+                all_success_logs[all_success_logs_idx - 1].start_time
+                + all_success_logs[all_success_logs_idx - 1].duration
             )
-            .exclude(name__icontains="cm__")
-            .order_by("duration")
-        )
+            delay_str = get_duration_str(diff_time.seconds)
 
-        rank_str = get_rank_emote(
-            indiv=icg,
-            group=group,
-            core_minimum=settings.CORE_MINIMUM[icg.type],
-        )
+        # If we dont have a success, we still need to calculate difference with previous log.
+        elif len(encounter_wipes) > 0:
+            diff_time = (
+                log.start_time
+                + log.duration
+                - (
+                    all_logs[all_logs.index(log) - len(encounter_wipes)].start_time
+                    + all_logs[all_logs.index(log) - len(encounter_wipes)].duration
+                )
+            )
 
-        duration_str = get_duration_str(icg.duration.seconds)
-        title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
+            delay_str = get_duration_str(diff_time.seconds)
 
-    titles[icg.type] = {"main": title}
-    descriptions[icg.type] = {"main": description}
+    return delay_str
 
-    # Loop over the instance clears
+
+def create_log_wipe_str(encounter_wipes: QuerySet[DpsLog]) -> str:
+    """Create the wipe str. This will add one wipe skull per wipe on an encounter.
+    Clicking the skull will open a browser at the dps.report log.
+
+    Example return with wipes at 54% and 14%:
+    "[<:wipe_at_54:skullemoiji>](https://dps.report/wipe1) [<:wipe_at_14:skullemoiji>](https://dps.report/wipe2)"
+    """
+    wipe_str = ""
+    for wipe in encounter_wipes:
+        if wipe.duration.seconds > 15:
+            wipe_emote = WIPE_EMOTES[np.ceil(wipe.final_health_percentage / 12.5)].format(
+                f"wipe_at_{int(wipe.final_health_percentage)}"
+            )
+            # Add link to dps.report log if available
+            if wipe.url == "":
+                wipe_str += f" {wipe_emote}"
+            else:
+                wipe_str += f" [{wipe_emote}]({wipe.url})"
+    return wipe_str
+
+
+def create_discord_message(icgi):
+    """Create a discord message from the available logs that are linked
+    to the instance clear.
+    """
+    icg = icgi.iclear_group
+
+    # Find all logs
+    all_logs = list(chain(*[i.dps_logs.order_by("start_time") for i in icgi.icg_iclears_all]))
+    all_success_logs = list(
+        chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in icgi.icg_iclears_all])
+    )
+
+    descriptions = {}
+    titles = {}
+
+    main_title = _create_message_title(icgi=icgi)
+    main_description = _create_duration_header_with_player_emotes(all_logs=all_logs)
+
+    titles[icg.type] = {"main": main_title}
+    descriptions[icg.type] = {"main": main_description}
+
+    # Loop over the instance clears (Spirit Vale, Salvation Pass, Soto Strikes, etc)
     first_boss = True  # Tracks if a log is the first boss of all logs.
     for iclear in icgi.icg_iclears_all:
         titles[iclear.instance.instance_group.name][iclear.name] = ""  # field title
         descriptions[iclear.instance.instance_group.name][iclear.name] = ""  # field description
 
-        # Find rank of full instance on leaderboard
-        iclear_success_all = None
-        if iclear.success:
-            iclear_success_all = list(
-                iclear.instance.instance_clears.filter(success=True, emboldened=False)
-                .filter(
-                    Q(start_time__gte=iclear.start_time - datetime.timedelta(days=9999))
-                    & Q(start_time__lte=iclear.start_time)
-                )
-                .order_by("duration")
-            )
-        rank_str = get_rank_emote(
-            indiv=iclear,
-            group=iclear_success_all,
-            core_minimum=settings.CORE_MINIMUM[iclear.instance.instance_group.name],
-        )
+        # Find rank of instance on leaderboard
+        rank_str = InstanceClearInteraction(iclear=iclear).get_rank_emote_ic()
 
         # Cleartime wing
         duration_str = get_duration_str(iclear.duration.seconds)
 
         titles[iclear.instance.instance_group.name][iclear.name] = (
-            f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.name.split('__')[0].replace('_', ' ').title()} \
-({duration_str})__**\n"
+            f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.instance.name} ({duration_str})__**\n"
         )
-        field_value = ""
-
-        instance_logs = iclear.dps_logs.order_by("start_time")
 
         # Loop all logs in an instance (raid wing).
         # If there are wipes also take those
         # Print each log on separate line. Also calculate diff between logs (downtime)
-        for idx, log in enumerate(instance_logs):
+        field_value = ""
+        instance_logs = iclear.dps_logs.order_by("start_time")
+        for log in instance_logs:
+            # Filter wipes and success
             encounter_wipes = instance_logs.filter(success=False, encounter__nr=log.encounter.nr)
             encounter_success = instance_logs.filter(success=True, encounter__nr=log.encounter.nr)
 
-            duration_str = get_duration_str(0)  # Default no duration between previous and start log.
+            rank_str = DpsLogInteraction(dpslog=log).get_rank_emote_log()
 
-            if first_boss:
-                # If there was a wipe on the first boss we calculate diff between start of
-                # wipe run and start of kill run
-                if len(encounter_wipes) > 0:
-                    diff_time = log.start_time - icgi.all_logs[0].start_time
-                    if not encounter_success:
-                        diff_time = log.start_time + log.duration - icgi.all_logs[0].start_time
-
-                    duration_str = get_duration_str(diff_time.seconds)
-            else:
-                # Calculate duration between start of kill run with previous kill run
-                if log.success:
-                    all_success_logs_idx = all_success_logs.index(log)
-                    diff_time = log.start_time - (
-                        all_success_logs[all_success_logs_idx - 1].start_time
-                        + all_success_logs[all_success_logs_idx - 1].duration
-                    )
-                    duration_str = get_duration_str(diff_time.seconds)
-
-                # If we dont have a success, we still need to calculate difference with previous log.
-                elif len(encounter_wipes) > 0:
-                    diff_time = (
-                        log.start_time
-                        + log.duration
-                        - (
-                            icgi.all_logs[icgi.all_logs.index(log) - len(encounter_wipes)].start_time
-                            + icgi.all_logs[icgi.all_logs.index(log) - len(encounter_wipes)].duration
-                        )
-                    )
-
-                    duration_str = get_duration_str(diff_time.seconds)
-
-            if log.success:
-                first_boss = False  # Only after a successful log the first_boss is cleared.
-
-            # Find rank of boss on leaderboard filter for logs of last year.
-            encounter_success_all = None
-            if log.success:
-                encounter_success_all = list(
-                    log.encounter.dps_logs.filter(success=True, cm=log.cm, emboldened=False)
-                    .filter(
-                        Q(start_time__gte=log.start_time - datetime.timedelta(days=9999))
-                        & Q(start_time__lte=log.start_time)
-                    )
-                    .order_by("duration")
-                )
-            rank_str = get_rank_emote(
-                indiv=log,
-                group=encounter_success_all,
-                core_minimum=settings.CORE_MINIMUM[log.encounter.instance.instance_group.name],
-                custom_emoji_name=False,
+            delay_str = create_log_delay_str(
+                log=log,
+                all_logs=all_logs,
+                all_success_logs=all_success_logs,
+                first_boss=first_boss,
+                encounter_wipes=encounter_wipes,
+                encounter_success=encounter_success,
             )
+            # Only after a successful log the first_boss is cleared.
+            if log.success:
+                first_boss = False
 
-            # Wipes also get an url, can be click the emote to go there. Doesnt work on phone.
+            # Wipes also get an url, can be click the emote to go there.
             # Dont show wipes that are under 15 seconds.
-            wipe_str = ""
-            for wipe in encounter_wipes:
-                if wipe.duration.seconds > 15:
-                    wipe_emote = WIPE_EMOTES[np.ceil(wipe.final_health_percentage / 12.5)].format(
-                        f"wipe_at_{int(wipe.final_health_percentage)}"
-                    )
-                    if wipe.url == "":
-                        wipe_str += f" {wipe_emote}"
-                    else:
-                        wipe_str += f" [{wipe_emote}]({wipe.url})"
+            wipe_str = create_log_wipe_str(encounter_wipes=encounter_wipes)
 
             # Add encounter to field
             if log.success:
-                field_value += f"{log.discord_tag.format(rank_str=rank_str)}_+{duration_str}_{wipe_str}\n"
+                field_value += f"{log.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
             else:
                 # If there are only wipes for an encounter, still add it to the field.
                 # This is a bit tricky, thats why we need to check a couple things.
@@ -225,7 +241,7 @@ def create_discord_message(icgi):
                 #   - Also should only add multiple wipes on same boss once.
                 if not encounter_success:
                     if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
-                        field_value += f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{duration_str}_{wipe_str}\n"
+                        field_value += f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
 
         # Add the field text to the embed. Raids and strikes have a
         # larger chance that the field_value is larger than 1024 charcters.
@@ -234,6 +250,40 @@ def create_discord_message(icgi):
         descriptions[iclear.instance.instance_group.name][iclear.name] = field_value
 
     return titles, descriptions
+
+
+if __name__ == "__main__":
+    # Test refactor on the go. Dont touch the code below.
+    y, m, d = 2025, 12, 18
+    itype_group = "raid"
+
+    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+    titles, descriptions = create_discord_message(icgi)
+    logger.info(titles)
+    logger.info(descriptions)
+
+    assert titles == {
+        "raid": {
+            "main": "Thu 18 Dec 2025⠀⠀⠀⠀<:r20_of45_slower1804_9s:1240399925502545930> **3:12:00** <:r20_of45_slower1804_9s:1240399925502545930> \n",
+            "spirit_vale__20251218": "**__<:spirit_vale:1185639755464060959><:r46_of82_slower108_8s:1240799615763222579>Spirit Vale (17:49)__**\n",
+            "salvation_pass__20251218": "**__<:salvation_pass:1185642016776913046><:r23_of84_slower55_9s:1240399925502545930>Salvation Pass (14:55)__**\n",
+            "bastion_of_the_penitent__20251218": "**__<:bastion_of_the_penitent:1185642020484698132><:r73_of99_slower319_4s:1240799615763222579>Bastion of the Penitent (23:26)__**\n",
+            "mount_balrior__20251218": "**__<:mount_balrior:1311064236486688839><:r14_of39_slower175_0s:1240399925502545930>Mount Balrior (22:17)__**\n",
+        }
+    }
+
+    assert descriptions == {
+        "raid": {
+            "main": "<t:1766083791:t> - <t:1766089156:t> \n<a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414> <a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:core:1203309561293840414><a:pug:1206367130509905931>\n\n",
+            "spirit_vale__20251218": "<:vale_guardian:1206250717401063605><:r55_of82_slower22_6s:1240799615763222579>[Vale Guardian](https://dps.report/Zb2m-20251218-185224_vg) (**2:31**)_+0:00_\n<:gorseval_the_multifarious:1206250719074721813><:r29_of83_slower10_7s:1240399925502545930>[Gorseval the Multifarious](https://dps.report/aIEy-20251218-190208_gors) (**2:10**)_+7:33_\n<:sabetha_the_saboteur:1206250720483872828><:r68_of83_slower49_0s:1240798628596027483>[Sabetha the Saboteur](https://dps.report/texU-20251218-190742_sab) (**3:42**)_+1:51_\n",
+            "salvation_pass__20251218": "<:slothasor:1206250721880576081><:r8_of84_slower9_5s:1240399924198379621>[Slothasor](https://dps.report/yGvz-20251218-191257_sloth) (**2:10**)_+2:58_\n<:bandit_trio:1206250723550175283><:r26_of84_slower4_6s:1240399925502545930>[Bandit Trio](https://dps.report/3csn-20251218-192149_trio) (**6:31**)_+0:22_\n<:matthias_gabrel:1206250724879503410><:r72_of84_slower66_0s:1240798628596027483>[Matthias Gabrel](https://dps.report/D9Wl-20251218-192539_matt) (**3:10**)_+2:40_\n",
+            "bastion_of_the_penitent__20251218": "<:cairn:1206251996680556544><:r6_of99_slower3_6s:1240399924198379621>[Cairn CM](https://dps.report/e3La-20251218-193053_cairn) (**1:18**)_+3:44_\n<:mursaat_overseer:1206252000229199932><:r3_of99_slower3_7s:1338196304924250273>[Mursaat Overseer CM](https://dps.report/cUNu-20251218-193357_mo) (**1:37**)_+1:35_\n<:samarog:1206256460120457277><:r4_of99_slower41_2s:1240399924198379621>[Samarog CM](https://dps.report/Lgpi-20251218-194020_sam) (**5:08**)_+1:19_\n<:deimos:1206256463031304253><:r5_of99_slower19_9s:1240399924198379621>[Deimos CM](https://dps.report/7jym-20251218-195252_dei) (**5:23**)_+7:03_ [<:wipe_at_14:1199739670641258526>](https://dps.report/2Q8K-20251218-194648_dei)\n",
+            "mount_balrior__20251218": "<:greer:1310742326548762664><:r21_of42_slower45_4s:1240799615763222579>[Greer, the Blightbringer](https://dps.report/IPHG-20251218-200502_greer) (**7:59**)_+4:13_\n<:decima:1310742355644776458><:r17_of40_slower39_0s:1240399925502545930>[Decima, the Stormsinger](https://dps.report/tOQg-20251218-201241_deci) (**4:57**)_+2:41_\n<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://dps.report/3xn6-20251218-201925_ura) (**4:50**)_+1:48_\n",
+        }
+    }
+
+
+# %%
 
 
 def create_discord_embeds(titles, descriptions) -> dict:

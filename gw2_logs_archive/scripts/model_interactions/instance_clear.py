@@ -4,14 +4,18 @@ if __name__ == "__main__":
 
     django_setup.run()
 
+import datetime
 import logging
 from dataclasses import dataclass
 
 import numpy as np
+from django.conf import settings
+from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
     InstanceClear,
 )
+from scripts.log_helpers import get_rank_emote
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ class InstanceClearInteraction:
     iclear: InstanceClear
 
     @classmethod
-    def from_logs(cls, logs: list[DpsLog], instance_group=None):
+    def update_or_create_from_logs(cls, logs: list[DpsLog], instance_group=None):
         """Log should be filtered on instance"""
         iname = f"{logs[0].encounter.instance.name_lower}__{logs[0].start_time.strftime('%Y%m%d')}"
 
@@ -76,3 +80,27 @@ class InstanceClearInteraction:
     @classmethod
     def from_name(cls, name):
         return cls(InstanceClear.objects.get(name=name))
+
+    def get_rank_emote_ic(self) -> str:
+        """Look up the rank of the instance clear compared to previous logs.
+        Returns the emotestr with information on the rank and how much slower
+        it was compared to the fastest clear until that point in time.
+        example:
+        '<:r20_of45_slower1804_9s:1240399925502545930>'
+        """
+        success_group = None
+        if self.iclear.success:
+            success_group = list(
+                self.iclear.instance.instance_clears.filter(success=True, emboldened=False)
+                .filter(
+                    Q(start_time__gte=self.iclear.start_time - datetime.timedelta(days=9999))
+                    & Q(start_time__lte=self.iclear.start_time),
+                )
+                .order_by("duration")
+            )
+        rank_str = get_rank_emote(
+            indiv=self.iclear,
+            group=success_group,
+            core_minimum=settings.CORE_MINIMUM[self.iclear.instance.instance_group.name],
+        )
+        return rank_str

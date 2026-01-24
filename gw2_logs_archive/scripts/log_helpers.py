@@ -20,7 +20,16 @@ import pytz
 from discord import SyncWebhook
 from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
+from gw2_logs.models import (
+    DiscordMessage,
+    DpsLog,
+    Emoji,
+    Encounter,
+    Instance,
+    InstanceClear,
+    InstanceClearGroup,
+    InstanceGroup,
+)
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)
@@ -267,15 +276,25 @@ def make_duration_str(group, rank: int, indiv):
     return dur
 
 
-def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
+def get_rank_emote(
+    indiv: DpsLog | InstanceClear | InstanceClearGroup,
+    group: list[DpsLog] | list[InstanceClear] | list[InstanceClearGroup],
+    core_minimum: int,
+    custom_emoji_name: bool = False,
+):
     """Find the rank of the indiv in the group.
 
     Parameters
     ----------
     indiv: [DpsLog, InstanceClear, InstanceClearGroup]
+        The individual log, instanceclear or instancecleargroup that we want the rank emote for
     group: list[[DpsLog, InstanceClear, InstanceClearGroup]]
-    core_minimum : (int)
-    custom_emoji_name: Bool
+        Sorted list on duration of dpslog, instanceclear or instancleargroup.
+        Used to find the index of the provided idividual log to see how it compared.
+        Fastest log is first in the list, so filter with .order_by("duration")
+    core_minimum : int
+        If the player count is below the core_minimum, a different emoji is shown.
+    custom_emoji_name: bool
         Return emoji with a format option for the emoji. The returned rank_str
         should be formatted e.g.; rank_str.format("custom_name").
     """
