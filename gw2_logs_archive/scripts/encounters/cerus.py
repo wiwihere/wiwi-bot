@@ -20,17 +20,17 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
+from scripts.discord_interaction.build_embeds import create_discord_embeds
+from scripts.discord_interaction.send_message import create_or_update_discord_message
 from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
-    create_or_update_discord_message,
     create_rank_emote_dict_percentiles,
     get_duration_str,
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_instance_interaction import create_embeds
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_uploader import LogUploader
 from scripts.model_interactions.dps_log import DpsLogInteraction
@@ -238,7 +238,7 @@ def run_cerus_cm(y, m, d):
                     current_sleeptime = MAXSLEEPTIME
 
             if titles is not None:
-                embeds = create_embeds(titles=titles, descriptions=descriptions)
+                embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
                 embeds_mes = list(embeds.values())
 
                 day_count = len(

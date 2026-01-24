@@ -20,14 +20,12 @@ from gw2_logs.models import (
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.build_message import create_discord_message
-from scripts.log_helpers import (
-    ITYPE_GROUPS,
-    PLAYER_EMOTES,
-    WIPE_EMOTES,
-    create_discord_time,
+from scripts.discord_interaction.send_message import (
     create_or_update_discord_message,
     create_or_update_discord_message_current_week,
-    get_duration_str,
+)
+from scripts.log_helpers import (
+    ITYPE_GROUPS,
     get_rank_emote,
     zfill_y_m_d,
 )

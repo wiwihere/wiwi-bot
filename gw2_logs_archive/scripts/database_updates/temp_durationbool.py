@@ -6,7 +6,7 @@ if __name__ == "__main__":
 
 # from django.conf import settings
 from gw2_logs.models import DpsLog, Encounter, InstanceClearGroup
-from scripts.log_instance_interaction import InstanceClearGroupInteraction
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 # %%
 for obj in Encounter.objects.all():
