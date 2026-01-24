@@ -165,6 +165,104 @@ def create_log_wipe_str(encounter_wipes: QuerySet[DpsLog]) -> str:
     return wipe_str
 
 
+def create_log_message_line(
+    log: DpsLog,
+    instance_logs: QuerySet[DpsLog],
+    all_success_logs: list[DpsLog],
+    all_logs: list[DpsLog],
+    first_boss: bool,
+) -> Union[str, bool]:
+    r"""Full text line as shown on discord.
+
+    Example:
+    '<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://dps.report/3xn6-20251218-201925_ura) (**4:50**)_+1:48_\n'
+    """
+    # Filter wipes and success
+    encounter_wipes = instance_logs.filter(success=False, encounter__nr=log.encounter.nr)
+    encounter_success = instance_logs.filter(success=True, encounter__nr=log.encounter.nr)
+
+    rank_str = DpsLogInteraction(dpslog=log).get_rank_emote_log()
+
+    delay_str = create_log_delay_str(
+        log=log,
+        all_logs=all_logs,
+        all_success_logs=all_success_logs,
+        first_boss=first_boss,
+        encounter_wipes=encounter_wipes,
+        encounter_success=encounter_success,
+    )
+    # Only after a successful log the first_boss is cleared.
+    if log.success:
+        first_boss = False
+
+    # Wipes also get an url, can be click the emote to go there.
+    # Dont show wipes that are under 15 seconds.
+    wipe_str = create_log_wipe_str(encounter_wipes=encounter_wipes)
+
+    # Add encounter to field
+    log_message_line = ""
+    if log.success:
+        log_message_line = f"{log.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
+    else:
+        # If there are only wipes for an encounter, still add it to the field.
+        # This is a bit tricky, thats why we need to check a couple things.
+        #   - Cannot add text when there is a success as it will print multiple lines for
+        #     the same encounter.
+        #   - Also should only add multiple wipes on same boss once.
+        if not encounter_success:
+            if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
+                log_message_line = f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
+    return log_message_line, first_boss
+
+
+def create_instance_header(
+    iclear: InstanceClear,
+    all_success_logs: list[DpsLog],
+    all_logs: list[DpsLog],
+    first_boss: bool,
+) -> Union[str, str, bool]:
+    r"""Create the header of an instance. For raid wings this would result in something like this;
+
+    title_instance:
+    '**__<:spirit_vale:1185639755464060959><:r46_of82_slower108_8s:1240799615763222579>Spirit Vale (17:49)__**\n'
+
+    description_instance:
+    '<:vale_guardian:emoji_id><:r55_of82_slower22_6s:emoji_id>[Vale Guardian](https://dps.report/.._vg) (**2:31**)_+0:00_\n
+    <:gorseval_the_multifarious:emoji_id><:r29_of83_slower10_7s:emoji_id>[Gorseval the Multifarious](https://dps.report/.._gors) (**2:10**)_+7:33_\n
+    <:sabetha_the_saboteur:emoji_id><:r68_of83_slower49_0s:emoji_id>[Sabetha the Saboteur](https://dps.report/.._sab) (**3:42**)_+1:51_\n'
+    """
+    # --------------------------------
+    # Create the title of the instance
+    # --------------------------------
+    # Find rank and cleartime of wing
+    rank_str = InstanceClearInteraction(iclear=iclear).get_rank_emote_ic()
+    duration_str = get_duration_str(iclear.duration.seconds)
+
+    title_instance = (
+        f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.instance.name} ({duration_str})__**\n"
+    )
+
+    # --------------------------------------
+    # Create the description of the instance
+    # --------------------------------------
+    # Loop all logs in an instance (raid wing), each encounter will be its own line in discord
+    # If there are wipes these are added to the line as separete emoji's
+    # Also calculate diff between logs (downtime)
+    description_instance = ""
+    instance_logs = iclear.dps_logs.order_by("start_time")
+    for log in instance_logs:
+        log_message_line, first_boss = create_log_message_line(
+            log=log,
+            instance_logs=instance_logs,
+            all_success_logs=all_success_logs,
+            all_logs=all_logs,
+            first_boss=first_boss,
+        )
+        description_instance += log_message_line
+
+    return title_instance, description_instance, first_boss
+
+
 def create_discord_message(icgi):
     """Create a discord message from the available logs that are linked
     to the instance clear.
@@ -180,74 +278,27 @@ def create_discord_message(icgi):
     descriptions = {}
     titles = {}
 
-    main_title = _create_message_title(icgi=icgi)
-    main_description = _create_duration_header_with_player_emotes(all_logs=all_logs)
+    title_main = _create_message_title(icgi=icgi)
+    description_main = _create_duration_header_with_player_emotes(all_logs=all_logs)
 
-    titles[icg.type] = {"main": main_title}
-    descriptions[icg.type] = {"main": main_description}
+    titles[icg.type] = {"main": title_main}
+    descriptions[icg.type] = {"main": description_main}
 
     # Loop over the instance clears (Spirit Vale, Salvation Pass, Soto Strikes, etc)
     first_boss = True  # Tracks if a log is the first boss of all logs.
     for iclear in icgi.icg_iclears_all:
-        titles[iclear.instance.instance_group.name][iclear.name] = ""  # field title
-        descriptions[iclear.instance.instance_group.name][iclear.name] = ""  # field description
-
-        # Find rank of instance on leaderboard
-        rank_str = InstanceClearInteraction(iclear=iclear).get_rank_emote_ic()
-
-        # Cleartime wing
-        duration_str = get_duration_str(iclear.duration.seconds)
-
-        titles[iclear.instance.instance_group.name][iclear.name] = (
-            f"**__{iclear.instance.emoji.discord_tag()}{rank_str}{iclear.instance.name} ({duration_str})__**\n"
+        title_instance, description_instance, first_boss = create_instance_header(
+            iclear=iclear,
+            all_success_logs=all_success_logs,
+            all_logs=all_logs,
+            first_boss=first_boss,
         )
-
-        # Loop all logs in an instance (raid wing).
-        # If there are wipes also take those
-        # Print each log on separate line. Also calculate diff between logs (downtime)
-        field_value = ""
-        instance_logs = iclear.dps_logs.order_by("start_time")
-        for log in instance_logs:
-            # Filter wipes and success
-            encounter_wipes = instance_logs.filter(success=False, encounter__nr=log.encounter.nr)
-            encounter_success = instance_logs.filter(success=True, encounter__nr=log.encounter.nr)
-
-            rank_str = DpsLogInteraction(dpslog=log).get_rank_emote_log()
-
-            delay_str = create_log_delay_str(
-                log=log,
-                all_logs=all_logs,
-                all_success_logs=all_success_logs,
-                first_boss=first_boss,
-                encounter_wipes=encounter_wipes,
-                encounter_success=encounter_success,
-            )
-            # Only after a successful log the first_boss is cleared.
-            if log.success:
-                first_boss = False
-
-            # Wipes also get an url, can be click the emote to go there.
-            # Dont show wipes that are under 15 seconds.
-            wipe_str = create_log_wipe_str(encounter_wipes=encounter_wipes)
-
-            # Add encounter to field
-            if log.success:
-                field_value += f"{log.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
-            else:
-                # If there are only wipes for an encounter, still add it to the field.
-                # This is a bit tricky, thats why we need to check a couple things.
-                #   - Cannot add text when there is a success as it will print multiple lines for
-                #     the same encounter.
-                #   - Also should only add multiple wipes on same boss once.
-                if not encounter_success:
-                    if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
-                        field_value += f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
-
         # Add the field text to the embed. Raids and strikes have a
         # larger chance that the field_value is larger than 1024 charcters.
         # This is sadly currently the limit on embed.field.value.
         # Descriptions can be 4096 characters, so instead of a field we just edit the description.
-        descriptions[iclear.instance.instance_group.name][iclear.name] = field_value
+        titles[iclear.instance.instance_group.name][iclear.name] = title_instance
+        descriptions[iclear.instance.instance_group.name][iclear.name] = description_instance
 
     return titles, descriptions
 
