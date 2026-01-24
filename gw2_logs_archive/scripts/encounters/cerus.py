@@ -256,7 +256,7 @@ def run_cerus_cm(y, m, d):
                             embeds_mes[i].description = table_header + embeds_mes[i].description
 
                 create_or_update_discord_message(
-                    group=iclear_group, hook=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
+                    group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
                 )
 
         if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):

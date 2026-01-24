@@ -297,15 +297,15 @@ class InstanceClearGroupInteraction:
         # Create/update the message
         create_or_update_discord_message(
             group=self.iclear_group,
-            hook=settings.WEBHOOKS[self.iclear_group.type],
+            webhook_url=settings.WEBHOOKS[self.iclear_group.type],
             embeds_messages_list=embeds_messages_list,
         )
 
         # Create/update message in the fast channel.
         if settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type] is not None:
             create_or_update_discord_message_current_week(
-                group=self.iclear_group,
-                hook=settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type],
+                iclear_group=self.iclear_group,
+                webhook_url=settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type],
                 embeds_messages_list=embeds_messages_list,
             )
 
@@ -316,3 +316,6 @@ if __name__ == "__main__":
     itype_group = "raid"
 
     self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+
+    group = self.iclear_group
+    webhook_url = settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type]

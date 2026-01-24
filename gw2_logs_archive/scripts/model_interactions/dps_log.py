@@ -6,18 +6,13 @@ if __name__ == "__main__":
     django_setup.run()
 
 import datetime
-import json
 import logging
 import shutil
-import time
 from dataclasses import dataclass
-from itertools import chain
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import requests
-from dateutil.parser import parse
 from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import (
@@ -27,12 +22,8 @@ from gw2_logs.models import (
 )
 from scripts.ei_parser import EliteInsightsParser
 from scripts.log_helpers import (
-    create_unix_time,
     get_duration_str,
-    get_emboldened_wing,
     get_rank_emote,
-    today_y_m_d,
-    zfill_y_m_d,
 )
 
 logger = logging.getLogger(__name__)
