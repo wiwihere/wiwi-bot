@@ -20,8 +20,6 @@ from gw2_logs.models import (
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.build_message import create_discord_message
-
-# from scripts.discord_helpers import create_discord_embeds, create_discord_message
 from scripts.log_helpers import (
     ITYPE_GROUPS,
     PLAYER_EMOTES,
