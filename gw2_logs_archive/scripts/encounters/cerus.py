@@ -32,7 +32,8 @@ from scripts.log_helpers import (
 )
 from scripts.log_instance_interaction import create_embeds
 from scripts.log_processing.log_files import LogFile, LogFilesDate
-from scripts.log_uploader import DpsLogInteraction, LogUploader
+from scripts.log_uploader import LogUploader
+from scripts.model_interactions.dps_log import DpsLogInteraction
 
 logger = logging.getLogger(__name__)
 
