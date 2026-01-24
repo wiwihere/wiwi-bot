@@ -414,7 +414,7 @@ def get_avg_duration_str(group):
 def create_or_update_discord_message(
     group: Union[Instance, InstanceGroup, InstanceClearGroup],
     hook,
-    embeds_mes: list,
+    embeds_messages_list: list,
     thread=MISSING,
 ):
     """Send message to discord
@@ -436,7 +436,7 @@ def create_or_update_discord_message(
 
         webhook.edit_message(
             message_id=discord_message.message_id,
-            embeds=embeds_mes,
+            embeds=embeds_messages_list,
             thread=thread,
         )
 
@@ -444,7 +444,7 @@ def create_or_update_discord_message(
         logger.info(f"Updating discord message: {discord_message.name}")
 
     except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
-        mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+        mess = webhook.send(wait=True, embeds=embeds_messages_list, thread=thread)
 
         if isinstance(group, Instance):
             name = f"leaderboard_{group.instance_group.name}{group.nr}"
@@ -463,7 +463,7 @@ def create_or_update_discord_message(
 def create_or_update_discord_message_current_week(
     group,
     hook,
-    embeds_mes: list,
+    embeds_messages_list: list,
     thread=MISSING,
     discord_message: Optional[DiscordMessage] = None,
 ):
@@ -511,7 +511,7 @@ def create_or_update_discord_message_current_week(
         try:
             webhook.edit_message(
                 message_id=discord_message.message_id,
-                embeds=embeds_mes,
+                embeds=embeds_messages_list,
                 thread=thread,
             )
 
@@ -519,7 +519,7 @@ def create_or_update_discord_message_current_week(
             logger.info(f"Updating discord message: {discord_message.name}")
 
         except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
-            mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
+            mess = webhook.send(wait=True, embeds=embeds_messages_list, thread=thread)
 
             discord_message.message_id = mess.id
             discord_message.increase_counter()

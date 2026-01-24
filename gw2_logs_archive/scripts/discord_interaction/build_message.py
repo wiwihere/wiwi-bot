@@ -175,13 +175,29 @@ def _create_log_message_line(
 ) -> str:
     r"""Full text line as shown on discord.
     first_boss flips to False on the first successful log and never back.
+    Each encounter is only processed once. At the start of this function we therefore return
+    an empty line if its not the last log for the encounter.
 
     Example:
     '<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://dps.report/3xn6-20251218-201925_ura) (**4:50**)_+1:48_\n'
     """
+
     # Filter wipes and success
-    encounter_wipes = [log for log in instance_logs if not log.success and log.encounter.nr == log.encounter.nr]
-    encounter_success = [log for log in instance_logs if log.success and log.encounter.nr == log.encounter.nr]
+    encounter_wipes = [l for l in instance_logs if not l.success and l.encounter.nr == log.encounter.nr]
+    encounter_success = [l for l in instance_logs if l.success and l.encounter.nr == log.encounter.nr]
+
+    if not log.success:
+        if encounter_success:
+            # There is a success log, but its not this one.
+            # Create the message_line when the success logs is passed to this function
+            log_message_line = ""
+            return log_message_line
+
+        if not (list(encounter_wipes).index(log) + 1 == len(encounter_wipes)):
+            # There are only wipes. But we only create a message_line when the last
+            # failed log is passed to this function
+            log_message_line = ""
+            return log_message_line
 
     rank_str = DpsLogInteraction(dpslog=log).get_rank_emote_log()
 
@@ -202,17 +218,17 @@ def _create_log_message_line(
     wipe_str = _create_log_wipe_str(encounter_wipes=encounter_wipes)
 
     # Add encounter to field
-    log_message_line = ""
     if log.success:
         log_message_line = f"{log.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
     else:
-        # If there are only wipes for an encounter, still add it to the field.
-        # This is a bit tricky, thats why we need to check a couple things.
-        #   - Cannot add text when there is a success as it will print multiple lines for
-        #     the same encounter.
-        #   - Also should only add multiple wipes on same boss once.
         if not encounter_success:
+            # If there are only wipes for an encounter, we still want to see it in the line.
+            # This is a bit tricky, thats why we need to check a couple things.
+            #   - Cannot add text when there is a success as it will print multiple lines for
+            #     the same encounter.
+            #   - Also should only add multiple wipes on same boss once.
             if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
+                # Build line without URL to dps.report.
                 log_message_line = f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
     return log_message_line
 
@@ -253,7 +269,6 @@ def _create_instance_header(
     description_instance = ""
     instance_logs = list(iclear.dps_logs.order_by("start_time"))
     for log in instance_logs:
-        logger.debug(f"{iclear} - {log} - Creating logline ")
         log_message_line = _create_log_message_line(
             log=log,
             instance_logs=instance_logs,
@@ -261,6 +276,9 @@ def _create_instance_header(
             all_logs=all_logs,
             first_boss_tracker=first_boss_tracker,
         )
+        if log_message_line != "":
+            logger.debug(f"{iclear} - {log} - adding logline ")
+
         description_instance += log_message_line
 
     return title_instance, description_instance

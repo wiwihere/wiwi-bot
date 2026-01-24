@@ -153,7 +153,7 @@ def create_leaderboard(itype: str):
         create_or_update_discord_message(
             group=instance,
             hook=WEBHOOKS["leaderboard"],
-            embeds_mes=[embed],
+            embeds_messages_list=[embed],
             thread=Thread(settings.LEADERBOARD_THREADS[itype]),
         )
 
@@ -257,7 +257,7 @@ def create_leaderboard(itype: str):
     create_or_update_discord_message(
         group=instance_group,
         hook=WEBHOOKS["leaderboard"],
-        embeds_mes=[embed],
+        embeds_messages_list=[embed],
         thread=Thread(settings.LEADERBOARD_THREADS[itype]),
     )
 

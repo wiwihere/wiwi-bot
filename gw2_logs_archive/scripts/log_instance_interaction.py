@@ -82,5 +82,5 @@ if __name__ == "__main__":
         create_or_update_discord_message(
             group=icgi.iclear_group,
             hook=settings.WEBHOOKS[icgi.iclear_group.type],
-            embeds_mes=embeds_mes,
+            embeds_messages_list=embeds_mes,
         )

@@ -296,13 +296,13 @@ class InstanceClearGroupInteraction:
             titles, descriptions = create_discord_message(icgi)
             icg_embeds = create_discord_embeds(titles, descriptions)
             embeds.update(icg_embeds)
-        embeds_mes = list(embeds.values())
+        embeds_messages_list = list(embeds.values())
 
         # Create/update the message
         create_or_update_discord_message(
             group=self.iclear_group,
             hook=settings.WEBHOOKS[self.iclear_group.type],
-            embeds_mes=embeds_mes,
+            embeds_messages_list=embeds_messages_list,
         )
 
         # Create/update message in the fast channel.
@@ -310,7 +310,7 @@ class InstanceClearGroupInteraction:
             create_or_update_discord_message_current_week(
                 group=self.iclear_group,
                 hook=settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type],
-                embeds_mes=embeds_mes,
+                embeds_messages_list=embeds_messages_list,
             )
 
 
