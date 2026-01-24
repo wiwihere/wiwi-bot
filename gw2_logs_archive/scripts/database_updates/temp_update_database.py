@@ -1,9 +1,10 @@
 # %%
 
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
+
 
 from gw2_logs.models import (
     DiscordMessage,

@@ -4,13 +4,13 @@
 Clears the database of all dps logs and clears.
 """
 
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import shutil
 import sqlite3
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
 
 from django.conf import settings as django_settings
 from gw2_logs.models import DpsLog, Instance, InstanceClear, InstanceClearGroup, Player

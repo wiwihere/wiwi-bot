@@ -1,4 +1,8 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
 
 import gzip
 import json
@@ -8,12 +12,6 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management import call_command
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
 
 logger = logging.getLogger(__name__)
 

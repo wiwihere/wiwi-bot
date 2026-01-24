@@ -1,10 +1,9 @@
-from django.core.management.base import BaseCommand
-
 if __name__ == "__main__":
-    from _setup_django import init_django
+    from scripts.utilities import django_setup
 
-    init_django(__file__)
+    django_setup.run()
 
+from django.core.management.base import BaseCommand
 from scripts.encounters.cerus import run_cerus_cm
 from scripts.log_helpers import today_y_m_d
 

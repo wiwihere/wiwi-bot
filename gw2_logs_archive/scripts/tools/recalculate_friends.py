@@ -1,18 +1,14 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
 
+    django_setup.run()
 
 import datetime
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
 import logging
 
-from gw2_logs.models import DpsLog, InstanceClearGroup, Player
+from gw2_logs.models import DpsLog, Player
 from scripts.log_helpers import today_y_m_d
-from scripts.log_instance_interaction import InstanceClearGroupInteraction
 from scripts.tools.update_discord_messages import update_discord_message_single
 
 logger = logging.getLogger(__name__)

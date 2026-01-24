@@ -1,13 +1,14 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import pandas as pd
-from _setup_django import init_django
-from django.db.models import Q
-from plotly import graph_objects as go
-
-init_django(__file__)
-
 from django.conf import settings
+from django.db.models import Q
 from gw2_logs.models import DpsLog, Encounter
+from plotly import graph_objects as go
 
 window = 10
 

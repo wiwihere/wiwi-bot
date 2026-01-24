@@ -1,19 +1,16 @@
 # %%
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
+
 import datetime
 import logging
-import os
-from pathlib import Path
 from zipfile import ZipFile
 
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
-
-if __name__ == "__main__":
-    from _setup_django import init_django
-
-    init_django(__file__)
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +41,7 @@ class Command(BaseCommand):
                 last_checked_date = datetime.datetime.strptime(last_checked, "%Y%m%d")
                 delta = datetime.datetime.now() - last_checked_date
                 if delta.days <= 7:
-                    logger.debug(f"EI version last checkeded {delta.days} days ago. No need to auto update.")
+                    logger.debug(f"EI version last checked {delta.days} days ago. No need to auto update.")
                     return
 
         # Get release info from github
@@ -60,11 +57,9 @@ class Command(BaseCommand):
             if ei_version == v:
                 cont = False
                 logger.info(f"EI version up to date: {v}")
-            else:
-                logger.info(f"EI version: {v}")
 
         if cont:
-            logger.info(f"Updating GW2 Elite Inisghts Parser to version: {ei_version}")
+            logger.info(f"Updating GW2 Elite Inisghts Parser to version from {v} to {ei_version}")
             EI_PARSER_FOLDER.mkdir(exist_ok=True)
 
             # Get the zip download url
@@ -84,7 +79,7 @@ class Command(BaseCommand):
                 # Write version file
                 with open(version_file, "w") as f:
                     f.write(ei_version)
-                    f.write(f"{ei_version}\ninstalled version from {url}")
+                    f.write(f"installed version from {url}")
 
                 # Unzip
                 with ZipFile(EI_PARSER_FOLDER / "download.zip", "r") as zObject:
