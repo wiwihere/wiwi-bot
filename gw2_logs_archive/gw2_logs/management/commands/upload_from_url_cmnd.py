@@ -9,7 +9,7 @@ from itertools import chain
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts import log_uploader
+from scripts.log_processing import log_uploader
 
 logger = logging.getLogger(__name__)
 
