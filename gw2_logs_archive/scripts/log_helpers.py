@@ -8,24 +8,19 @@ if __name__ == "__main__":
 
 import datetime
 import logging
+import re
 import time
-from dataclasses import dataclass
 from itertools import chain
 from typing import Optional, Union
 
-import discord
 import numpy as np
 import pandas as pd
 import pytz
-from discord import SyncWebhook
-from discord.utils import MISSING
 from django.conf import settings
 from gw2_logs.models import (
-    DiscordMessage,
     DpsLog,
     Emoji,
     Encounter,
-    Instance,
     InstanceClear,
     InstanceClearGroup,
     InstanceGroup,
@@ -399,6 +394,20 @@ def get_avg_duration_str(group):
     avg_time = int(getattr(np, settings.MEAN_OR_MEDIAN)([e[0].seconds for e in group.values_list("duration")]))
     avg_duration_str = get_duration_str(avg_time, add_space=True)
     return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
+
+
+def replace_dps_links(data: Union[dict, str], new_url="https://example.com/hidden") -> str:
+    pattern = re.compile(r"https://dps\.report/[^\)]+")
+
+    def recurse(obj):
+        if isinstance(obj, dict):
+            return {k: recurse(v) for k, v in obj.items()}
+        elif isinstance(obj, str):
+            return pattern.sub(new_url, obj)
+        else:
+            return obj
+
+    return recurse(data)
 
 
 # %%

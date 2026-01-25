@@ -179,7 +179,7 @@ def _create_log_message_line(
     an empty line if its not the last log for the encounter.
 
     Example:
-    '<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://dps.report/3xn6-20251218-201925_ura) (**4:50**)_+1:48_\n'
+    '<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://dps.report/dummy_ura) (**4:50**)_+1:48_\n'
     """
 
     # Filter wipes and success
