@@ -6,7 +6,6 @@ if __name__ == "__main__":
     django_setup.run()
 
 
-import datetime
 import logging
 import time
 from typing import Tuple
@@ -14,7 +13,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
     Emoji,
@@ -27,19 +26,15 @@ from scripts.discord_interaction.build_message import _create_duration_header_wi
 from scripts.discord_interaction.send_message import create_or_update_discord_message
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS_PROGRESSION,
-    create_discord_time,
     create_rank_emote_dict_percentiles,
     get_duration_str,
-    get_rank_emote,
     today_y_m_d,
     zfill_y_m_d,
 )
 from scripts.log_processing.ei_parser import EliteInsightsParser
-from scripts.log_processing.log_files import LogFile, LogFilesDate
-from scripts.log_processing.log_uploader import LogUploader
+from scripts.log_processing.log_files import LogFilesDate
 from scripts.log_processing.logfile_processing import process_logs_once
 from scripts.model_interactions.dps_log import DpsLogInteraction
-from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +44,6 @@ RANK_EMOTES_CERUS, RANK_BINS_PERCENTILE_CERUS = create_rank_emote_dict_percentil
 )
 
 CLEAR_GROUP_BASE_NAME = "cerus_cm__"  # followed by y_m_d; e.g. cerus_cm__20240406
-
-# %%
-if __name__ == "__main__":
-    y, m, d = today_y_m_d()
-    y, m, d = 2024, 3, 16
-    clear_name = f"{CLEAR_GROUP_BASE_NAME}{zfill_y_m_d(y, m, d)}"
 
 
 def create_health_df(cm_logs: list[DpsLog], minimal_delay_seconds: int) -> pd.DataFrame:
@@ -75,6 +64,7 @@ def create_health_df(cm_logs: list[DpsLog], minimal_delay_seconds: int) -> pd.Da
 
     # Add log counter
     health_df.reset_index(inplace=True)
+    health_df["log_idx"] = health_df["index"]
     health_df.rename(columns={"index": "log_nr"}, inplace=True)
     health_df["log_nr"] = health_df["log_nr"].apply(lambda x: f"`{str(x + 1).zfill(2)}`")
 
@@ -92,11 +82,10 @@ def create_health_df(cm_logs: list[DpsLog], minimal_delay_seconds: int) -> pd.Da
     health_df.loc[:2, "cups"] = health_df.loc[:2, "cups"].apply(lambda x: x.format(len(health_df)))
 
     # Revert to chronological order
-    health_df.sort_values("log_nr", inplace=True)
+    health_df.sort_values("log_idx", inplace=True)
     health_df.reset_index(inplace=True, drop=True)
 
-    # time_diff between logs
-    # extract times
+    # Add time_diff between logs. delay_str is only shown if time_diff > minimal_delay_seconds
     start_time = health_df["log"].apply(lambda x: x.start_time)
     end_time = health_df["log"].apply(lambda x: x.start_time + x.duration)
     health_df["time_diff"] = start_time - end_time.shift(1)
@@ -189,7 +178,7 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
             cerus_title = "Cerus Legendary CM"
             difficulty = "lcm"
 
-    table_header = f"\n`##`{RANK_EMOTES_CERUS[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
+    table_header = f"`##`{RANK_EMOTES_CERUS[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
 
     description_main = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n"
     description_main += _create_duration_header_with_player_emotes(all_logs=cm_logs)
@@ -240,7 +229,7 @@ def update_instance_clear(
             iclear.save()
 
         # Set iclear duration
-        last_log = dps_logs_all[0]
+        last_log = dps_logs_all[-1]
         calculated_duration = last_log.start_time + last_log.duration - iclear.start_time
         if iclear.duration != calculated_duration:
             logger.info(f"Updating duration for {iclear.name} from {iclear.duration} to {calculated_duration}")
@@ -263,7 +252,26 @@ def create_message_author_progression_days(iclear_group: InstanceClearGroup) -> 
     return f"Day #{str(progression_days_count).zfill(2)}"
 
 
-def run_cerus_cm(y, m, d):
+def send_cerus_progression_discord_message(iclear_group: InstanceClearGroup) -> None:
+    """Build and send or update the cerus progression discord message for the given InstanceClearGroup."""
+    titles, descriptions = build_cerus_discord_message(iclear_group=iclear_group)
+
+    if titles is not None:
+        embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
+        embeds_messages_list = list(embeds.values())
+
+        message_author = create_message_author_progression_days(iclear_group=iclear_group)
+
+        embeds_messages_list[0] = embeds_messages_list[0].set_author(name=message_author)
+
+        create_or_update_discord_message(
+            group=iclear_group,
+            webhook_url=settings.WEBHOOKS["cerus_cm"],
+            embeds_messages_list=embeds_messages_list,
+        )
+
+
+def run_cerus_cm(y: int, m: int, d: int, clear_name: str) -> None:
     logger.info(f"Starting Cerus log import for {zfill_y_m_d(y, m, d)}")
 
     encounter = Encounter.objects.get(name="Temple of Febe")
@@ -291,42 +299,34 @@ def run_cerus_cm(y, m, d):
         name=clear_name,
     )
 
-    # while True: #FIXME
-    if True:
+    while True:
         for processing_type in PROCESSING_SEQUENCE:
-            # processed_logs = process_logs_once(
-            #     processing_type=processing_type,
-            #     log_files_date_cls=log_files_date,
-            #     ei_parser=ei_parser,
-            # )
+            processed_logs = process_logs_once(
+                processing_type=processing_type,
+                log_files_date_cls=log_files_date,
+                ei_parser=ei_parser,
+            )
 
-            # if processed_logs:
-            #     current_sleeptime = MAXSLEEPTIME
+            if processed_logs:
+                current_sleeptime = MAXSLEEPTIME
 
-            iclear, iclear_group = update_instance_clear(iclear=iclear, iclear_group=iclear_group)
-            titles, descriptions = build_cerus_discord_message(iclear_group=iclear_group)
+            if len(processed_logs) > 0:
+                iclear, iclear_group = update_instance_clear(iclear=iclear, iclear_group=iclear_group)
+                send_cerus_progression_discord_message(iclear_group=iclear_group)
 
-            if titles is not None:
-                embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
-                embeds_messages_list = list(embeds.values())
-
-                message_author = create_message_author_progression_days(iclear_group=iclear_group)
-
-                embeds_messages_list[0] = embeds_messages_list[0].set_author(name=message_author)
-
-                create_or_update_discord_message(
-                    group=iclear_group,
-                    webhook_url=settings.WEBHOOKS["cerus_cm"],
-                    embeds_messages_list=embeds_messages_list,
-                )
-
-        if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
-            print("Finished run")
-            return
+            if processing_type == "local":
+                time.sleep(SLEEPTIME / 10)
 
         current_sleeptime -= SLEEPTIME
-        print(f"Run {run_count} done")
-
-        time.sleep(SLEEPTIME)
+        logger.info(f"Run {run_count} done")
         run_count += 1
-        # break
+        if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
+            logger.info("Finished run")
+            break
+
+
+# %%
+if __name__ == "__main__":
+    y, m, d = today_y_m_d()
+    y, m, d = 2024, 3, 16
+    clear_name = f"{CLEAR_GROUP_BASE_NAME}{zfill_y_m_d(y, m, d)}"

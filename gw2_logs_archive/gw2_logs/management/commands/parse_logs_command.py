@@ -90,9 +90,6 @@ class Command(BaseCommand):
                     ei_parser=ei_parser,
                 )
 
-                if processed_logs:
-                    current_sleeptime = MAXSLEEPTIME
-
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
 
@@ -107,6 +104,7 @@ class Command(BaseCommand):
 
             if len(processed_logs) > 0:
                 # Update discord, only do it on the last log, so we dont spam the discord api too often.
+                current_sleeptime = MAXSLEEPTIME
                 icgi.send_discord_message()
 
             # 6. Update leaderboards and exit
