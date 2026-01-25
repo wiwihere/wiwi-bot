@@ -25,9 +25,8 @@ from gw2_logs.models import (
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.build_message import _create_duration_header_with_player_emotes
 from scripts.discord_interaction.send_message import create_or_update_discord_message
-from scripts.encounters.base import BaseEncounterRunner
 from scripts.log_helpers import (
-    RANK_EMOTES_CUPS,
+    RANK_EMOTES_CUPS_PROGRESSION,
     create_discord_time,
     create_rank_emote_dict_percentiles,
     get_duration_str,
@@ -56,59 +55,6 @@ if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2024, 3, 16
     clear_name = f"{CLEAR_GROUP_BASE_NAME}{zfill_y_m_d(y, m, d)}"
-
-
-class BaseEncounterRunner:
-    encounter_name: str
-    webhook_key: str
-    use_percentiles: bool = True
-
-    def __init__(self, y, m, d):
-        self.y, self.m, self.d = y, m, d
-        self.encounter = Encounter.objects.get(name=self.encounter_name)
-        self.ei_parser = EliteInsightsParser()
-
-    def setup_parser(self):
-        self.ei_parser.create_settings(
-            out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(self.y, self.m, self.d)),
-            create_html=False,
-        )
-
-    def run(self):
-        self.setup_parser()
-        self.process_logs()
-
-    def process_logs(self):
-        raise NotImplementedError
-
-
-class CerusCMRunner(BaseEncounterRunner):
-    encounter_name = "Temple of Febe"
-    webhook_key = "cerus_cm"
-
-    def process_logs(self):
-        cm_logs = self.get_cm_logs()
-        embed_builder = CerusEmbedBuilder(cm_logs)
-        embeds = embed_builder.build()
-
-        # create_or_update_discord_message(
-        #     group=embed_builder.group,
-        #     webhook_url=settings.WEBHOOKS[self.webhook_key],
-        #     embeds_messages_list=embeds,
-        # )
-
-
-class CerusEmbedBuilder:
-    def __init__(self, logs: QuerySet[DpsLog]):
-        self.logs = logs
-        self.group = self._get_or_create_group()
-
-    def build(self) -> list:
-        health_df = self._build_health_df()
-        return create_discord_embeds(
-            titles=self._titles(),
-            descriptions=self._descriptions(health_df),
-        )
 
 
 def create_health_df(cm_logs: list[DpsLog], minimal_delay_seconds: int) -> pd.DataFrame:
@@ -140,9 +86,10 @@ def create_health_df(cm_logs: list[DpsLog], minimal_delay_seconds: int) -> pd.Da
     health_df["rank"] += 1
 
     # Add rank cups for the best 3 logs
-    emote_cups = pd.Series(RANK_EMOTES_CUPS.values(), name="rank")
+    emote_cups = pd.Series(RANK_EMOTES_CUPS_PROGRESSION.values(), name="rank")
     health_df["cups"] = ""
     health_df.loc[:2, "cups"] = emote_cups[: len(health_df)]
+    health_df.loc[:2, "cups"] = health_df.loc[:2, "cups"].apply(lambda x: x.format(len(health_df)))
 
     # Revert to chronological order
     health_df.sort_values("log_nr", inplace=True)
@@ -218,8 +165,8 @@ def add_line_to_descriptions(
 
     if current_field not in descriptions[dummy_group]:
         logger.info(f"Character limit hit for description. Adding new field {current_field} for discord message")
-        titles[dummy_group][current_field] = table_header
-        descriptions[dummy_group][current_field] = ""
+        titles[dummy_group][current_field] = ""
+        descriptions[dummy_group][current_field] = table_header
 
     descriptions[dummy_group][current_field] += log_message_line
 
@@ -246,7 +193,7 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
 
     description_main = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n"
     description_main += _create_duration_header_with_player_emotes(all_logs=cm_logs)
-    # description_main += table_header
+    description_main += table_header
 
     titles = {}
     descriptions = {}
@@ -256,7 +203,7 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
     descriptions[dummy_group] = {"main": description_main}
 
     current_field = "field_0"
-    titles[dummy_group][current_field] = table_header
+    titles[dummy_group][current_field] = ""
     descriptions[dummy_group][current_field] = ""
 
     for idx, row in health_df.iterrows():
@@ -344,18 +291,17 @@ def run_cerus_cm(y, m, d):
         name=clear_name,
     )
 
-    while True:
-        # if True:
-
+    # while True: #FIXME
+    if True:
         for processing_type in PROCESSING_SEQUENCE:
-            processed_logs = process_logs_once(
-                processing_type=processing_type,
-                log_files_date_cls=log_files_date,
-                ei_parser=ei_parser,
-            )
+            # processed_logs = process_logs_once(
+            #     processing_type=processing_type,
+            #     log_files_date_cls=log_files_date,
+            #     ei_parser=ei_parser,
+            # )
 
-            if processed_logs:
-                current_sleeptime = MAXSLEEPTIME
+            # if processed_logs:
+            #     current_sleeptime = MAXSLEEPTIME
 
             iclear, iclear_group = update_instance_clear(iclear=iclear, iclear_group=iclear_group)
             titles, descriptions = build_cerus_discord_message(iclear_group=iclear_group)
@@ -364,18 +310,15 @@ def run_cerus_cm(y, m, d):
                 embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
                 embeds_messages_list = list(embeds.values())
 
-                message_author = create_message_author_progression_days()
+                message_author = create_message_author_progression_days(iclear_group=iclear_group)
 
                 embeds_messages_list[0] = embeds_messages_list[0].set_author(name=message_author)
-                # TODO disabled, trying to use title field.
-                # if len(embeds_mes) > 0:
-                #     for i, _ in enumerate(embeds_mes):
-                #         if i > 0:
-                #             embeds_mes[i].description = table_header + embeds_mes[i].description
 
-                # create_or_update_discord_message(
-                #     group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_messages_list
-                # )
+                create_or_update_discord_message(
+                    group=iclear_group,
+                    webhook_url=settings.WEBHOOKS["cerus_cm"],
+                    embeds_messages_list=embeds_messages_list,
+                )
 
         if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
             print("Finished run")
@@ -387,6 +330,3 @@ def run_cerus_cm(y, m, d):
         time.sleep(SLEEPTIME)
         run_count += 1
         # break
-
-
-# %%

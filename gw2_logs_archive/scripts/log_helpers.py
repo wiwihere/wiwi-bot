@@ -164,6 +164,12 @@ RANK_EMOTES_CUPS = {
     3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r{}_of{}_slower{}s"),
 }
 
+RANK_EMOTES_CUPS_PROGRESSION = {
+    1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("r1_of{}"),
+    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("r2_of{}"),
+    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r3_of{}"),
+}
+
 
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag()
 # Combine raids and strikes into the same group.
@@ -318,7 +324,7 @@ def get_rank_emote(
 
         # Top 3
         if rank in [1, 2, 3]:
-            # e.g. 1_2s_r1_of10 -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
+            # e.g. r1_of10_faster12_1s -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
             rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group_list), dur)
 
         else:
