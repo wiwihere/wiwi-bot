@@ -99,7 +99,7 @@ def run_cerus_cm(y, m, d):
                 elif processing_type == "upload":
                     if log.local_processed:  # Log must be parsed locally before uploading
                         # Upload log
-                        log_upload = LogUploader.from_path(log_path, only_url=True)
+                        log_upload = LogUploader(log_path=log_path, only_url=True)
                         parsed_log = log_upload.run()
                     else:
                         parsed_log = False

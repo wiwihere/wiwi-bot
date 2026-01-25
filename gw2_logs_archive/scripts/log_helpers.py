@@ -11,6 +11,7 @@ import logging
 import re
 import time
 from itertools import chain
+from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
@@ -408,6 +409,12 @@ def replace_dps_links(data: Union[dict, str], new_url="https://example.com/hidde
             return obj
 
     return recurse(data)
+
+
+def get_log_path_view(log_path: Path, parents: int = 2) -> str:
+    """Only show two parent folders of path."""
+    parents = min(len(log_path.parts) - 2, parents)  # avoids index-error
+    return log_path.as_posix().split(log_path.parents[parents].as_posix(), maxsplit=1)[-1]
 
 
 # %%

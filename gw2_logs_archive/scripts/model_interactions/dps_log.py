@@ -10,6 +10,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -47,7 +48,7 @@ class DpsLogInteraction:
     dpslog: DpsLog = None
 
     @classmethod
-    def from_local_ei_parser(cls, log_path, parsed_path):
+    def from_local_ei_parser(cls, log_path: Path, parsed_path: Path) -> Optional["DpsLogInteraction"]:
         try:
             dpslog = DpsLog.objects.get(local_path=log_path)
         except DpsLog.DoesNotExist:
@@ -59,15 +60,15 @@ class DpsLogInteraction:
                 return False
 
             json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
-            dpslog = cls.from_detailed_logs(log_path, json_detailed)
+            dpslog = cls.from_detailed_logs(log_path=log_path, json_detailed=json_detailed)
 
             if dpslog is False:
                 return False
 
         return cls(dpslog=dpslog)
 
-    @classmethod
-    def from_detailed_logs(cls, log_path, json_detailed):
+    @staticmethod
+    def from_detailed_logs(cls, log_path: Path, json_detailed: dict) -> Optional[DpsLog]:
         logger.info(f"Processing detailed log: {log_path}")
         r2 = json_detailed
 
@@ -141,7 +142,43 @@ class DpsLogInteraction:
         return dpslog
 
     @staticmethod
-    def _get_phasetime_str(json_detailed):
+    def update_or_create_from_dps_report_metadata(
+        self,
+        metadata: dict,
+        encounter: Optional[Encounter],
+    ) -> DpsLog:
+        """Create or update a dpslog from dps.report metadata json."""
+        # Arcdps error 'File had invalid agents. Please update arcdps' would return some
+        # empty jsons. This makes sure the log is still processed
+        if metadata["players"] != []:
+            players = [i["display_name"] for i in metadata["players"].values()]
+        else:
+            players = []
+
+        dpslog, created = DpsLog.objects.update_or_create(
+            defaults={
+                "encounter": encounter,
+                "success": metadata["encounter"]["success"],
+                "duration": datetime.timedelta(seconds=metadata["encounter"]["duration"]),
+                "url": metadata["permalink"],
+                "player_count": metadata["encounter"]["numberOfPlayers"],
+                "boss_name": metadata["encounter"]["boss"],
+                "cm": metadata["encounter"]["isCm"],
+                "gw2_build": metadata["encounter"]["gw2Build"],
+                "players": players,
+                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+                "report_id": metadata["id"],
+                "local_path": self.log_source,
+                "json_dump": metadata,
+            },
+            # metadata["encounterTime"] format is 1702926477
+            start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
+        )
+        return dpslog
+
+    @staticmethod
+    def _get_phasetime_str(json_detailed: dict) -> str:
         """For Cerus LCM the time breakbar phases are reached is calculated from detailed logs."""
         # Get information on phase timings
         data = json_detailed["phases"]
