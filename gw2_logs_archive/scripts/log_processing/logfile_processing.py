@@ -66,9 +66,6 @@ def process_logs_once(
     processing_type: Literal["local", "upload"],
     log_files_date_cls: LogFilesDate,
     ei_parser: EliteInsightsParser,
-    y: int,
-    m: int,
-    d: int,
 ) -> list[DpsLog]:
     """
     Process all unprocessed logs once for a given date and processing type.
@@ -87,8 +84,6 @@ def process_logs_once(
         LogPathsDate instance managing available logs and state.
     ei_parser : EliteInsightsParser
         Configured Elite Insights parser instance.
-    y, m, d : int
-        Date used for InstanceClearGroup grouping.
 
     Returns
     -------

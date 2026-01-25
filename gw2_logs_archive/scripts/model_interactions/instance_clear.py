@@ -100,7 +100,7 @@ class InstanceClearInteraction:
             )
         rank_str = get_rank_emote(
             indiv=self.iclear,
-            group=success_group,
+            group_list=success_group,
             core_minimum=settings.CORE_MINIMUM[self.iclear.instance.instance_group.name],
         )
         return rank_str

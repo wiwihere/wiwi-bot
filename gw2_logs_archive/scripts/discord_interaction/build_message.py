@@ -300,8 +300,8 @@ def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, 
         f"{icg.name} - Creating discord message; {len(all_logs)} logs, {len(all_success_logs)} success logs, {len(icgi.icg_iclears_all)} wings"
     )
 
-    descriptions = {}
     titles = {}
+    descriptions = {}
 
     title_main = _create_message_title(icgi=icgi)
     description_main = _create_duration_header_with_player_emotes(all_logs=all_logs)

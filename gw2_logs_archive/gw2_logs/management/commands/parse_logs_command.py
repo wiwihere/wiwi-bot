@@ -88,9 +88,6 @@ class Command(BaseCommand):
                     processing_type=processing_type,
                     log_files_date_cls=log_paths,
                     ei_parser=ei_parser,
-                    y=y,
-                    m=m,
-                    d=d,
                 )
 
                 if processed_logs:

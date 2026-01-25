@@ -220,8 +220,17 @@ class DpsLogInteraction:
             )
         rank_str = get_rank_emote(
             indiv=self.dpslog,
-            group=encounter_success_all,
+            group_list=encounter_success_all,
             core_minimum=settings.CORE_MINIMUM[self.dpslog.encounter.instance.instance_group.name],
             custom_emoji_name=False,
         )
         return rank_str
+
+    def build_health_str(self) -> str:
+        """Build health string with leading zeros for discord message. Used in Cerus CM."""
+        health_str = ".".join(
+            [str(int(i)).zfill(2) for i in str(round(self.dpslog.final_health_percentage, 2)).split(".")]
+        )  # makes 02.20%
+        if health_str == "100.00":
+            health_str = "100.0"
+        return health_str

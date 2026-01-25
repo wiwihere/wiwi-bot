@@ -37,9 +37,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class InstanceClearGroupInteraction:
     iclear_group: InstanceClearGroup
+    update_total_duration: bool = True
 
     def __post_init__(self):
-        self.get_total_clear_duration()
+        if self.update_total_duration:
+            self.get_total_clear_duration()
 
     @classmethod
     def create_from_date(cls, y, m, d, itype_group):
@@ -247,7 +249,7 @@ class InstanceClearGroupInteraction:
         # Create the rank emote str
         rank_str = get_rank_emote(
             indiv=icg,
-            group=group,
+            group_list=group,
             core_minimum=settings.CORE_MINIMUM[icg_type],
         )
         return rank_str
