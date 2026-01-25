@@ -9,7 +9,6 @@ if __name__ == "__main__":
 import datetime
 import logging
 import time
-from ast import In
 from typing import Tuple
 
 import numpy as np
@@ -199,13 +198,39 @@ def build_log_message_line_cerus(row: pd.Series) -> str:
     return log_message_line
 
 
+def add_line_to_descriptions(
+    titles: dict,
+    descriptions: dict,
+    current_field: int,
+    log_message_line: str,
+    dummy_group: str,
+    table_header: str,
+) -> Tuple[dict, dict, str]:
+    """Add a line to the descriptions dict, creating new fields if the discord limit
+    of 4060 characters would be hit.
+    """
+    if (
+        len(descriptions[dummy_group]["main"]) + len(descriptions[dummy_group][current_field]) + len(log_message_line)
+        > 4060
+    ):
+        # Make a new field
+        current_field = f"field_{int(current_field.split('_')[1]) + 1}"
+
+    if current_field not in descriptions[dummy_group]:
+        logger.info(f"Character limit hit for description. Adding new field {current_field} for discord message")
+        titles[dummy_group][current_field] = table_header
+        descriptions[dummy_group][current_field] = ""
+
+    descriptions[dummy_group][current_field] += log_message_line
+
+    return titles, descriptions, current_field
+
+
 def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict, dict]:
     cm_logs = iclear_group.dps_logs_all
 
     # Set start time of clear
     # TODO move out of message building
-
-    field_id = 0
 
     health_df = create_health_df(cm_logs=cm_logs, minimal_delay_seconds=120)
 
@@ -226,35 +251,27 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
     titles = {}
     descriptions = {}
 
-    titles["cerus_cm"] = {"main": iclear_group.pretty_time}
-    descriptions["cerus_cm"] = {"main": description_main}
+    dummy_group = "cerus_cm"  # needed for embed parsing
+    titles[dummy_group] = {"main": iclear_group.pretty_time}
+    descriptions[dummy_group] = {"main": description_main}
 
-    titles["cerus_cm"]["field_0"] = table_header
-    descriptions["cerus_cm"]["field_0"] = ""
+    current_field = "field_0"
+    titles[dummy_group][current_field] = table_header
+    descriptions[dummy_group][current_field] = ""
 
     for idx, row in health_df.iterrows():
         log_message_line = build_log_message_line_cerus(row=row)
 
-        # Break into multiple embed fields if too many tries.
-        if (
-            len(descriptions["cerus_cm"]["main"])
-            + len(descriptions["cerus_cm"][f"field_{field_id}"])
-            + len(log_message_line)
-            > 4060
-        ):
-            field_id += 1
-            # break
-        if f"field_{field_id}" not in descriptions["cerus_cm"]:
-            logger.info(f"Adding new field field_{field_id} for discord message")
-            titles["cerus_cm"][f"field_{field_id}"] = table_header
-            descriptions["cerus_cm"][f"field_{field_id}"] = ""
-
-        descriptions["cerus_cm"][f"field_{field_id}"] += log_message_line
-
+        # Add line to descriptions, breaking into new fields if character limit is hit
+        titles, descriptions, current_field = add_line_to_descriptions(
+            titles=titles,
+            descriptions=descriptions,
+            current_field=current_field,
+            log_message_line=log_message_line,
+            dummy_group=dummy_group,
+            table_header=table_header,
+        )
     return titles, descriptions
-
-
-# %%
 
 
 def update_instance_clear(
@@ -271,12 +288,12 @@ def update_instance_clear(
 
         # Set iclear start time
         if iclear.start_time != start_time:
-            logger.info(f"Updating start time for {iclear.name} from {iclear.start_time} to {log0.start_time}")
+            logger.info(f"Updating start time for {iclear.name} from {iclear.start_time} to {start_time}")
             iclear.start_time = start_time
             iclear.save()
 
         # Set iclear duration
-        last_log = dps_logs_all.order_by("start_time").last()
+        last_log = dps_logs_all[0]
         calculated_duration = last_log.start_time + last_log.duration - iclear.start_time
         if iclear.duration != calculated_duration:
             logger.info(f"Updating duration for {iclear.name} from {iclear.duration} to {calculated_duration}")
@@ -284,6 +301,19 @@ def update_instance_clear(
             iclear.save()
 
     return iclear, iclear_group
+
+
+def create_message_author_progression_days(iclear_group: InstanceClearGroup) -> str:
+    """Create author name for discord message.
+    The author is displayed at the top of the message.
+    """
+    # The progression_days_count is the total days up to this point for this progression
+    progression_days_count = len(
+        InstanceClearGroup.objects.filter(
+            Q(name__contains=CLEAR_GROUP_BASE_NAME) & Q(start_time__lte=iclear_group.start_time)
+        )
+    )
+    return f"Day #{str(progression_days_count).zfill(2)}"
 
 
 def run_cerus_cm(y, m, d):
@@ -314,8 +344,6 @@ def run_cerus_cm(y, m, d):
         name=clear_name,
     )
 
-    # icgi = InstanceClearGroupInteraction(iclear_group=iclear_group, update_total_duration=False)
-
     while True:
         # if True:
 
@@ -329,26 +357,16 @@ def run_cerus_cm(y, m, d):
             if processed_logs:
                 current_sleeptime = MAXSLEEPTIME
 
+            iclear, iclear_group = update_instance_clear(iclear=iclear, iclear_group=iclear_group)
             titles, descriptions = build_cerus_discord_message(iclear_group=iclear_group)
-
-            # Build discord message
-            titles = None
-            descriptions = None
 
             if titles is not None:
                 embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
-                embeds_mes = list(embeds.values())
+                embeds_messages_list = list(embeds.values())
 
-                # The progression_days_count is the total days up to this point for this progression
-                progression_days_count = len(
-                    InstanceClearGroup.objects.filter(
-                        Q(name__contains=CLEAR_GROUP_BASE_NAME)
-                        & Q(
-                            start_time__lte=datetime.datetime(year=y, month=m, day=d + 1, tzinfo=datetime.timezone.utc)
-                        )
-                    )
-                )
-                embeds_mes[0] = embeds_mes[0].set_author(name=f"Day #{str(progression_days_count).zfill(2)}")
+                message_author = create_message_author_progression_days()
+
+                embeds_messages_list[0] = embeds_messages_list[0].set_author(name=message_author)
                 # TODO disabled, trying to use title field.
                 # if len(embeds_mes) > 0:
                 #     for i, _ in enumerate(embeds_mes):
@@ -356,7 +374,7 @@ def run_cerus_cm(y, m, d):
                 #             embeds_mes[i].description = table_header + embeds_mes[i].description
 
                 # create_or_update_discord_message(
-                #     group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
+                #     group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_messages_list
                 # )
 
         if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
@@ -369,3 +387,6 @@ def run_cerus_cm(y, m, d):
         time.sleep(SLEEPTIME)
         run_count += 1
         # break
+
+
+# %%

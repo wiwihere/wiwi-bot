@@ -28,6 +28,7 @@ def test_cerus_progression_message():
 
     titles, descriptions = build_cerus_discord_message(iclear_group=iclear_group)
     descriptions = replace_dps_links(descriptions)
+
     # Testing
     assert titles == {
         "cerus_cm": {
@@ -36,6 +37,7 @@ def test_cerus_progression_message():
             "field_1": "\n`##`<:8_legendary:1218314286783533157>**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n",
         }
     }
+
     assert descriptions == {
         "cerus_cm": {
             "main": "<:cerus:1198740269806395402> **Cerus CM**\n<t:1710614288:t> - <t:1710625194:t> \n<a:core:1203309561293840414><a:core:1203309561293840414><a:friend:1282336810487517195><a:pug:1206367130509905931><a:pug:1206367130509905931> <a:pug:1206367130509905931><a:pug:1206367130509905931><a:pug:1206367130509905931><a:pug:1206367130509905931><a:pug:1206367130509905931>\n\n",

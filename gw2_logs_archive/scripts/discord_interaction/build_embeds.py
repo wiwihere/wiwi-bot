@@ -15,7 +15,7 @@ from scripts.log_helpers import (
 logger = logging.getLogger(__name__)
 
 
-def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
+def create_discord_embeds(titles, descriptions: dict[dict, str]) -> dict[str, discord.Embed]:
     """Create discord embed from titles and descriptions."""
     embeds: dict[str, discord.Embed] = {}
     has_title = False
@@ -58,7 +58,9 @@ def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
                     if encounter_key == "main":  # Main is already in title.
                         continue
                     if embed_id_instance != embed_id:  # Should go to different embed.
-                        logger.debug(f"{len(description)} something is up with embeds")
+                        logger.debug(
+                            f"{len(description)} something is up with embeds; {embed_id_instance} != {embed_id}"
+                        )
 
                         continue
 

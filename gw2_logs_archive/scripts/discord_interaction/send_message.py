@@ -13,7 +13,6 @@ from typing import Optional, Union
 import discord
 from discord import SyncWebhook
 from discord.utils import MISSING
-from django.conf import settings
 from gw2_logs.models import (
     DiscordMessage,
     Instance,
@@ -78,20 +77,32 @@ class Webhook:
     def send_message(
         self,
         embeds_messages_list: list[discord.Embed],
-        name: str,
+        discordmessage_name: str,
         thread: Optional[Thread] = None,
     ) -> DiscordMessage:
-        """Create new message on discord and create an instance in django database"""
+        """Create new message on discord and create an instance in django database
+
+        Parameters
+        ----------
+        embeds_messages_list: list[discord.Embed]
+            List of embeds to send
+        name: str
+            Name of the discord message in the django database
+        thread: Optional[Thread]
+            Thread to send the message in
+        """
         thread = self._validate_thread(thread)
 
         # Send message
         mess = self.webhook.send(wait=True, embeds=embeds_messages_list, thread=thread)
 
         # Get or create in django database
-        discord_message, created = DiscordMessage.objects.get_or_create(name=name)
-        discord_message.message_id = mess.id
+        discord_message, created = DiscordMessage.objects.get_or_create(name=discordmessage_name)
         discord_message.increase_counter()
-        discord_message.save()
+
+        if discord_message.message_id != mess.id:
+            discord_message.message_id = mess.id
+            discord_message.save()
 
         logger.info(f"Sent new discord message: {discord_message.name}")
         return discord_message
@@ -149,7 +160,7 @@ def create_or_update_discord_message(
 
         discord_message = webhook.send_message(
             embeds_messages_list=embeds_messages_list,
-            name=message_name,
+            discordmessage_name=message_name,
             thread=thread,
         )
 
@@ -203,7 +214,7 @@ def create_or_update_discord_message_current_week(
         except (ValueError, discord.errors.NotFound, discord.errors.HTTPException):
             discord_message = webhook.send_message(
                 embeds_messages_list=embeds_messages_list,
-                name=message_name,
+                discordmessage_name=message_name,
                 thread=thread,
             )
 
