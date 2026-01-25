@@ -15,12 +15,11 @@ from gw2_logs.models import (
     InstanceClearGroup,
     InstanceGroup,
 )
-from scripts.discord_interaction.send_message import create_or_update_discord_message
+from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
 from scripts.log_helpers import (
     BLANK_EMOTE,
     EMBED_COLOR,
     WEBHOOKS,
-    Thread,
     get_avg_duration_str,
     get_rank_duration_str,
 )

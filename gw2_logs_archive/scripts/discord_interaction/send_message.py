@@ -6,6 +6,7 @@ if __name__ == "__main__":
 
 import datetime
 import logging
+from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional, Union
 
@@ -23,6 +24,17 @@ from gw2_logs.models import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class Thread:
+    """Discordpy seems to be rather picky about threads.
+    Initializing with id on the discord.Thread doesnt work.
+    When sending a message it however just needs a class with an id
+    to work. So this represents that discord.Thread class.
+    """
+
+    id: int
+
+
 class Webhook:
     def __init__(self, webhook_url: str):
         self.url = webhook_url
@@ -34,7 +46,7 @@ class Webhook:
     def _validate_thread(
         self,
         thread: Optional[discord.Thread] = None,
-    ) -> Union[discord.Thread, discord.utils._MissingSentinel]:
+    ) -> Union[Thread, discord.utils._MissingSentinel]:
         """Replace missing thread with the correct MISSING value."""
         if thread is None:
             thread = MISSING
@@ -44,7 +56,7 @@ class Webhook:
         self,
         discord_message: DiscordMessage,
         embeds_messages_list: list[discord.Embed],
-        thread: Optional[discord.Thread] = None,
+        thread: Optional[Thread] = None,
     ) -> None:
         """Edit message. If this fails, a new message must be created."""
         thread = self._validate_thread(thread)
@@ -67,7 +79,7 @@ class Webhook:
         self,
         embeds_messages_list: list[discord.Embed],
         name: str,
-        thread: Optional[discord.Thread] = None,
+        thread: Optional[Thread] = None,
     ) -> DiscordMessage:
         """Create new message on discord and create an instance in django database"""
         thread = self._validate_thread(thread)
@@ -105,7 +117,7 @@ def create_or_update_discord_message(
     group: Union[Instance, InstanceGroup, InstanceClearGroup],
     webhook_url: str,
     embeds_messages_list: list[discord.Embed],
-    thread: Optional[discord.Thread] = None,
+    thread: Optional[Thread] = None,
 ) -> None:
     """Send message to discord
 
@@ -149,7 +161,7 @@ def create_or_update_discord_message_current_week(
     iclear_group: InstanceClearGroup,
     webhook_url: str,  # html url to api webhook
     embeds_messages_list: list[discord.Embed],
-    thread: Optional[discord.Thread] = None,
+    thread: Optional[Thread] = None,
 ):
     """Send message to discord. This will update or create the message in the current
     week channel. This channel only holds logs for the current week.
@@ -159,7 +171,7 @@ def create_or_update_discord_message_current_week(
     iclear_group: InstanceClearGroup
     webhook_url: log_helper.WEBHOOK[itype]
     embeds_messages_list: [Embed, Embed]
-    thread: Optional[discord.Thread]
+    thread: Optional[Thread]
     """
 
     weekdate = int(f"{iclear_group.start_time.strftime('%Y%V')}")  # e.g. 202510 -> year2025, week10

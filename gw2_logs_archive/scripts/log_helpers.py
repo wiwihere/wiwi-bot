@@ -188,27 +188,17 @@ else:
     }
 
 
-@dataclass
-class Thread:
-    """Discordpy seems to be rather picky about threads.
-    When sending a message it just needs a class with an id
-    to work. So here we are.
-    """
-
-    id: int
-
-
 def create_unix_time(t):
     tz = pytz.timezone(str(get_localzone()))
     t = t.astimezone(tz=tz)
     return int(time.mktime(t.timetuple()))
 
 
-def create_discord_time(t: datetime.datetime):
+def create_discord_time(dt: datetime.datetime):
     """time.mktime uses local time while the times in django are in utc.
     So we need to convert and then make discord str of it
     """
-    return f"<t:{create_unix_time(t)}:t>"
+    return f"<t:{create_unix_time(dt)}:t>"
 
 
 def get_duration_str(seconds: int, add_space: bool = False):
