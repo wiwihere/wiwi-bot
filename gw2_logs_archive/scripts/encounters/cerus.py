@@ -9,6 +9,8 @@ if __name__ == "__main__":
 import datetime
 import logging
 import time
+from ast import In
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -202,16 +204,6 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
 
     # Set start time of clear
     # TODO move out of message building
-    if cm_logs:
-        start_time = min([i.start_time for i in cm_logs])
-        if iclear_group.start_time != start_time:
-            logger.info(f"Updating start time for {iclear_group.name} from {iclear_group.start_time} to {start_time}")
-            iclear_group.start_time = start_time
-            iclear_group.save()
-        if iclear.start_time != start_time:
-            logger.info(f"Updating start time for {iclear.name} from {iclear.start_time} to {log0.start_time}")
-            iclear.start_time = start_time
-            iclear.save()
 
     field_id = 0
 
@@ -228,7 +220,7 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
     table_header = f"\n`##`{RANK_EMOTES_CERUS[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
 
     description_main = f"{Emoji.objects.get(name='Cerus').discord_tag(difficulty)} **{cerus_title}**\n"
-    description_main += _create_duration_header_with_player_emotes(all_logs=list(cm_logs))
+    description_main += _create_duration_header_with_player_emotes(all_logs=cm_logs)
     # description_main += table_header
 
     titles = {}
@@ -263,6 +255,35 @@ def build_cerus_discord_message(iclear_group: InstanceClearGroup) -> tuple[dict,
 
 
 # %%
+
+
+def update_instance_clear(
+    iclear: InstanceClear, iclear_group: InstanceClearGroup
+) -> Tuple[InstanceClear, InstanceClearGroup]:
+    dps_logs_all = iclear_group.dps_logs_all
+    if dps_logs_all:
+        start_time = min([i.start_time for i in dps_logs_all])
+        # Set iclear_group start time
+        if iclear_group.start_time != start_time:
+            logger.info(f"Updating start time for {iclear_group.name} from {iclear_group.start_time} to {start_time}")
+            iclear_group.start_time = start_time
+            iclear_group.save()
+
+        # Set iclear start time
+        if iclear.start_time != start_time:
+            logger.info(f"Updating start time for {iclear.name} from {iclear.start_time} to {log0.start_time}")
+            iclear.start_time = start_time
+            iclear.save()
+
+        # Set iclear duration
+        last_log = dps_logs_all.order_by("start_time").last()
+        calculated_duration = last_log.start_time + last_log.duration - iclear.start_time
+        if iclear.duration != calculated_duration:
+            logger.info(f"Updating duration for {iclear.name} from {iclear.duration} to {calculated_duration}")
+            iclear.duration = calculated_duration
+            iclear.save()
+
+    return iclear, iclear_group
 
 
 def run_cerus_cm(y, m, d):
@@ -348,51 +369,3 @@ def run_cerus_cm(y, m, d):
         time.sleep(SLEEPTIME)
         run_count += 1
         # break
-
-
-# %%
-if __name__ == "__main__":
-    y, m, d = 2024, 3, 16
-    clear_name = f"{CLEAR_GROUP_BASE_NAME}{zfill_y_m_d(y, m, d)}"
-
-    # Building instance clears. havent been used before for this.
-    encounter = Encounter.objects.get(name="Temple of Febe")
-    iclear_group, created = InstanceClearGroup.objects.get_or_create(name=clear_name, type="strike")
-    iclear, created = InstanceClear.objects.get_or_create(
-        defaults={
-            "instance": encounter.instance,
-            "instance_clear_group": iclear_group,
-        },
-        name=clear_name,
-    )
-
-    cm_logs = DpsLog.objects.filter(
-        encounter__name="Temple of Febe",
-        start_time__year=y,
-        start_time__month=m,
-        start_time__day=d,
-        cm=True,
-        # final_health_percentage__lt=100,
-    ).order_by("start_time")
-
-    # Set start time
-    log0 = cm_logs[0]
-    log0.start_time
-    if iclear.start_time != log0.start_time:
-        logger.info(f"Updating start time for {iclear.name} from {iclear.start_time} to {log0.start_time}")
-        iclear.start_time = log0.start_time
-        iclear.save()
-
-    # Set duration
-    last_log = cm_logs.order_by("start_time").last()
-    calculated_duration = last_log.start_time + last_log.duration - iclear.start_time
-    if iclear.duration != calculated_duration:
-        logger.info(f"Updating duration for {iclear.name} from {iclear.duration} to {calculated_duration}")
-        iclear.duration = calculated_duration
-        iclear.save()
-
-    for log in cm_logs:
-        if log.instance_clear != iclear:
-            logger.info(f"Updating instance clear for log {log.id} to {iclear.name}")
-            log.instance_clear = iclear
-            log.save()
