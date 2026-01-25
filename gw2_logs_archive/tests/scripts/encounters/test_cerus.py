@@ -8,7 +8,7 @@ if __name__ == "__main__":
 import logging
 
 from gw2_logs.models import InstanceClearGroup
-from scripts.encounters.cerus import build_cerus_discord_message
+from scripts.encounter_progression.cerus_service import build_cerus_discord_message
 from scripts.log_helpers import replace_dps_links, zfill_y_m_d
 
 logger = logging.getLogger(__name__)

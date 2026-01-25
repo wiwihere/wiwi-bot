@@ -19,10 +19,9 @@ from gw2_logs.models import (
     DpsLog,
     InstanceClear,
 )
+from scripts.discord_interaction.message_helpers import create_duration_header_with_player_emotes
 from scripts.log_helpers import (
-    PLAYER_EMOTES,
     WIPE_EMOTES,
-    create_discord_time,
     get_duration_str,
 )
 from scripts.model_interactions.dps_log import DpsLogInteraction
@@ -59,39 +58,6 @@ def _create_message_title(icgi: "InstanceClearGroupInteraction") -> str:
         title += f"⠀⠀⠀⠀{rank_str} **{duration_str}** {rank_str} \n"
 
     return title
-
-
-def _create_duration_header_with_player_emotes(all_logs: list[DpsLog]) -> str:
-    """Create the embed header with the core, friend and pugs having a different emote, as configured in PLAYER_EMOTES (ducks) for each player.
-    Returns this string with the start and endtime as well, like so;
-    19:45 - 22:00
-    duck duck duck ... etc
-    """
-    # Calculate the median players in the instancecleargroup
-    try:
-        core_count = int(np.median([log.core_player_count for log in all_logs]))
-        friend_count = int(np.median([log.friend_player_count for log in all_logs]))
-        pug_count = int(np.median([log.player_count for log in all_logs])) - core_count - friend_count
-    except TypeError:
-        logger.error("Couldnt find core_count")
-        core_count = 0
-        friend_count = 0
-        pug_count = 10
-
-    # Create the string with emotes for each player. After 5 players a space is added
-    pug_split_str = f"{PLAYER_EMOTES['core'] * core_count}{PLAYER_EMOTES['friend'] * friend_count}{PLAYER_EMOTES['pug'] * pug_count}".split(
-        ">"
-    )
-    if len(pug_split_str) > 5:
-        pug_split_str[5] = f" {pug_split_str[5]}"  # empty str here:`⠀`
-    pug_str = ">".join(pug_split_str)
-
-    # title description with start - end time and colored ducks for core/pugs
-    description = f"""{create_discord_time(all_logs[0].start_time)} - \
-{create_discord_time(all_logs[-1].start_time + all_logs[-1].duration)} \
-\n{pug_str}\n
-"""
-    return description
 
 
 def _create_log_delay_str(
@@ -304,7 +270,7 @@ def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, 
     descriptions = {}
 
     title_main = _create_message_title(icgi=icgi)
-    description_main = _create_duration_header_with_player_emotes(all_logs=all_logs)
+    description_main = create_duration_header_with_player_emotes(all_logs=all_logs)
 
     titles[icg.type] = {"main": title_main}
     descriptions[icg.type] = {"main": description_main}
