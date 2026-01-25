@@ -20,19 +20,20 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from scripts.ei_parser import EliteInsightsParser
+from scripts.discord_interaction.build_embeds import create_discord_embeds
+from scripts.discord_interaction.send_message import create_or_update_discord_message
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
-    create_or_update_discord_message,
     create_rank_emote_dict_percentiles,
     get_duration_str,
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.log_instance_interaction import create_embeds
+from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
-from scripts.log_uploader import DpsLogInteraction, LogUploader
+from scripts.log_uploader import LogUploader
+from scripts.model_interactions.dps_log import DpsLogInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +238,7 @@ def run_cerus_cm(y, m, d):
                     current_sleeptime = MAXSLEEPTIME
 
             if titles is not None:
-                embeds = create_embeds(titles=titles, descriptions=descriptions)
+                embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
                 embeds_mes = list(embeds.values())
 
                 day_count = len(
@@ -255,7 +256,7 @@ def run_cerus_cm(y, m, d):
                             embeds_mes[i].description = table_header + embeds_mes[i].description
 
                 create_or_update_discord_message(
-                    group=iclear_group, hook=settings.WEBHOOKS["cerus_cm"], embeds_mes=embeds_mes
+                    group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
                 )
 
         if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):

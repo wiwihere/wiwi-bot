@@ -10,7 +10,7 @@ import datetime
 
 from gw2_logs.models import InstanceClearGroup
 from scripts.log_helpers import today_y_m_d
-from scripts.log_instance_interaction import InstanceClearGroupInteraction
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 
 def update_discord_message_single(y, m, d, itype_group="raid"):

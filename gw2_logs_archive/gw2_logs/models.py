@@ -70,7 +70,7 @@ class DiscordMessage(models.Model):
     weekdate = models.IntegerField(null=True, blank=True)
 
     def increase_counter(self):
-        """Adds one to the counter of discord api calls"""
+        """Add one to the counter of discord api calls"""
         self.update_count += 1
         self.save()
 

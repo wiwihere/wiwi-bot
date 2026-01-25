@@ -9,12 +9,11 @@ from typing import Literal
 
 import scripts.leaderboards as leaderboards
 from gw2_logs.models import DpsLog
-from scripts.ei_parser import EliteInsightsParser
-from scripts.log_instance_interaction import (
-    InstanceClearGroupInteraction,
-)
+from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
-from scripts.log_uploader import DpsLogInteraction, LogUploader
+from scripts.log_uploader import LogUploader
+from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 logger = logging.getLogger(__name__)
 

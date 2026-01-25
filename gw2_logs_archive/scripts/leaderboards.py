@@ -15,12 +15,11 @@ from gw2_logs.models import (
     InstanceClearGroup,
     InstanceGroup,
 )
+from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
 from scripts.log_helpers import (
     BLANK_EMOTE,
     EMBED_COLOR,
     WEBHOOKS,
-    Thread,
-    create_or_update_discord_message,
     get_avg_duration_str,
     get_rank_duration_str,
 )
@@ -152,8 +151,8 @@ def create_leaderboard(itype: str):
 
         create_or_update_discord_message(
             group=instance,
-            hook=WEBHOOKS["leaderboard"],
-            embeds_mes=[embed],
+            webhook_url=WEBHOOKS["leaderboard"],
+            embeds_messages_list=[embed],
             thread=Thread(settings.LEADERBOARD_THREADS[itype]),
         )
 
@@ -256,8 +255,8 @@ def create_leaderboard(itype: str):
 
     create_or_update_discord_message(
         group=instance_group,
-        hook=WEBHOOKS["leaderboard"],
-        embeds_mes=[embed],
+        webhook_url=WEBHOOKS["leaderboard"],
+        embeds_messages_list=[embed],
         thread=Thread(settings.LEADERBOARD_THREADS[itype]),
     )
 

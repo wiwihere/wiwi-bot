@@ -11,7 +11,7 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from scripts.log_instance_interaction import InstanceClearGroupInteraction
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 # %%
 

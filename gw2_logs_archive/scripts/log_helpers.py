@@ -8,19 +8,23 @@ if __name__ == "__main__":
 
 import datetime
 import logging
+import re
 import time
-from dataclasses import dataclass
 from itertools import chain
 from typing import Optional, Union
 
-import discord
 import numpy as np
 import pandas as pd
 import pytz
-from discord import SyncWebhook
-from discord.utils import MISSING
 from django.conf import settings
-from gw2_logs.models import DiscordMessage, Emoji, Encounter, Instance, InstanceClearGroup, InstanceGroup
+from gw2_logs.models import (
+    DpsLog,
+    Emoji,
+    Encounter,
+    InstanceClear,
+    InstanceClearGroup,
+    InstanceGroup,
+)
 from tzlocal import get_localzone
 
 logger = logging.getLogger(__name__)
@@ -179,27 +183,17 @@ else:
     }
 
 
-@dataclass
-class Thread:
-    """Discordpy seems to be rather picky about threads.
-    When sending a message it just needs a class with an id
-    to work. So here we are.
-    """
-
-    id: int
-
-
 def create_unix_time(t):
     tz = pytz.timezone(str(get_localzone()))
     t = t.astimezone(tz=tz)
     return int(time.mktime(t.timetuple()))
 
 
-def create_discord_time(t: datetime.datetime):
+def create_discord_time(dt: datetime.datetime):
     """time.mktime uses local time while the times in django are in utc.
     So we need to convert and then make discord str of it
     """
-    return f"<t:{create_unix_time(t)}:t>"
+    return f"<t:{create_unix_time(dt)}:t>"
 
 
 def get_duration_str(seconds: int, add_space: bool = False):
@@ -267,15 +261,25 @@ def make_duration_str(group, rank: int, indiv):
     return dur
 
 
-def get_rank_emote(indiv, group, core_minimum: int, custom_emoji_name=False):
+def get_rank_emote(
+    indiv: DpsLog | InstanceClear | InstanceClearGroup,
+    group: list[DpsLog] | list[InstanceClear] | list[InstanceClearGroup],
+    core_minimum: int,
+    custom_emoji_name: bool = False,
+):
     """Find the rank of the indiv in the group.
 
     Parameters
     ----------
     indiv: [DpsLog, InstanceClear, InstanceClearGroup]
+        The individual log, instanceclear or instancecleargroup that we want the rank emote for
     group: list[[DpsLog, InstanceClear, InstanceClearGroup]]
-    core_minimum : (int)
-    custom_emoji_name: Bool
+        Sorted list on duration of dpslog, instanceclear or instancleargroup.
+        Used to find the index of the provided idividual log to see how it compared.
+        Fastest log is first in the list, so filter with .order_by("duration")
+    core_minimum : int
+        If the player count is below the core_minimum, a different emoji is shown.
+    custom_emoji_name: bool
         Return emoji with a format option for the emoji. The returned rank_str
         should be formatted e.g.; rank_str.format("custom_name").
     """
@@ -392,121 +396,18 @@ def get_avg_duration_str(group):
     return f"{RANK_EMOTES['average']}`{avg_duration_str}`"
 
 
-def create_or_update_discord_message(
-    group: Union[Instance, InstanceGroup, InstanceClearGroup],
-    hook,
-    embeds_mes: list,
-    thread=MISSING,
-):
-    """Send message to discord
+def replace_dps_links(data: Union[dict, str], new_url="https://example.com/hidden") -> str:
+    pattern = re.compile(r"https://dps\.report/[^\)]+")
 
-    group: instance_group or iclear_group
-    hook: log_helper.WEBHOOK[itype]
-    embeds_mes: [Embed, Embed]
-    thread: Thread(settings.LEADERBOARD_THREADS[itype])
-    discord_message:
-        When none, read from the group. Provided to update a current message
-        for instance, when updating the FAST channel.
-    """
+    def recurse(obj):
+        if isinstance(obj, dict):
+            return {k: recurse(v) for k, v in obj.items()}
+        elif isinstance(obj, str):
+            return pattern.sub(new_url, obj)
+        else:
+            return obj
 
-    webhook = SyncWebhook.from_url(hook)
-
-    # Try to update message. If message cant be found, create a new message instead.
-    try:
-        discord_message = group.discord_message
-
-        webhook.edit_message(
-            message_id=discord_message.message_id,
-            embeds=embeds_mes,
-            thread=thread,
-        )
-
-        discord_message.increase_counter()
-        logger.info(f"Updating discord message: {discord_message.name}")
-
-    except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
-        mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
-
-        if isinstance(group, Instance):
-            name = f"leaderboard_{group.instance_group.name}{group.nr}"
-        elif isinstance(group, InstanceGroup):
-            name = f"leaderboard_{group.name}_all"
-        elif isinstance(group, InstanceClearGroup):
-            name = group.name
-
-        discord_message = DiscordMessage.objects.create(message_id=mess.id, name=name)
-        discord_message.increase_counter()
-        group.discord_message = discord_message
-        group.save()
-        logger.info(f"New discord message created: {discord_message.name}")
-
-
-def create_or_update_discord_message_current_week(
-    group,
-    hook,
-    embeds_mes: list,
-    thread=MISSING,
-    discord_message: Optional[DiscordMessage] = None,
-):
-    """Send message to discord. This will update or create the message in the current
-    week channel. This channel only holds logs for the current week.
-
-    Parameters
-    ----------
-    group: iclear_group
-    hook: log_helper.WEBHOOK[itype]
-    embeds_mes: [Embed, Embed]
-    thread: Thread(settings.LEADERBOARD_THREADS[itype])
-    discord_message:
-        When none, read from the group. Provided to update a current message
-        for instance, when updating the FAST channel.
-    """
-
-    weekdate = int(f"{group.start_time.strftime('%Y%V')}")  # e.g. 202510 -> year2025, week10
-    weekdate_current = int(f"{datetime.date.today().strftime('%Y%V')}")
-
-    # Only update current week.
-    if weekdate == weekdate_current:
-        # Remove old messages from previous weeks from the channel
-        dms = DiscordMessage.objects.filter(weekdate__lt=weekdate_current)
-        for dm in dms:
-            if dm.message_id is not None:
-                logger.info(f"Removing discord message {dm.message_id} from date {dm.weekdate}")
-                webhook = SyncWebhook.from_url(settings.WEBHOOKS_CURRENT_WEEK[group.type])
-                webhook.delete_message(dm.message_id)
-                dm.message_id = None
-                dm.weekdate = None
-                dm.save()
-
-        # Update the message weekdate
-        day_str = group.start_time.strftime("%a")
-        message_name = f"current_week_message_{day_str}"
-        discord_message, created = DiscordMessage.objects.get_or_create(name=message_name)
-        if discord_message.weekdate is None:
-            discord_message.weekdate = weekdate
-            discord_message.save()
-
-        webhook = SyncWebhook.from_url(hook)
-
-        # Try to update message. If message cant be found, create a new message instead.
-        try:
-            webhook.edit_message(
-                message_id=discord_message.message_id,
-                embeds=embeds_mes,
-                thread=thread,
-            )
-
-            discord_message.increase_counter()
-            logger.info(f"Updating discord message: {discord_message.name}")
-
-        except (AttributeError, discord.errors.NotFound, discord.errors.HTTPException):
-            mess = webhook.send(wait=True, embeds=embeds_mes, thread=thread)
-
-            discord_message.message_id = mess.id
-            discord_message.increase_counter()
-            discord_message.save()
-
-            logger.info(f"New discord message created: {discord_message.name}")
+    return recurse(data)
 
 
 # %%
