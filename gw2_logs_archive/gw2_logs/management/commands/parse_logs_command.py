@@ -18,6 +18,7 @@ from scripts.log_helpers import (
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFilesDate
 from scripts.log_processing.logfile_processing import process_logs_once
+from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -81,21 +82,35 @@ class Command(BaseCommand):
         PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
 
         while True:
+            icgi = None
             for processing_type in PROCESSING_SEQUENCE:
-                processed_any = process_logs_once(
+                processed_logs = process_logs_once(
                     processing_type=processing_type,
-                    log_paths=log_paths,
+                    log_files_date_cls=log_paths,
                     ei_parser=ei_parser,
                     y=y,
                     m=m,
                     d=d,
                 )
 
-                if processed_any:
+                if processed_logs:
                     current_sleeptime = MAXSLEEPTIME
 
                 if processing_type == "local":
                     time.sleep(SLEEPTIME / 10)
+
+            for log in processed_logs:
+                icgi = InstanceClearGroupInteraction.create_from_date(
+                    y=y, m=m, d=d, itype_group=log.encounter.instance.instance_group.name
+                )
+
+                # 5. Build and send Discord message
+                if icgi is not None:
+                    icgi.sync_discord_message_id()
+
+            if len(processed_logs) > 0:
+                # Update discord, only do it on the last log, so we dont spam the discord api too often.
+                icgi.send_discord_message()
 
             # 6. Update leaderboards and exit
             # Only update when there hasnt been a new log parsed for the duration of sleeptime.

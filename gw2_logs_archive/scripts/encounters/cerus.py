@@ -13,7 +13,7 @@ import time
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from gw2_logs.models import (
     DpsLog,
     Emoji,
@@ -22,6 +22,7 @@ from gw2_logs.models import (
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.send_message import create_or_update_discord_message
+from scripts.encounters.base import BaseEncounterRunner
 from scripts.log_helpers import (
     RANK_EMOTES_CUPS,
     create_discord_time,
@@ -33,6 +34,7 @@ from scripts.log_helpers import (
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_processing.log_uploader import LogUploader
+from scripts.log_processing.logfile_processing import process_logs_once
 from scripts.model_interactions.dps_log import DpsLogInteraction
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,59 @@ RANK_EMOTES = create_rank_emote_dict_percentiles(custom_emoji_name=False, invali
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2024, 4, 6
+
+
+class BaseEncounterRunner:
+    encounter_name: str
+    webhook_key: str
+    use_percentiles: bool = True
+
+    def __init__(self, y, m, d):
+        self.y, self.m, self.d = y, m, d
+        self.encounter = Encounter.objects.get(name=self.encounter_name)
+        self.ei_parser = EliteInsightsParser()
+
+    def setup_parser(self):
+        self.ei_parser.create_settings(
+            out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(self.y, self.m, self.d)),
+            create_html=False,
+        )
+
+    def run(self):
+        self.setup_parser()
+        self.process_logs()
+
+    def process_logs(self):
+        raise NotImplementedError
+
+
+class CerusCMRunner(BaseEncounterRunner):
+    encounter_name = "Temple of Febe"
+    webhook_key = "cerus_cm"
+
+    def process_logs(self):
+        cm_logs = self.get_cm_logs()
+        embed_builder = CerusEmbedBuilder(cm_logs)
+        embeds = embed_builder.build()
+
+        # create_or_update_discord_message(
+        #     group=embed_builder.group,
+        #     webhook_url=settings.WEBHOOKS[self.webhook_key],
+        #     embeds_messages_list=embeds,
+        # )
+
+
+class CerusEmbedBuilder:
+    def __init__(self, logs: QuerySet[DpsLog]):
+        self.logs = logs
+        self.group = self._get_or_create_group()
+
+    def build(self) -> list:
+        health_df = self._build_health_df()
+        return create_discord_embeds(
+            titles=self._titles(),
+            descriptions=self._descriptions(health_df),
+        )
 
 
 def run_cerus_cm(y, m, d):
@@ -59,7 +114,10 @@ def run_cerus_cm(y, m, d):
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    log_paths = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
+    log_files_date = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=[encounter.folder_names])
+
+    # Flow start
+    PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
 
     while True:
         # if True:
@@ -69,43 +127,37 @@ def run_cerus_cm(y, m, d):
             name=f"cerus_cm__{zfill_y_m_d(y, m, d)}", type="strike"
         )
 
-        for processing_type in ["local", "upload"]:
+        for processing_type in PROCESSING_SEQUENCE:
+            processed_any = process_logs_once(
+                processing_type=processing_type,
+                log_files_date_cls=log_files_date,
+                ei_parser=ei_parser,
+                y=y,
+                m=m,
+                d=d,
+            )
+
+            if processed_any:
+                current_sleeptime = MAXSLEEPTIME
+
             titles = None
             descriptions = None
 
             # Find logs in directory
-            logs_df = log_paths.refresh_and_get_logs()
+            # logs_df = log_files_date.refresh_and_get_logs()
 
             # Process each log
-            loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
+            # loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
 
             # Process each log
             for row in loop_df.itertuples():
-                log: LogFile = row.log
-                log_path = log.path
+                logfile: LogFile = row.log
+                log_path = logfile.path
 
-                if processing_type == "local":
-                    # Local processing
-                    parsed_path = ei_parser.parse_log(evtc_path=log_path)
-                    dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
-                    if dli is False:
-                        logger.warning(
-                            f"Parsing didnt work, too short log maybe. {log_path}. Skipping all further processing."
-                        )
-                        log.mark_local_processed()
-                        log.mark_upload_processed()
-                        continue
-                    parsed_log = dli.dpslog
-                elif processing_type == "upload":
-                    if log.local_processed:  # Log must be parsed locally before uploading
-                        # Upload log
-                        log_upload = LogUploader(log_path=log_path, only_url=True)
-                        parsed_log = log_upload.run()
-                    else:
-                        parsed_log = False
+                _parse_or_upload_log
 
                 if parsed_log.url != "":
-                    log.mark_upload_processed()
+                    logfile.mark_upload_processed()
                 # skip on fail
                 if not parsed_log:
                     continue
@@ -166,13 +218,13 @@ def run_cerus_cm(y, m, d):
                 descriptions["cerus_cm"]["field_0"] = ""
 
                 for idx, row in health_df.iterrows():
-                    log = row["log"]
+                    logfile = row["log"]
 
                     # Set the delay between tries, only show when larger than 2 minutes.
                     if idx == 0:
                         duration_str = ""
                     else:
-                        diff_time = log.start_time - (
+                        diff_time = logfile.start_time - (
                             health_df.loc[idx - 1, "log"].start_time + health_df.loc[idx - 1, "log"].duration
                         )
                         if diff_time.seconds > 120:
@@ -181,12 +233,12 @@ def run_cerus_cm(y, m, d):
                             duration_str = ""
 
                     # Find the medal for the achived health percentage
-                    percentile_rank = 100 - log.final_health_percentage
+                    percentile_rank = 100 - logfile.final_health_percentage
                     rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
                     rank_emo = RANK_EMOTES[rank_binned].format(int(percentile_rank))
 
                     health_str = ".".join(
-                        [str(int(i)).zfill(2) for i in str(round(log.final_health_percentage, 2)).split(".")]
+                        [str(int(i)).zfill(2) for i in str(round(logfile.final_health_percentage, 2)).split(".")]
                     )  # makes 02.20%
                     if health_str == "100.00":
                         health_str = "100.0"
@@ -195,9 +247,9 @@ def run_cerus_cm(y, m, d):
                     # rank_str = f"{row['rank']}{rank_emo}` {health_str}% ` "  # FIXME v1
                     rank_str = f"{row['rank']}{rank_emo}"  # FIXME v2
 
-                    if log.phasetime_str != "":
+                    if logfile.phasetime_str != "":
                         # phasetime_str = f"`( {log.phasetime_str} )`"
-                        phasetime_str = f"` {health_str}% | {log.phasetime_str} `{row['cups']}"  # FIXME v2
+                        phasetime_str = f"` {health_str}% | {logfile.phasetime_str} `{row['cups']}"  # FIXME v2
                         # phasetime_str = f"`( {health_str}% | {log.phasetime_str} )`{row['cups']}".replace(" ", "")  # FIXME v2
                         # phasetime_str = f"`( {health_str}`[%]({log.url})` | {log.phasetime_str} )`{row['cups']}".replace(" ", "")  # FIXME v3
                         # phasetime_str = phasetime_str.replace("--", "--- ")  # FIXME v3
@@ -205,13 +257,13 @@ def run_cerus_cm(y, m, d):
                     else:
                         phasetime_str = ""
 
-                    if log.lcm:
+                    if logfile.lcm:
                         log_link_emote = "★"
                     else:
                         log_link_emote = "☆"
 
-                    if log.url != "":
-                        log_tag = f"{rank_str}[{log_link_emote}]({log.url}) {phasetime_str}"
+                    if logfile.url != "":
+                        log_tag = f"{rank_str}[{log_link_emote}]({logfile.url}) {phasetime_str}"
                     else:
                         log_tag = f"{rank_str}{log_link_emote} {phasetime_str}"
 
@@ -255,9 +307,9 @@ def run_cerus_cm(y, m, d):
                         if i > 0:
                             embeds_mes[i].description = table_header + embeds_mes[i].description
 
-                create_or_update_discord_message(
-                    group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
-                )
+                # create_or_update_discord_message(
+                #     group=iclear_group, webhook_url=settings.WEBHOOKS["cerus_cm"], embeds_messages_list=embeds_mes
+                # )
 
         if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
             print("Finished run")
