@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from django.conf import settings
+from scripts.log_helpers import get_log_path_view
 from scripts.log_processing.ei_updater import EliteInsightsUpdater
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ class EliteInsightsParser:
         Parsed log path
         """
         evtc_path = Path(evtc_path)
+        short_path = get_log_path_view(evtc_path)
 
         if self.settings is None:
             raise ValueError("Run self.create_settings first.")
@@ -100,7 +102,7 @@ class EliteInsightsParser:
         js_path = self._find_parsed_json(evtc_path=evtc_path)
 
         if js_path:
-            logger.info(f"Log {evtc_path.name} already parsed")
+            logger.info(f"{short_path}: Log already parsed")
         else:
             # Call the parser
             res = subprocess.run(
@@ -108,7 +110,7 @@ class EliteInsightsParser:
             )
 
             if res.returncode != 0:
-                logger.warning(f"EI failed for {evtc_path.name}: {res.stderr}")
+                logger.warning(f"{short_path}: EI parsing failed: {res.stderr}")
                 return None
 
             js_path = self._find_parsed_json(evtc_path=evtc_path)
@@ -123,8 +125,6 @@ class EliteInsightsParser:
         if len(files) > 0:
             file = files[0]
             return file
-        else:
-            logger.warning(f"File {evtc_path} not found.")
 
     @staticmethod
     def load_json_gz(js_path: Path) -> dict:

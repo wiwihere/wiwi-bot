@@ -14,6 +14,7 @@ from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
     InstanceClear,
+    InstanceClearGroup,
 )
 from scripts.log_helpers import get_rank_emote
 
@@ -27,7 +28,11 @@ class InstanceClearInteraction:
     iclear: InstanceClear
 
     @classmethod
-    def update_or_create_from_logs(cls, logs: list[DpsLog], instance_group=None):
+    def update_or_create_from_logs(
+        cls,
+        logs: list[DpsLog],
+        instance_group: InstanceClearGroup = None,
+    ) -> "InstanceClearInteraction":
         """Log should be filtered on instance"""
         iname = f"{logs[0].encounter.instance.name_lower}__{logs[0].start_time.strftime('%Y%m%d')}"
 
@@ -78,7 +83,7 @@ class InstanceClearInteraction:
         return cls(iclear)
 
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name: str) -> "InstanceClearGroup":
         return cls(InstanceClear.objects.get(name=name))
 
     def get_rank_emote_ic(self) -> str:
