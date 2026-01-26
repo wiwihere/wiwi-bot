@@ -7,7 +7,6 @@ if __name__ == "__main__":
 import logging
 from typing import Literal
 
-import scripts.leaderboards as leaderboards
 from gw2_logs.models import DpsLog
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
