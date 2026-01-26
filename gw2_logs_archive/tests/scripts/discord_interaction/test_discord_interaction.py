@@ -21,8 +21,9 @@ def test_discord_message():
     # Test refactor on the go. Dont touch the code below.
     y, m, d = 2025, 12, 18
     itype_group = "raid"
-
     icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+
+    # Discord messsage testing
     titles, descriptions = create_discord_message(icgi)
     descriptions = replace_dps_links(descriptions)
     assert titles == {
@@ -45,6 +46,7 @@ def test_discord_message():
         }
     }
 
+    # Embeds testing
     embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
 
     embeds[

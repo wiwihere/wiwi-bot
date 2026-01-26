@@ -9,7 +9,7 @@ from itertools import chain
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from scripts import log_uploader
+from scripts.log_processing.log_uploader import LogUploader
 
 logger = logging.getLogger(__name__)
 
@@ -28,5 +28,5 @@ class Command(BaseCommand):
         # Parse the urls
         for log_url in log_urls:
             if log_url != "":
-                self = log_upload = log_uploader.LogUploader.from_url(log_url=log_url)
+                log_upload = LogUploader(log_url=log_url, only_url=False)
                 log_upload.run()

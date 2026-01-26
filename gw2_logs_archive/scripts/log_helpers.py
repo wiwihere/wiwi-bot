@@ -11,7 +11,8 @@ import logging
 import re
 import time
 from itertools import chain
-from typing import Optional, Union
+from pathlib import Path
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -80,7 +81,7 @@ def create_rank_emote_dict(custom_emoji_name: bool, invalid: bool):
     return d
 
 
-def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
+def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool) -> Tuple[dict, list]:
     tag = "discord_tag"
     if custom_emoji_name:
         tag = "discord_tag_custom_name"
@@ -88,9 +89,10 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
     invalid_str = ""
     if invalid:
         invalid_str = " invalid"
-    # RANK_BINS_PERCENTILE=[20, 40, 50, 60, 70, 80, 90, 100] # in .env
 
-    d = {
+    rank_bins_percentile = [20, 40, 50, 60, 70, 80, 90, 100]
+
+    rank_emotes = {
         0: f"{getattr(Emoji.objects.get(name='1_junk'), tag)()}".format("bin20_percrank{}"),
         1: f"{getattr(Emoji.objects.get(name='2_basic'), tag)()}".format("bin40_percrank{}"),
         2: f"{getattr(Emoji.objects.get(name='3_fine'), tag)()}".format("bin50_percrank{}"),
@@ -110,7 +112,7 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool):
         ),
         "emboldened": f"{Emoji.objects.get(name='emboldened').discord_tag()}",
     }
-    return d
+    return rank_emotes, rank_bins_percentile
 
 
 def create_rank_emote_dict_newgame(custom_emoji_name: bool, invalid: bool):
@@ -162,6 +164,12 @@ RANK_EMOTES_CUPS = {
     3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r{}_of{}_slower{}s"),
 }
 
+RANK_EMOTES_CUPS_PROGRESSION = {
+    1: Emoji.objects.get(name="trophy_gold").discord_tag_custom_name().format("r1_of{}"),
+    2: Emoji.objects.get(name="trophy_silver").discord_tag_custom_name().format("r2_of{}"),
+    3: Emoji.objects.get(name="trophy_bronze").discord_tag_custom_name().format("r3_of{}"),
+}
+
 
 BLANK_EMOTE = Emoji.objects.get(name="blank").discord_tag()
 # Combine raids and strikes into the same group.
@@ -198,7 +206,10 @@ def create_discord_time(dt: datetime.datetime):
 
 def get_duration_str(seconds: int, add_space: bool = False):
     """Get seconds with datetime.timedelta.seconds"""
-    mins, secs = divmod(seconds, 60)
+    if pd.isna(seconds):
+        mins, secs = 0, 0
+    else:
+        mins, secs = divmod(seconds, 60)
     if mins < 60:
         if add_space:
             if len(str(mins)) == 1:
@@ -263,7 +274,7 @@ def make_duration_str(group, rank: int, indiv):
 
 def get_rank_emote(
     indiv: DpsLog | InstanceClear | InstanceClearGroup,
-    group: list[DpsLog] | list[InstanceClear] | list[InstanceClearGroup],
+    group_list: list[DpsLog] | list[InstanceClear] | list[InstanceClearGroup],
     core_minimum: int,
     custom_emoji_name: bool = False,
 ):
@@ -306,36 +317,36 @@ def get_rank_emote(
     elif not indiv.success:
         rank_str = emote_dict["average"]  # dault rank string
     elif indiv.success:
-        rank = group.index(indiv) + 1
+        rank = group_list.index(indiv) + 1
 
         # Calculate seconds slower or for fastest run speed improvement over previous ranked log;
-        dur = make_duration_str(group, rank, indiv)
+        dur = make_duration_str(group_list, rank, indiv)
 
         # Top 3
         if rank in [1, 2, 3]:
-            # e.g. 1_2s_r1_of10 -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
-            rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group), dur)
+            # e.g. r1_of10_faster12_1s -> 1.2 seconds faster than rank 2, rank 1 of 10 logs
+            rank_str = RANK_EMOTES_CUPS[rank].format(rank, len(group_list), dur)
 
         else:
             if indiv.success:
                 if settings.MEDALS_TYPE == "original":
                     if indiv.duration.seconds < (
-                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) - 5
+                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group_list]) - 5
                     ):
                         rank_str = emote_dict["above_average"]
                     elif indiv.duration.seconds > (
-                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group]) + 5
+                        getattr(np, settings.MEAN_OR_MEDIAN)([i.duration.seconds for i in group_list]) + 5
                     ):
                         rank_str = emote_dict["below_average"]
 
                 else:
-                    inverse_rank = group[::-1].index(indiv)
-                    percentile_rank = (inverse_rank) / len(group) * 100
+                    inverse_rank = group_list[::-1].index(indiv)
+                    percentile_rank = (inverse_rank) / len(group_list) * 100
                     rank_binned = np.searchsorted(settings.RANK_BINS_PERCENTILE, percentile_rank, side="left")
                     # Fill percrank and samples
                     rank_str = RANK_EMOTES_CUSTOM[rank_binned].format(
                         rank,
-                        len(group),
+                        len(group_list),
                         # int(percentile_rank),
                         dur,
                     )
@@ -371,7 +382,7 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=No
     duration_str = get_duration_str(indiv.duration.seconds, add_space=True)
 
     rank_str = get_rank_emote(
-        indiv=indiv, group=list(group), core_minimum=settings.CORE_MINIMUM[itype], custom_emoji_name=pretty_time
+        indiv=indiv, group_list=list(group), core_minimum=settings.CORE_MINIMUM[itype], custom_emoji_name=pretty_time
     )
 
     if pretty_time:
@@ -408,6 +419,12 @@ def replace_dps_links(data: Union[dict, str], new_url="https://example.com/hidde
             return obj
 
     return recurse(data)
+
+
+def get_log_path_view(log_path: Path, parents: int = 2) -> str:
+    """Only show two parent folders of path."""
+    parents = min(len(log_path.parts) - 2, parents)  # avoids index-error
+    return log_path.as_posix().split(log_path.parents[parents].as_posix(), maxsplit=1)[-1]
 
 
 # %%

@@ -60,7 +60,7 @@ def test_process_logs_once_fully_mocked(
     # ---- LOCAL ----
     processed_local = process_logs_once(
         processing_type="local",
-        log_paths=mock_logsdate,
+        log_files_date_cls=mock_logsdate,
         ei_parser=mock_eiparser,
         y=2026,
         m=1,
@@ -71,7 +71,7 @@ def test_process_logs_once_fully_mocked(
     # ---- UPLOAD ----
     processed_upload = process_logs_once(
         processing_type="upload",
-        log_paths=mock_logsdate,
+        log_files_date_cls=mock_logsdate,
         ei_parser=mock_eiparser,
         y=2026,
         m=1,

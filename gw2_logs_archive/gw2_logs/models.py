@@ -1,3 +1,4 @@
+# %%
 from itertools import chain
 
 from django.db import models
@@ -5,9 +6,7 @@ from django.db import models
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
 EMOJI_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("medal", "Medal"), ("other", "Other")]
 PLAYER_ROLES = [("core", "Core"), ("friend", "Friend")]
-
 # %%
-
 
 # Create your models here.
 
@@ -219,7 +218,11 @@ class InstanceClearGroup(models.Model):
 
     @property
     def dps_logs_all(self):
-        return list(chain(*[i.dps_logs.all() for i in self.instance_clears.all()]))
+        """Sorted list of all dps logs in this instance clear group"""
+        return sorted(
+            chain.from_iterable(i.dps_logs.all() for i in self.instance_clears.all()),
+            key=lambda log: log.start_time,
+        )
 
 
 class InstanceClear(models.Model):
@@ -356,3 +359,6 @@ class Player(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# %%

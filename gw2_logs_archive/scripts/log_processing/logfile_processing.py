@@ -7,13 +7,11 @@ if __name__ == "__main__":
 import logging
 from typing import Literal
 
-import scripts.leaderboards as leaderboards
 from gw2_logs.models import DpsLog
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
-from scripts.log_uploader import LogUploader
+from scripts.log_processing.log_uploader import LogUploader
 from scripts.model_interactions.dps_log import DpsLogInteraction
-from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +52,7 @@ def _parse_or_upload_log(
     elif processing_type == "upload":
         if logfile.local_processed:  # Log must be parsed locally before uploading
             # Upload log
-            log_upload = LogUploader.from_path(log_path, only_url=True)
+            log_upload = LogUploader(log_path=log_path, only_url=True)
             parsed_log = log_upload.run()
         else:
             parsed_log = None
@@ -65,12 +63,9 @@ def _parse_or_upload_log(
 def process_logs_once(
     *,
     processing_type: Literal["local", "upload"],
-    log_paths: LogFilesDate,
+    log_files_date_cls: LogFilesDate,
     ei_parser: EliteInsightsParser,
-    y: int,
-    m: int,
-    d: int,
-) -> bool:
+) -> list[DpsLog]:
     """
     Process all unprocessed logs once for a given date and processing type.
 
@@ -79,19 +74,15 @@ def process_logs_once(
     - Parses or uploads each log
     - Marks logs as processed
     - Creates or updates InstanceClearGroups
-    - Syncs and optionally sends Discord messages
-    - Updates leaderboards when a clear is completed
 
     Parameters
     ----------
     processing_type : Literal["local", "upload"]
         Which processing step to run for the logs.
-    log_paths : LogPathsDate
+    log_files_date_cls : LogFilesDate
         LogPathsDate instance managing available logs and state.
     ei_parser : EliteInsightsParser
         Configured Elite Insights parser instance.
-    y, m, d : int
-        Date used for InstanceClearGroup grouping.
 
     Returns
     -------
@@ -99,13 +90,12 @@ def process_logs_once(
         True if at least one log was processed, False otherwise.
     """
     # 1. Find unprocessed logs for date
-    logs_df = log_paths.refresh_and_get_logs()
+    logs_df = log_files_date_cls.refresh_and_get_logs()
     # Filter for unprocessed logs
     loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
 
     # Process each log
-    processed_any = False
-    fractal_success = False
+    processed_logs = []
     for idx, row in enumerate(loop_df.itertuples()):
         logfile: LogFile = row.log
 
@@ -130,26 +120,5 @@ def process_logs_once(
             if processing_type == "upload":
                 logfile.mark_upload_processed()
 
-            if fractal_success is True and parsed_log.encounter.instance.instance_group.name == "fractal":
-                continue
-
-            icgi = InstanceClearGroupInteraction.create_from_date(
-                y=y, m=m, d=d, itype_group=parsed_log.encounter.instance.instance_group.name
-            )
-
-            # 5. Build and send Discord message
-            if icgi is not None:
-                icgi.sync_discord_message_id()
-
-                # Update discord, only do it on the last log, so we dont spam the discord api too often.
-                if idx == len(loop_df) - 1:
-                    icgi.send_discord_message()
-
-                # 6. Update leaderboards
-                if icgi.iclear_group.success:
-                    if icgi.iclear_group.type == "fractal":
-                        leaderboards.create_leaderboard(itype="fractal")
-                        fractal_success = True
-
-            processed_any = True
-    return processed_any
+            processed_logs += [parsed_log]
+    return processed_logs

@@ -15,7 +15,36 @@ from scripts.log_helpers import (
 logger = logging.getLogger(__name__)
 
 
-def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
+def validate_embed_size(embed: discord.Embed) -> bool:
+    """Validate that the embed size is within Discord limits.
+
+    Parameters
+    ----------
+    embed : discord.Embed
+        The embed to validate.
+
+    Returns
+    -------
+    bool
+        True if the embed is valid, False otherwise.
+    """
+    total_length = len(embed.title or "") + len(embed.description or "")
+    for field in embed.fields:
+        total_length += len(field.name) + len(field.value)
+
+    if len(embed.description) > 4096:
+        logger.warning(
+            f"Embed description exceeds Discord limit of 4096 characters: {len(embed.description)} characters"
+        )
+        return False
+
+    if total_length > 6000:
+        logger.warning(f"Embed exceeds Discord limit of 6000 characters: {total_length} characters")
+        return False
+    return True
+
+
+def create_discord_embeds(titles: dict[dict, str], descriptions: dict[dict, str]) -> dict[str, discord.Embed]:
     """Create discord embed from titles and descriptions."""
     embeds: dict[str, discord.Embed] = {}
     has_title = False
@@ -41,7 +70,7 @@ def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
         for embed_id in np.unique(embed_ids):
             title = ""
             description = ""
-            # The first embed gets a title and title  description.
+            # The first embed gets a title and title description.
             if int(embed_id) == 0:
                 title = titles[instance_type]["main"]
                 description = descriptions[instance_type]["main"]
@@ -58,8 +87,6 @@ def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
                     if encounter_key == "main":  # Main is already in title.
                         continue
                     if embed_id_instance != embed_id:  # Should go to different embed.
-                        logger.debug(f"{len(description)} something is up with embeds")
-
                         continue
 
                     description += titles[instance_type][encounter_key]
@@ -80,5 +107,9 @@ def create_discord_embeds(titles, descriptions) -> dict[str, discord.Embed]:
                     field_name = titles[instance_type][encounter_key]
                     field_value = descriptions[instance_type][encounter_key]
                     embeds[f"{instance_type}_{embed_id}"].add_field(name=field_name, value=field_value, inline=False)
+
+    for embed_key in embeds:
+        if not validate_embed_size(embeds[embed_key]):
+            raise ValueError(f"Embed {embed_key} is invalid due to size limits.")
 
     return embeds

@@ -4,7 +4,7 @@ if __name__ == "__main__":
     django_setup.run()
 
 from django.core.management.base import BaseCommand
-from scripts.encounters.cerus import run_cerus_cm
+from scripts.encounter_progression.cerus_service import run_cerus_cm
 from scripts.log_helpers import today_y_m_d
 
 

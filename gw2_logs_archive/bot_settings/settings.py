@@ -62,9 +62,9 @@ for key in WEBHOOKS_CURRENT_WEEK.keys():
 
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
-    "raid": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_RAIDS"),
-    "strike": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_STRIKES"),
-    "fractal": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD_FRACTALS"),
+    "raid": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS"),
+    "strike": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES"),
+    "fractal": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS"),
 }
 
 CORE_MINIMUM = {
