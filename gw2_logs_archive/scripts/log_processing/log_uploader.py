@@ -208,17 +208,18 @@ class LogUploader:
         """
 
         move_reason = None
-        if len(self.get_django_log()) == 0:
+        if len(self.get_django_logs()) == 1:
             if self.log_path:
-                logger.info("    Uploading log")
-                response, move_reason = self.uploader.upload_log(log_path=self.log_path)
+                if not self.log_url:
+                    logger.info(f"{self.log_source_view}: Uploading log")
+                    response, move_reason = self.uploader.upload_log(log_path=self.log_path)
 
-            if self.log_url:
-                logger.info("    Requesting info from url")
-                response = self.uploader.request_metadata(url=self.log_url)
+            # if self.log_url:
+            #     logger.info("    Requesting info from url")
+            #     response = self.uploader.request_metadata(url=self.log_url)
         else:
-            logger.info("    Already in database")
-            response = self.get_django_log().first().json_dump
+            logger.info("Already in database?")
+            response = self.get_django_logs().first().json_dump
         return response, move_reason
 
     def fix_bosses(self, metadata: dict) -> dict:
@@ -229,7 +230,7 @@ class LogUploader:
             # fightName in detailed logs do names as below, so we can look them up
             # 'Dark Ai, Keeper of the Peak'
             # 'Elemental Ai, Keeper of the Peak'
-            logger.info("    Fixing Ai boss name")
+            logger.info("Fixing Ai boss name")
             _detailed_info = self.get_detailed_info(report_id=metadata["id"])
             metadata["encounter"]["boss"] = _detailed_info["fightName"].split(",")[0]
             # Dark to different bossid so it gives separate log
@@ -336,7 +337,7 @@ bossname:  {metadata["encounter"]["boss"]}
         None on fail
         DpsLog.object on success
         """
-        logger.info(f"Start processing: {self.log_source_view}")
+        logger.info(f"{self.log_source_view}: Start processing")
         metadata, move_reason = self.get_or_upload_log()
 
         if move_reason:

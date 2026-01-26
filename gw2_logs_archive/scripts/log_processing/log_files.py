@@ -7,12 +7,13 @@ if __name__ == "__main__":
 import logging
 import os
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
 from pathlib import Path
 
 import pandas as pd
 from django.conf import settings
-from scripts.log_helpers import zfill_y_m_d
+from scripts.log_helpers import get_log_path_view, zfill_y_m_d
 
 logger = logging.getLogger(__name__)
 
@@ -56,27 +57,19 @@ class LogFile:
 
         self._path_short = None
 
-    @property
+    @cached_property
     def path_short(self) -> str:
         """Short name of the log file. Short name is the name without the extension."""
-        if self._path_short is None:
-            try:
-                parents = 2
-                parents = min(len(self.path.parts) - 2, parents)  # avoids index-error
-                self._path_short = self.path.as_posix().split(self.path.parents[parents].as_posix(), maxsplit=1)[-1]
-            except Exception as e:
-                logger.warning("Could not get short name of %s", self.path)
-                self._path_short = self.path
-        return self._path_short
+        return get_log_path_view(self.path)
 
     def mark_local_processed(self):
         """Mark the log as processed locally."""
-        logger.debug(f"Marking {self.path_short} as processed locally.")
+        logger.debug(f"{self.path_short}: Marking as processed locally.")
         self.local_processed = True
 
     def mark_upload_processed(self):
         """Mark the log as processed externally on dps.report."""
-        logger.debug(f"Marking {self.path_short} as processed externally on dps.report.")
+        logger.debug(f"{self.path_short}: Marking as processed externally on dps.report.")
         self.upload_processed = True
 
 
@@ -171,7 +164,7 @@ class LogFilesDate:
             if self.allowed_folder_names is not None:
                 if logfile.boss_name is not None:
                     if logfile.boss_name not in self.allowed_folder_names:
-                        logger.info(f"Skipped {logfile.path_short} because it is not in the allowed_folder_names")
+                        logger.info(f"{logfile.path_short}: Skipped because it is not in the allowed_folder_names")
                         logfile.mark_local_processed()
                         logfile.mark_upload_processed()
 

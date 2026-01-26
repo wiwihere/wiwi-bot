@@ -60,7 +60,7 @@ class DpsLogInteraction:
                 return False
 
             json_detailed = EliteInsightsParser.load_json_gz(js_path=parsed_path)
-            dpslog = cls.from_detailed_logs(log_path=log_path, json_detailed=json_detailed)
+            dpslog = cls.from_detailed_logs(cls, log_path=log_path, json_detailed=json_detailed)
 
             if dpslog is False:
                 return False

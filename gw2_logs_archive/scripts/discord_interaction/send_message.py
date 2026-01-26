@@ -60,6 +60,8 @@ class Webhook:
         """Edit message. If this fails, a new message must be created."""
         thread = self._validate_thread(thread)
 
+        if discord_message is None:
+            raise ValueError("DiscordMessage not found")
         if not discord_message.message_id:
             raise ValueError("DiscordMessage cant edit message without message_id")
 
