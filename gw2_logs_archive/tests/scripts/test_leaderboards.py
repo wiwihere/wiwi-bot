@@ -4,177 +4,29 @@ if __name__ == "__main__":
 
     django_setup.run()
 
-import datetime
-import logging
-from typing import Literal
 
-import discord
-from django.conf import settings
-from gw2_logs.models import (
-    Encounter,
-    Instance,
-    InstanceClearGroup,
-    InstanceGroup,
-)
-from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
-from scripts.log_helpers import (
-    BLANK_EMOTE,
-    EMBED_COLOR,
-    WEBHOOKS,
-    get_avg_duration_str,
-    get_rank_duration_str,
-)
-from scripts.model_interactions.encounter import EncounterInteraction
-from scripts.model_interactions.instance import InstanceInteraction
+import logging
+
+from scripts.discord_interaction.build_embeds import create_discord_embeds
+from scripts.discord_interaction.build_message import create_discord_message
+from scripts.leaderboards import *
+from scripts.log_helpers import replace_dps_links
 
 logger = logging.getLogger(__name__)
-# TODO remove ITYPE_GROUPS
-if __name__ == "__main__":
-    itype = "raid"
-    min_core_count = 0  # select all logs when including non core
-
-
-def build_instance_cleartime_row(instance_interaction: InstanceInteraction) -> str:
-    # Strikes dont have average clear time
-    if instance_interaction.instance_type == "strike":
-        return ""
-
-    iclear_success_all = instance_interaction.get_all_succesful_clears()
-
-    description = f"{instance_interaction.instance.emoji.discord_tag()}"
-
-    # Add the top 3 logs
-    for idx, instance_clear in enumerate(iclear_success_all[:3]):
-        rank_duration_str = get_rank_duration_str(
-            instance_clear,
-            iclear_success_all,
-            itype=instance_interaction.instance_type,
-            pretty_time=True,
-        )
-        description += rank_duration_str
-
-    if len(iclear_success_all) > 0:
-        # Add average cleartime of instance.
-        avg_duration_str = get_avg_duration_str(iclear_success_all)
-        description += f"{avg_duration_str}\n\n"
-    return description
-
-
-def build_instance_title(instance: Instance) -> str:
-    """Title is just the name of the instance. For strikes the emoji is added"""
-    instance_title = f"{instance.name}"
-
-    # strike needs emoji because it doenst have instance average
-    if instance.instance_group.name == "strike":
-        instance_title = f"{instance.emoji.discord_tag()} {instance.name}"
-    return instance_title
-
-
-def _build_encounter_line(emote: str, encounter_success_all: QuerySet, instance_type: str) -> str:
-    # Go through top 3 logs and add this to the message
-    line_str = f"{emote}"
-
-    for idx, encounter_log in enumerate(encounter_success_all[:3]):
-        rank_duration_str = get_rank_duration_str(
-            indiv=encounter_log,
-            group=encounter_success_all,
-            itype=instance_type,
-            pretty_time=True,
-            url=encounter_log.url,
-        )
-        line_str += rank_duration_str
-
-    # Add average cleartime of encounter.
-    avg_duration_str = get_avg_duration_str(encounter_success_all)
-    line_str += f"{avg_duration_str}\n"
-    return line_str
-
-
-def _create_leaderboard_encounter_lines(encounter_interaction: EncounterInteraction, ii: InstanceInteraction) -> str:
-    """Build lines for single encounter. Different difficulties are shown on a new line.
-    Skips if the encounter in the database has a False value on lb, lb_cm or lb_lcm.
-    """
-    DIFFICULTY_CONFIG = {
-        "normal": (False, False, "lb"),
-        "cm": (True, False, "lb_cm"),
-        "lcm": (True, True, "lb_lcm"),
-    }
-
-    encounter_line = ""
-    for difficulty in ["normal", "cm", "lcm"]:
-        cm, lcm, lb_attr = DIFFICULTY_CONFIG[difficulty]
-        should_show_on_leaderboard = getattr(encounter_interaction.encounter, lb_attr)
-
-        if not should_show_on_leaderboard:
-            continue  # skip if encounter is not selected to be on leaderboard
-
-        # Find encounter times
-        encounter_success_all = encounter_interaction.get_all_succesful_clears(
-            cm=cm, lcm=lcm, min_core_count=ii.min_core_count
-        )
-
-        if len(encounter_success_all) == 0:
-            continue
-
-        emote: str = encounter_interaction.encounter.emoji.discord_tag(difficulty)
-        encounter_line += _build_encounter_line(
-            emote=emote, encounter_success_all=encounter_success_all, instance_type=ii.instance_type
-        )
-    return encounter_line
-
 
 # %%
-def build_leaderboard_instance_discord_message(instance_type: Literal["raid", "strike", "fractal"]):
-    """
-    Create and publish individual instance leaderboards on Discord.
-
-    Generates one Discord embed per instance (wing/strike/fractal) containing:
-    - Instance clear time leaderboard (top 3 + average)
-    - Encounter clear times for each difficulty (normal/CM/LCM)
-    - Make sure the encounters in the database are marked to post to the leaderboard.
-      This is handled through the lb, lb_cm and lb_lcm options.
-
-    Parameters
-    ----------
-        instance_type: Literal["raid", "strike", "fractal"]
-
-    """
-    # Instance leaderboards (wings/ strikes/ fractal scales)
-    instances = Instance.objects.filter(instance_group__name=instance_type).order_by("nr")
-    descriptions = {}
-    titles = {}
-    for instance in instances:
-        instance_interaction = InstanceInteraction(instance)
-
-        # INSTANCE LEADERBOARDS
-        # ----------------
-        # Find wing clear times
-        description = build_instance_cleartime_row(instance_interaction=instance_interaction)
-
-        # For each encounter in the instance, add a new row to the embed.
-        for encounter in instance.encounters.all().order_by("nr"):
-            encounter_interaction = EncounterInteraction(encounter)
-            description += _create_leaderboard_encounter_lines(
-                encounter_interaction=encounter_interaction, ii=instance_interaction
-            )
-
-        embed_title = build_instance_title(instance=instance)
-
-        titles[str(instance)] = embed_title
-        descriptions[str(instance)] = description
-    return titles, descriptions
 
 
+def test_leaderboard():
+    # Test refactor on the go. Dont touch the code below.
+    y, m, d = 2025, 12, 18
+    itype_group = "raid"
+    icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
-build_all_leaderboard_instance_discord_messages():
-
-        embed = discord.Embed(
-            title=embed_title,
-            description=description,
-            colour=EMBED_COLOR[instance.instance_group.name],
-        )
-
-    # TEMP INLINE TESTING
+    # Discord messsage testing
+    titles, descriptions = create_discord_message(icgi)
+    descriptions = replace_dps_links(descriptions)
+    # %%
     assert titles == {
         "Spirit Vale": "Spirit Vale",
         "Salvation Pass": "Salvation Pass",
@@ -185,7 +37,6 @@ build_all_leaderboard_instance_discord_messages():
         "The Key of Ahdashim": "The Key of Ahdashim",
         "Mount Balrior": "Mount Balrior",
     }
-    descriptions = replace_dps_links(descriptions)
 
     assert descriptions == {
         "Spirit Vale": "<:spirit_vale:1185639755464060959><:r1_of84_faster14_3s:1338196307239632956>`16:00` <:r2_of84_slower14_3s:1338196308686798858>`16:14` <:r3_of84_slower22_5s:1338196304924250273>`16:22` <:median:1200576359018266714>`17:33`\n\n<:vale_guardian:1206250717401063605>[<:r1_of84_faster2_0s:1338196307239632956>](https://example.com/hidden)` 2:06` [<:r2_of84_slower2_0s:1338196308686798858>](https://example.com/hidden)` 2:08` [<:r3_of84_slower3_7s:1338196304924250273>](https://example.com/hidden)` 2:10` <:median:1200576359018266714>` 2:24`\n<:gorseval_the_multifarious:1206250719074721813>[<:r1_of85_faster1_1s:1338196307239632956>](https://example.com/hidden)` 2:00` [<:r2_of85_slower1_1s:1338196308686798858>](https://example.com/hidden)` 2:01` [<:r3_of85_slower2_1s:1338196304924250273>](https://example.com/hidden)` 2:02` <:median:1200576359018266714>` 2:13`\n<:sabetha_the_saboteur:1206250720483872828>[<:r1_of85_faster3_3s:1338196307239632956>](https://example.com/hidden)` 2:53` [<:r2_of85_slower3_3s:1338196308686798858>](https://example.com/hidden)` 2:56` [<:r3_of85_slower5_8s:1338196304924250273>](https://example.com/hidden)` 2:58` <:median:1200576359018266714>` 3:22`\n",
@@ -197,135 +48,38 @@ build_all_leaderboard_instance_discord_messages():
         "The Key of Ahdashim": "<:the_key_of_ahdashim:1185642032073543780><:r1_of104_faster33_4s:1338196307239632956>`15:37` <:r2_of104_slower33_4s:1338196308686798858>`16:10` <:r3_of104_slower34_4s:1338196304924250273>`16:11` <:median:1200576359018266714>`20:07`\n\n<:cardinal_adina:1206264154634326116>[<:r1_of104_faster0_5s:1338196307239632956>](https://example.com/hidden)` 3:19` [<:r2_of104_slower0_5s:1338196308686798858>](https://example.com/hidden)` 3:19` [<:r3_of104_slower4_3s:1338196304924250273>](https://example.com/hidden)` 3:23` <:median:1200576359018266714>` 4:26`\n<:cardinal_sabir:1206264157519741019>[<:r1_of104_faster6_6s:1338196307239632956>](https://example.com/hidden)` 3:19` [<:r2_of104_slower6_6s:1338196308686798858>](https://example.com/hidden)` 3:26` [<:r3_of104_slower12_4s:1338196304924250273>](https://example.com/hidden)` 3:32` <:median:1200576359018266714>` 3:54`\n<:qadim_the_peerless:1206264288768036918>[<:r1_of101_faster1_3s:1338196307239632956>](https://example.com/hidden)` 4:59` [<:r2_of101_slower1_3s:1338196308686798858>](https://example.com/hidden)` 5:00` [<:r3_of101_slower2_5s:1338196304924250273>](https://example.com/hidden)` 5:01` <:median:1200576359018266714>` 5:51`\n",
         "Mount Balrior": "<:mount_balrior:1311064236486688839><:r1_of39_faster15_2s:1338196307239632956>`19:22` <:r2_of39_slower15_2s:1338196308686798858>`19:38` <:r3_of39_slower26_1s:1338196304924250273>`19:48` <:median:1200576359018266714>`23:36`\n\n<:greer:1310742326548762664>[<:r1_of42_faster5_0s:1338196307239632956>](https://example.com/hidden)` 7:13` [<:r2_of42_slower5_0s:1338196308686798858>](https://example.com/hidden)` 7:19` [<:r3_of42_slower5_9s:1338196304924250273>](https://example.com/hidden)` 7:19` <:median:1200576359018266714>` 8:00`\n<:decima:1310742355644776458>[<:r1_of40_faster0_1s:1338196307239632956>](https://example.com/hidden)` 4:18` [<:r2_of40_slower0_1s:1338196308686798858>](https://example.com/hidden)` 4:18` [<:r3_of40_slower0_8s:1338196304924250273>](https://example.com/hidden)` 4:19` <:median:1200576359018266714>` 5:01`\n<:ura:1310742374665683056>[<:r1_of40_faster1_5s:1338196307239632956>](https://example.com/hidden)` 4:08` [<:r2_of40_slower1_5s:1338196308686798858>](https://example.com/hidden)` 4:10` [<:r3_of40_slower9_3s:1338196304924250273>](https://example.com/hidden)` 4:18` <:median:1200576359018266714>` 4:50`\n",
     }
-
-
-embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
-send_cerus_progression_discord_message
-        # TODO temp disabled for testing
-        create_or_update_discord_message(
-            group=instance,
-            webhook_url=WEBHOOKS["leaderboard"],
-            embeds_messages_list=[embed],
-            thread=Thread(settings.LEADERBOARD_THREADS[instance_interaction.instance_type]),
-        )
-    
-
-
     # %%
 
+    # Embeds testing
+    embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
 
-def build_full_message():
-    # Create message for total clear time.
-    instance_group = InstanceGroup.objects.get(name=instance_type)
-    instances = Instance.objects.filter(instance_group=instance_group).order_by("nr")
+    embeds[
+        "raid_0"
+    ].title == "Thu 18 Dec 2025⠀⠀⠀⠀<:r20_of45_slower1804_9s:1240399925502545930> **3:12:00** <:r20_of45_slower1804_9s:1240399925502545930> \n"
+
+    expected_field_name = [
+        "**__<:spirit_vale:1185639755464060959><:r46_of82_slower108_8s:1240799615763222579>Spirit Vale (17:49)__**\n",
+        "**__<:salvation_pass:1185642016776913046><:r23_of84_slower55_9s:1240399925502545930>Salvation Pass (14:55)__**\n",
+        "**__<:bastion_of_the_penitent:1185642020484698132><:r73_of99_slower319_4s:1240799615763222579>Bastion of the Penitent (23:26)__**\n",
+        "**__<:mount_balrior:1311064236486688839><:r14_of39_slower175_0s:1240399925502545930>Mount Balrior (22:17)__**\n",
+    ]
+
+    expected_field_value = [
+        "<:vale_guardian:1206250717401063605><:r55_of82_slower22_6s:1240799615763222579>[Vale Guardian](https://example.com/hidden) (**2:31**)_+0:00_\n<:gorseval_the_multifarious:1206250719074721813><:r29_of83_slower10_7s:1240399925502545930>[Gorseval the Multifarious](https://example.com/hidden) (**2:10**)_+7:33_\n<:sabetha_the_saboteur:1206250720483872828><:r68_of83_slower49_0s:1240798628596027483>[Sabetha the Saboteur](https://example.com/hidden) (**3:42**)_+1:51_\n",
+        "<:slothasor:1206250721880576081><:r8_of84_slower9_5s:1240399924198379621>[Slothasor](https://example.com/hidden) (**2:10**)_+2:58_\n<:bandit_trio:1206250723550175283><:r26_of84_slower4_6s:1240399925502545930>[Bandit Trio](https://example.com/hidden) (**6:31**)_+0:22_\n<:matthias_gabrel:1206250724879503410><:r72_of84_slower66_0s:1240798628596027483>[Matthias Gabrel](https://example.com/hidden) (**3:10**)_+2:40_\n",
+        "<:cairn:1206251996680556544><:r6_of99_slower3_6s:1240399924198379621>[Cairn CM](https://example.com/hidden) (**1:18**)_+3:44_\n<:mursaat_overseer:1206252000229199932><:r3_of99_slower3_7s:1338196304924250273>[Mursaat Overseer CM](https://example.com/hidden) (**1:37**)_+1:35_\n<:samarog:1206256460120457277><:r4_of99_slower41_2s:1240399924198379621>[Samarog CM](https://example.com/hidden) (**5:08**)_+1:19_\n<:deimos:1206256463031304253><:r5_of99_slower19_9s:1240399924198379621>[Deimos CM](https://example.com/hidden) (**5:23**)_+7:03_ [<:wipe_at_14:1199739670641258526>](https://example.com/hidden)\n",
+        "<:greer:1310742326548762664><:r21_of42_slower45_4s:1240799615763222579>[Greer, the Blightbringer](https://example.com/hidden) (**7:59**)_+4:13_\n<:decima:1310742355644776458><:r17_of40_slower39_0s:1240399925502545930>[Decima, the Stormsinger](https://example.com/hidden) (**4:57**)_+2:41_\n<:ura:1310742374665683056><:r21_of40_slower42_1s:1240799615763222579>[Ura](https://example.com/hidden) (**4:50**)_+1:48_\n",
+    ]
+
+    for idx, field in enumerate(embeds["raid_0"].fields):
+        assert field.name == expected_field_name[idx]
+
+        field_value = replace_dps_links(field.value, "https://example.com/hidden")
+
+        assert field_value == expected_field_value[idx]
 
 
-    description = ""
-    # For each instance add the encounters that are included and their
-    # fastest and average killtime
-    for instance in instances:
-        # Get all encounters for this instance that are used for total duration
-        encounters = Encounter.objects.filter(
-            use_for_icg_duration=True,
-            instance=instance,
-        ).order_by("nr")
-
-        # Dont add instance if no encounters selected
-        if len(encounters) == 0:
-            continue
-
-        # Find instance clear fastest and average time
-        iclear_success_all = instance.instance_clears.filter(
-            success=True,
-            emboldened=False,
-            core_player_count__gte=min_core_count,
-        ).order_by("duration")
-        # .filter(
-        #     Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-        #     & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
-        # )
-
-        # Instance emote
-        description += f"{instance.emoji.discord_tag()}"
-
-        # Loop over the encounters
-        counter = 0
-        for ec in encounters:
-            # encounter emote
-            description += ec.emoji.discord_tag()
-            counter += 1
-
-        # Add empty spaces to align.
-        while counter < 6:
-            description += BLANK_EMOTE
-            counter += 1
-
-        if len(iclear_success_all) > 0:
-            # Add first rank time to message. The popup of the medal will give the date
-            rank_duration_str = get_rank_duration_str(
-                iclear_success_all.first(), iclear_success_all, itype, pretty_time=True
-            )
-            description += rank_duration_str
-
-            # Add average clear times
-            avg_duration_str = get_avg_duration_str(iclear_success_all)
-            description += avg_duration_str
-        description += "\n"
-
-    # List the top 3 of the instance group clear time #
-    # Filter on duration_encounters to only include runs where all the same wings
-    # were selected  for leaderboard. e.g. with wing 8 the clear times went up,
-    # so we reset the leaderboard here.
-    description += "\n"
-    duration_encounters = (
-        InstanceClearGroup.objects.filter(type=itype).order_by("start_time").last().duration_encounters
-    )
-    icleargroup_success_all = (
-        InstanceClearGroup.objects.filter(
-            success=True,
-            duration_encounters=duration_encounters,
-            type=itype,
-            core_player_count__gte=min_core_count,
-        )
-        .exclude(name__icontains="cm__")
-        .order_by("duration")
-    )
-    # .filter(
-    #         Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-    #         & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC)),
-    #     )
-
-    for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
-        rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype, pretty_time=True)
-        description += rank_duration_str  # FIXME
-
-    if len(icleargroup_success_all) > 0:
-        # Add average clear times
-        description += get_avg_duration_str(icleargroup_success_all)
-
-    # Create embed # --------------------------------------------------
-    embed = discord.Embed(
-        title=f"Full {itype.capitalize()} Clear",
-        description=description,
-        colour=EMBED_COLOR[instance_group.name],
-    )
-    embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
-    embed.timestamp = datetime.datetime.now()
-
-    # create_or_update_discord_message(
-    #     group=instance_group,
-    #     webhook_url=WEBHOOKS["leaderboard"],
-    #     embeds_messages_list=[embed],
-    #     thread=Thread(settings.LEADERBOARD_THREADS[itype]),
-    # )
-
+if __name__ == "__main__":
+    test_discord_message()
 
 # %%
-if __name__ == "__main__":
-    for instance_type in [
-        "raid",
-        # "strike",
-        # "fractal",
-    ]:
-        pass
-        # create_leaderboard(itype=itype)
