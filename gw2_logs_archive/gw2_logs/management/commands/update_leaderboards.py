@@ -4,17 +4,17 @@ if __name__ == "__main__":
 
     django_setup.run()
 
-import scripts.leaderboards as leaderboards
 from django.core.management.base import BaseCommand
+from scripts.runners.run_leaderboard import run_leaderboard
 
 
 class Command(BaseCommand):
     help = "Update leaderboards on discord"
 
     def handle(self, *args, **options):
-        for itype in [
+        for instance_type in [
             "raid",
             "strike",
             "fractal",
         ]:
-            leaderboards.create_leaderboard(itype=itype)
+            run_leaderboard(instance_type=instance_type)
