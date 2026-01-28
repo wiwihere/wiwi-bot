@@ -14,7 +14,6 @@ from django.db.models import Q, QuerySet
 from gw2_logs.models import (
     Encounter,
     Instance,
-    InstanceClearGroup,
     InstanceGroup,
 )
 from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
@@ -27,12 +26,15 @@ from scripts.log_helpers import (
 )
 from scripts.model_interactions.encounter import EncounterInteraction
 from scripts.model_interactions.instance import InstanceInteraction
+from scripts.model_interactions.instance_group import InstanceGroupInteraction
 
 logger = logging.getLogger(__name__)
-# TODO remove ITYPE_GROUPS
-if __name__ == "__main__":
-    itype = "raid"
-    min_core_count = 0  # select all logs when including non core
+
+DIFFICULTY_CONFIG = {
+    "normal": (False, False, "lb"),
+    "cm": (True, False, "lb_cm"),
+    "lcm": (True, True, "lb_lcm"),
+}
 
 
 def build_instance_cleartime_row(instance_interaction: InstanceInteraction) -> str:
@@ -98,11 +100,6 @@ def _create_leaderboard_encounter_lines(
     """Build lines for single encounter. Different difficulties are shown on a new line.
     Skips if the encounter in the database has a False value on lb, lb_cm or lb_lcm.
     """
-    DIFFICULTY_CONFIG = {
-        "normal": (False, False, "lb"),
-        "cm": (True, False, "lb_cm"),
-        "lcm": (True, True, "lb_lcm"),
-    }
 
     encounter_line = ""
     for difficulty in ["normal", "cm", "lcm"]:
@@ -127,7 +124,6 @@ def _create_leaderboard_encounter_lines(
     return encounter_line
 
 
-# %%
 def build_leaderboard_instance_embed(
     instance_interaction: InstanceInteraction,
 ) -> discord.Embed:
@@ -187,120 +183,131 @@ def publish_all_instance_leaderboards(instance_type: Literal["raid", "strike", "
             thread=Thread(settings.LEADERBOARD_THREADS[instance_type]),
         )
 
-    # %%
 
-
-def build_full_message():
-    # Create message for total clear time.
-    instance_group = InstanceGroup.objects.get(name=instance_type)
-    instances = Instance.objects.filter(instance_group=instance_group).order_by("nr")
-
+def get_encounter_emojis(encounters: QuerySet[Encounter]) -> str:
     description = ""
-    # For each instance add the encounters that are included and their
-    # fastest and average killtime
-    for instance in instances:
-        # Get all encounters for this instance that are used for total duration
-        encounters = Encounter.objects.filter(
-            use_for_icg_duration=True,
-            instance=instance,
-        ).order_by("nr")
+    for encounter in encounters:
+        description += encounter.emoji.discord_tag()
 
-        # Dont add instance if no encounters selected
-        if len(encounters) == 0:
-            continue
+    # Add empty spaces to align all rows
+    description += BLANK_EMOTE * max(0, 6 - len(encounters))
+    return description
 
-        # Find instance clear fastest and average time
-        iclear_success_all = instance.instance_clears.filter(
-            success=True,
-            emboldened=False,
-            core_player_count__gte=min_core_count,
-        ).order_by("duration")
-        # .filter(
-        #     Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-        #     & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC))
-        # )
 
-        # Instance emote
-        description += f"{instance.emoji.discord_tag()}"
+def _create_leaderboard_encounters_line(instance_interaction: InstanceInteraction) -> str:
+    # Get all encounters for this instance that are used for total duration
+    encounters = instance_interaction.get_all_encounters_for_leaderboard()
 
-        # Loop over the encounters
-        counter = 0
-        for ec in encounters:
-            # encounter emote
-            description += ec.emoji.discord_tag()
-            counter += 1
+    # Dont add instance if no encounters selected
+    if len(encounters) == 0:
+        return ""
 
-        # Add empty spaces to align.
-        while counter < 6:
-            description += BLANK_EMOTE
-            counter += 1
+    # Find instance clear fastest and average time
+    iclear_success_all = instance_interaction.get_all_succesful_clears()
 
-        if len(iclear_success_all) > 0:
-            # Add first rank time to message. The popup of the medal will give the date
-            rank_duration_str = get_rank_duration_str(
-                iclear_success_all.first(), iclear_success_all, itype, pretty_time=True
-            )
-            description += rank_duration_str
+    # Instance emote
+    line_str = f"{instance_interaction.instance.emoji.discord_tag()}"  # Instance emote (e.g. wing1)
+    line_str += get_encounter_emojis(encounters=encounters)  # (e.g. vg, gorseval, sabetha)
 
-            # Add average clear times
-            avg_duration_str = get_avg_duration_str(iclear_success_all)
-            description += avg_duration_str
-        description += "\n"
-
-    # List the top 3 of the instance group clear time #
-    # Filter on duration_encounters to only include runs where all the same wings
-    # were selected  for leaderboard. e.g. with wing 8 the clear times went up,
-    # so we reset the leaderboard here.
-    description += "\n"
-    duration_encounters = (
-        InstanceClearGroup.objects.filter(type=itype).order_by("start_time").last().duration_encounters
-    )
-    icleargroup_success_all = (
-        InstanceClearGroup.objects.filter(
-            success=True,
-            duration_encounters=duration_encounters,
-            type=itype,
-            core_player_count__gte=min_core_count,
+    if len(iclear_success_all) > 0:
+        # Add first rank time to message. The popup of the medal will give the date
+        line_str += get_rank_duration_str(
+            iclear_success_all.first(), iclear_success_all, itype=instance_interaction.instance_type, pretty_time=True
         )
-        .exclude(name__icontains="cm__")
-        .order_by("duration")
-    )
-    # .filter(
-    #         Q(start_time__gte=datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=365))
-    #         & Q(start_time__lte=datetime.datetime.now(tz=pytz.UTC)),
-    #     )
+
+        # Add average clear times
+        line_str += get_avg_duration_str(iclear_success_all)
+    line_str += "\n"
+    return line_str
+
+
+def create_leaderboard_fullclear_line(instance_group_interaction: InstanceGroupInteraction) -> str:
+    """Line with top3 clear durations for a fullclear."""
+    line_str = ""
+    icleargroup_success_all = instance_group_interaction.get_all_successful_group_clears()
 
     for idx, icleargroup in enumerate(icleargroup_success_all[:3]):
-        rank_duration_str = get_rank_duration_str(icleargroup, icleargroup_success_all, itype, pretty_time=True)
-        description += rank_duration_str  # FIXME
+        line_str += get_rank_duration_str(
+            icleargroup, icleargroup_success_all, itype=instance_group_interaction.instance_type, pretty_time=True
+        )
 
     if len(icleargroup_success_all) > 0:
         # Add average clear times
-        description += get_avg_duration_str(icleargroup_success_all)
+        line_str += get_avg_duration_str(icleargroup_success_all)
+    return line_str
 
+
+def build_fullwingcleartime_message(instance_group_interaction: InstanceGroupInteraction) -> discord.Embed:
+    """Build a message that contains one row per instance.
+    Each line shows the icons of all bosses included in that instance.
+    """
+    # Initialize objects
+    instances = Instance.objects.filter(instance_group=instance_group_interaction.instance_group).order_by("nr")
+
+    description = ""
+
+    # For each instance add the encounters that are included and their
+    # fastest and average killtime
+    for instance in instances:
+        instance_interaction = InstanceInteraction(instance)
+        description += _create_leaderboard_encounters_line(instance_interaction=instance_interaction)
+
+    # List the top 3 of the instance group clear time #
+
+    description += "\n"
+    description += create_leaderboard_fullclear_line(instance_group_interaction=instance_group_interaction)
     # Create embed # --------------------------------------------------
     embed = discord.Embed(
-        title=f"Full {itype.capitalize()} Clear",
+        title=f"Full {instance_group_interaction.instance_type.capitalize()} Clear",
         description=description,
-        colour=EMBED_COLOR[instance_group.name],
+        colour=EMBED_COLOR[instance_group_interaction.instance_group.name],
     )
-    embed.set_footer(text=f"Minimum core count: {settings.CORE_MINIMUM[itype]}\nLeaderboard last updated")
+    embed.set_footer(
+        text=f"Minimum core count: {instance_group_interaction.instance_group.min_core_count}\nLeaderboard last updated"
+    )
     embed.timestamp = datetime.datetime.now()
+    return embed
 
-    # create_or_update_discord_message(
-    #     group=instance_group,
-    #     webhook_url=WEBHOOKS["leaderboard"],
-    #     embeds_messages_list=[embed],
-    #     thread=Thread(settings.LEADERBOARD_THREADS[itype]),
-    # )
+
+def publish_fullwingcleartime_message(instance_type: Literal["raid", "strike", "fractal"]):
+    instance_group = InstanceGroup.objects.get(name=instance_type)
+    instance_group_interaction = InstanceGroupInteraction(instance_group)
+
+    embed = build_fullwingcleartime_message(instance_group_interaction=instance_group_interaction)
+
+    create_or_update_discord_message(
+        group=instance_group,
+        webhook_url=WEBHOOKS["leaderboard"],
+        embeds_messages_list=[embed],
+        thread=Thread(settings.LEADERBOARD_THREADS[instance_group_interaction.instance_type]),
+    )
+
+
+def run_leaderboard(instance_type: Literal["raid", "strike", "fractal"]):
+    """
+    Run complete leaderboard generation for an instance type.
+
+    Creates and publishes:
+    1. Individual instance leaderboards (one per wing/strike/fractal)
+    2. Full clear leaderboard (all instances combined)
+
+    Parameters
+    ----------
+    instance_type: Literal["raid", "strike", "fractal"]
+        Type of instances to process
+    """
+    publish_all_instance_leaderboards(instance_type=instance_type)
+    publish_fullwingcleartime_message(instance_type=instance_type)
 
 
 # %%
 if __name__ == "__main__":
+    # For testing
     for instance_type in [
         "raid",
         # "strike",
         # "fractal",
     ]:
         pass
-        # create_leaderboard(itype=itype)
+        # run_leaderboard(instance_type=instance_type)
+    publish_fullwingcleartime_message(instance_type)
