@@ -7,7 +7,6 @@ if __name__ == "__main__":
 import logging
 import time
 
-import scripts.leaderboards as leaderboards
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from scripts.log_helpers import (
@@ -19,6 +18,7 @@ from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFilesDate
 from scripts.log_processing.logfile_processing import process_logs_once
 from scripts.model_interactions.instance_clear_group import InstanceClearGroupInteraction
+from scripts.runners.run_leaderboard import run_leaderboard
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +111,9 @@ class Command(BaseCommand):
             # Only update when there hasnt been a new log parsed for the duration of sleeptime.
             if (current_sleeptime < 0) or ((y, m, d) != today_y_m_d()):
                 logger.info("Updating leaderboards")
-                leaderboards.create_leaderboard(itype="fractal")
-                leaderboards.create_leaderboard(itype="raid")
-                leaderboards.create_leaderboard(itype="strike")
+                run_leaderboard(instance_type="fractal")
+                run_leaderboard(instance_type="raid")
+                run_leaderboard(instance_type="strike")
                 logger.info("Finished run")
                 break
 

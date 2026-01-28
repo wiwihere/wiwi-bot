@@ -1,6 +1,7 @@
 # %%
 from itertools import chain
 
+from django.conf import settings
 from django.db import models
 
 INSTANCE_TYPES = [("raid", "Raid"), ("fractal", "Fractal"), ("strike", "Strike"), ("golem", "Golem")]
@@ -89,6 +90,12 @@ class InstanceGroup(models.Model):
         on_delete=models.SET_NULL,
         verbose_name="discord message leaderboard",
     )
+
+    @property
+    def min_core_count(self) -> int:
+        if settings.INCLUDE_NON_CORE_LOGS:
+            return 0
+        return settings.CORE_MINIMUM[self.name]
 
     def __str__(self):
         return self.name

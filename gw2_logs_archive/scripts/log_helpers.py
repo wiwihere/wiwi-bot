@@ -373,11 +373,15 @@ def create_folder_names(itype_groups: list):
     return folder_names
 
 
-def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=None):
+def get_rank_duration_str(indiv, group: list, itype, pretty_time: bool = False, url=None) -> str:
     """Find rank of indiv instance in group. And add duration to string.
 
     pretty_time (bool):
         replace the rank string with a pretty time.
+
+    Returns
+    -------
+    '[<:r3_of40_slower9_3s:1338196304924250273>](https://dps.report/dummy)` 4:18` '
     """
     duration_str = get_duration_str(indiv.duration.seconds, add_space=True)
 
@@ -400,7 +404,7 @@ def get_rank_duration_str(indiv, group, itype, pretty_time: bool = False, url=No
     return f"{rank_str}`{duration_str}` "
 
 
-def get_avg_duration_str(group):
+def get_avg_duration_str(group) -> str:
     """Create string with rank emote and average duration"""
     avg_time = int(getattr(np, settings.MEAN_OR_MEDIAN)([e[0].seconds for e in group.values_list("duration")]))
     avg_duration_str = get_duration_str(avg_time, add_space=True)
