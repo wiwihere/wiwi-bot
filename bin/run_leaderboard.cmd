@@ -1,4 +1,4 @@
 @echo off
 
-call  pixi run django update_leaderboards_command
+call  pixi run django update_leaderboards
 pause

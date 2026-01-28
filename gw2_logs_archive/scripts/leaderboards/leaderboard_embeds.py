@@ -14,7 +14,7 @@ from django.utils import timezone
 from gw2_logs.models import (
     Instance,
 )
-from scripts.leaderboards.build_messages import (
+from scripts.leaderboards.leaderboard_builders import (
     build_encounter_lines,
     build_fullclear_ranking_line,
     build_instance_cleartime_row,

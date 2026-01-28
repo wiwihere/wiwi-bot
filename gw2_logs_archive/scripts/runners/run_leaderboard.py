@@ -10,7 +10,10 @@ if __name__ == "__main__":
 import logging
 from typing import Literal
 
-from scripts.leaderboards.publish_messages import publish_fullclear_message, publish_instance_leaderboard_messages
+from scripts.leaderboards.leaderboard_publishers import (
+    publish_fullclear_message,
+    publish_instance_leaderboard_messages,
+)
 
 logger = logging.getLogger(__name__)
 

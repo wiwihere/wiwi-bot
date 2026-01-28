@@ -16,7 +16,10 @@ from gw2_logs.models import (
     InstanceGroup,
 )
 from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
-from scripts.leaderboards.create_embeds import create_fullclear_leaderboard_embed, create_instance_leaderboard_embed
+from scripts.leaderboards.leaderboard_embeds import (
+    create_fullclear_leaderboard_embed,
+    create_instance_leaderboard_embed,
+)
 from scripts.log_helpers import (
     WEBHOOKS,
 )
