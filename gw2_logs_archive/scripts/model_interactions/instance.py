@@ -4,22 +4,13 @@ if __name__ == "__main__":
 
     django_setup.run()
 
-import datetime
 import logging
-from dataclasses import dataclass
-from functools import cached_property
 
-import numpy as np
-from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from gw2_logs.models import (
-    DpsLog,
     Encounter,
     Instance,
-    InstanceClear,
-    InstanceClearGroup,
 )
-from scripts.log_helpers import get_rank_emote
 
 logger = logging.getLogger(__name__)
 

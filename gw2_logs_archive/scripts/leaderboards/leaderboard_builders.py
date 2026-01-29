@@ -55,7 +55,7 @@ def build_instance_cleartime_row(instance_interaction: InstanceInteraction) -> s
     description = f"{instance_interaction.instance.emoji.discord_tag()}"
 
     # Add the top 3 logs
-    for idx, instance_clear in enumerate(iclear_success_all[:3]):
+    for instance_clear in iclear_success_all[:3]:
         rank_duration_str = get_rank_duration_str(
             instance_clear,
             iclear_success_all,
@@ -76,7 +76,7 @@ def _build_encounter_line(emote: str, encounter_success_all: QuerySet[Encounter]
     # Go through top 3 logs and add this to the message
     line_str = f"{emote}"
 
-    for idx, encounter_log in enumerate(encounter_success_all[:3]):
+    for encounter_log in encounter_success_all[:3]:
         rank_duration_str = get_rank_duration_str(
             indiv=encounter_log,
             group=encounter_success_all,
