@@ -262,7 +262,7 @@ def create_discord_message(icgi: "InstanceClearGroupInteraction") -> Tuple[str, 
         chain(*[i.dps_logs.filter(success=True).order_by("start_time") for i in icgi.icg_iclears_all])
     )
 
-    logger.debug()  # empty line for readability
+    logger.debug("")  # empty line for readability
     logger.debug(
         f"Creating discord message for {icg.name} - {len(all_logs)} logs, {len(all_success_logs)} success logs, {len(icgi.icg_iclears_all)} wings"
     )

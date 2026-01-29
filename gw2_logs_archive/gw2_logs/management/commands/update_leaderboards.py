@@ -18,8 +18,3 @@ class Command(BaseCommand):
             "fractal",
         ]:
             run_leaderboard(instance_type=instance_type)
-
-
-from scripts.runners.run_leaderboard import run_leaderboard
-
-run_leaderboard(instance_type=instance_type)
