@@ -174,3 +174,37 @@ def build_fullclear_ranking_line(instance_group_interaction: InstanceGroupIntera
         # Add average clear times
         line_str += get_avg_duration_str(icleargroup_success_all)
     return line_str
+
+
+def build_navigation_menu(instance_type: str, leaderboard_thread_url: str) -> str:
+    """
+    Build navigation menu with links to all instance leaderboards.
+
+    Parameters
+    ----------
+    instance_type : str
+        Type of instances ('raid', 'strike', 'fractal')
+    leaderboard_thread_url: str
+        Full url to the leaderboard thread, together with message_id makes a clickable link
+
+    Returns
+    -------
+    str
+        Formatted navigation menu with message links
+    """
+    instances = Instance.objects.filter(
+        instance_group__name=instance_type,
+        discord_message__isnull=False,
+    ).order_by("nr")
+
+    # Build the menu line
+    menu_items = []
+    for instance in instances:
+        # Get the Discord message URL
+        message_url = f"{leaderboard_thread_url}{instance.discord_message.message_id}"
+
+        # Create markdown link: [Wing 1](url)
+        menu_items.append(f"{instance.emoji.discord_tag()}[{instance.name}]({message_url})")
+
+    # Join with bullet separator
+    return "\n".join(menu_items)

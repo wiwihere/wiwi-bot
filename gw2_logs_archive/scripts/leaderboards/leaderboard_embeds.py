@@ -20,6 +20,7 @@ from scripts.leaderboards.leaderboard_builders import (
     build_instance_cleartime_row,
     build_instance_summary_line,
     build_instance_title,
+    build_navigation_menu,
 )
 from scripts.log_helpers import (
     EMBED_COLOR,
@@ -111,4 +112,39 @@ def create_fullclear_leaderboard_embed(instance_group_interaction: InstanceGroup
         text=f"Minimum core count: {instance_group_interaction.instance_group.min_core_count}\nLeaderboard last updated"
     )
     embed.timestamp = timezone.now()
+    return embed
+
+
+def create_navigation_embed(instance_type: str, leaderboard_thread_url: str) -> discord.Embed:
+    """
+    Create navigation embed for instance type leaderboards.
+
+    Parameters
+    ----------
+    instance_type : str
+        Type of instances ('raid', 'strike', 'fractal')
+    leaderboard_thread_url: str
+        Full url to the leaderboard thread
+
+    Returns
+    -------
+    discord.Embed
+        Navigation embed with links to all leaderboards
+    """
+
+    navigation_menu = build_navigation_menu(instance_type, leaderboard_thread_url=leaderboard_thread_url)
+
+    # Title mapping
+    titles = {
+        "raid": "📊 Raid Leaderboards",
+        "strike": "⚔️ Strike Leaderboards",
+        "fractal": "🔮 Fractal Leaderboards",
+    }
+
+    embed = discord.Embed(
+        title=titles.get(instance_type, f"{instance_type.capitalize()} Leaderboards"),
+        description=navigation_menu,
+        colour=EMBED_COLOR[instance_type],
+    )
+
     return embed

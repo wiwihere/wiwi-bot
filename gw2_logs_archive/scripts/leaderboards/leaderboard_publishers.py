@@ -12,13 +12,15 @@ from typing import Literal
 
 from django.conf import settings
 from gw2_logs.models import (
+    DiscordMessage,
     Instance,
     InstanceGroup,
 )
-from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
+from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message, send_discord_message
 from scripts.leaderboards.leaderboard_embeds import (
     create_fullclear_leaderboard_embed,
     create_instance_leaderboard_embed,
+    create_navigation_embed,
 )
 from scripts.log_helpers import (
     WEBHOOKS,
@@ -74,3 +76,35 @@ def publish_fullclear_message(instance_type: Literal["raid", "strike", "fractal"
         embeds_messages_list=[embed],
         thread=Thread(settings.LEADERBOARD_THREADS[instance_group_interaction.instance_type]),
     )
+
+
+def publish_navigation_menu() -> None:
+    """
+    Publish navigation menu for leaderboards.
+
+    Creates a single message with links to all individual instance leaderboards.
+    """
+    logger.info("Publishing navigation menu for leaderboard")
+
+    leaderboard_thread_url = f"https://discord.com/channels/{settings.DISCORD_CHANNELS['leaderboard']}/{settings.LEADERBOARD_THREADS[instance_type]}/"
+
+    embeds_messages_list = []
+    for instance_type in ["raid", "strike", "fractal"]:
+        embeds_messages_list.append(create_navigation_embed(instance_type, leaderboard_thread_url))
+
+    discord_message_name = "leaderboard_navigation"
+    discord_message = DiscordMessage.objects.get(name=discord_message_name)
+
+    _ = send_discord_message(
+        discord_message=discord_message,
+        discord_message_name=discord_message_name,
+        webhook_url=WEBHOOKS["leaderboard"],
+        embeds_messages_list=embeds_messages_list,
+        thread=None,
+    )
+
+    logger.info("Completed publishing navigation menu")
+
+
+if __name__ == "__main__":
+    instance_type = "raid"
