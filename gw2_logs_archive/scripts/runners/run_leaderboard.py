@@ -13,6 +13,7 @@ from typing import Literal
 from scripts.leaderboards.leaderboard_publishers import (
     publish_fullclear_message,
     publish_instance_leaderboard_messages,
+    publish_navigation_menu,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,15 @@ def run_leaderboard(instance_type: Literal["raid", "strike", "fractal"]) -> None
     publish_fullclear_message(instance_type=instance_type)
 
     logger.info(f"{instance_type}: Completed leaderboard generation")
+
+
+def run_leaderboard_navigation():
+    """
+    Publish navigation menu for leaderboards.
+
+    Creates a single message with links to all individual instance leaderboards.
+    """
+    publish_navigation_menu()
 
 
 if __name__ == "__main__":

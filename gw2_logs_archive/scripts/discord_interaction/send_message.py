@@ -7,8 +7,9 @@ if __name__ == "__main__":
 import datetime
 import logging
 from dataclasses import dataclass
+from email import message
 from functools import cached_property
-from typing import Optional, Union
+from typing import Literal, Optional, Tuple, Union
 
 import discord
 from discord import SyncWebhook
@@ -79,7 +80,7 @@ class Webhook:
     def send_message(
         self,
         embeds_messages_list: list[discord.Embed],
-        discordmessage_name: str,
+        discord_message_name: str,
         thread: Optional[Thread] = None,
     ) -> DiscordMessage:
         """Create new message on discord and create an instance in django database
@@ -99,7 +100,7 @@ class Webhook:
         mess = self.webhook.send(wait=True, embeds=embeds_messages_list, thread=thread)
 
         # Get or create in django database
-        discord_message, created = DiscordMessage.objects.get_or_create(name=discordmessage_name)
+        discord_message, created = DiscordMessage.objects.get_or_create(name=discord_message_name)
         discord_message.increase_counter()
 
         if discord_message.message_id != mess.id:
@@ -132,42 +133,83 @@ def create_or_update_discord_message(
     embeds_messages_list: list[discord.Embed],
     thread: Optional[Thread] = None,
 ) -> None:
-    """Send message to discord
+    """
+    Send message to discord using a group.
 
-    group: Union[Instance, InstanceGroup, InstanceClearGroup]
-    webhook_url: log_helper.WEBHOOK[itype]
-    embeds_messages_list: list[discord.Embed]
-    thread: Thread(settings.LEADERBOARD_THREADS[itype])
+    Parameters
+    ----------
+    group : Union[Instance, InstanceGroup, InstanceClearGroup, str]
+        The group object or string identifier for navigation
+    webhook_url : str
+        Webhook URL from log_helper.WEBHOOK[itype]
+    embeds_messages_list : list[discord.Embed]
+        List of embeds to send
+    thread : Optional[Thread]
+        Thread to send message in (from settings.LEADERBOARD_THREADS[itype])
     """
 
+    discord_message = group.discord_message
+
+    if isinstance(group, Instance):
+        discord_message_name = f"leaderboard_{group.instance_group.name}{group.nr}"
+    elif isinstance(group, InstanceGroup):
+        discord_message_name = f"leaderboard_{group.name}_all"
+    elif isinstance(group, InstanceClearGroup):
+        discord_message_name = group.name
+
+    discord_message, created = send_discord_message(
+        discord_message=discord_message,
+        discord_message_name=discord_message_name,
+        webhook_url=webhook_url,
+        embeds_messages_list=embeds_messages_list,
+        thread=thread,
+    )
+
+    if created:
+        group.discord_message = discord_message
+        group.save()
+
+
+def send_discord_message(
+    discord_message: DiscordMessage,
+    discord_message_name: str,  # discord_message.name
+    webhook_url: str,
+    embeds_messages_list: list[discord.Embed],
+    thread: Optional[Thread] = None,
+) -> Tuple[DiscordMessage, bool]:
+    """
+    Send message to discord using a discord message
+
+    Parameters
+    ----------
+    group : Union[Instance, InstanceGroup, InstanceClearGroup, str]
+        The group object or string identifier for navigation
+    webhook_url : str
+        Webhook URL from log_helper.WEBHOOK[itype]
+    embeds_messages_list : list[discord.Embed]
+        List of embeds to send
+    thread : Optional[Thread]
+        Thread to send message in (from settings.LEADERBOARD_THREADS[itype])
+    """
     webhook = Webhook(webhook_url)
 
-    # Try to update message. If message cant be found, create a new message instead.
     try:
-        discord_message = group.discord_message
-
+        # Try to update message. If message cant be found, create a new message instead.
         webhook.edit_message(
             discord_message=discord_message,
             embeds_messages_list=embeds_messages_list,
             thread=thread,
         )
+        created = False
 
     except (ValueError, discord.errors.NotFound, discord.errors.HTTPException):
-        if isinstance(group, Instance):
-            message_name = f"leaderboard_{group.instance_group.name}{group.nr}"
-        elif isinstance(group, InstanceGroup):
-            message_name = f"leaderboard_{group.name}_all"
-        elif isinstance(group, InstanceClearGroup):
-            message_name = group.name
-
         discord_message = webhook.send_message(
             embeds_messages_list=embeds_messages_list,
-            discordmessage_name=message_name,
+            discord_message_name=discord_message_name,
             thread=thread,
         )
-
-        group.discord_message = discord_message
-        group.save()
+        created = True
+    return discord_message, created
 
 
 def create_or_update_discord_message_current_week(
@@ -216,7 +258,7 @@ def create_or_update_discord_message_current_week(
         except (ValueError, discord.errors.NotFound, discord.errors.HTTPException):
             discord_message = webhook.send_message(
                 embeds_messages_list=embeds_messages_list,
-                discordmessage_name=message_name,
+                discord_message_name=message_name,
                 thread=thread,
             )
 

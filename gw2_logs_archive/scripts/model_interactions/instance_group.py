@@ -45,3 +45,9 @@ class InstanceGroupInteraction:
             .exclude(name__icontains="cm__")
             .order_by("duration")
         )
+
+
+if __name__ == "__main__":
+    instance_group = InstanceGroup.objects.get(name="raid")
+    self = InstanceGroupInteraction(instance_group)
+# %%
