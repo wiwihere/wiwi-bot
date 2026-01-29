@@ -134,7 +134,7 @@ def create_or_update_discord_message(
     thread: Optional[Thread] = None,
 ) -> None:
     """
-    Send message to discord.
+    Send message to discord using a group.
 
     Parameters
     ----------
@@ -177,6 +177,20 @@ def send_discord_message(
     embeds_messages_list: list[discord.Embed],
     thread: Optional[Thread] = None,
 ) -> Tuple[DiscordMessage, bool]:
+    """
+    Send message to discord using a discord message
+
+    Parameters
+    ----------
+    group : Union[Instance, InstanceGroup, InstanceClearGroup, str]
+        The group object or string identifier for navigation
+    webhook_url : str
+        Webhook URL from log_helper.WEBHOOK[itype]
+    embeds_messages_list : list[discord.Embed]
+        List of embeds to send
+    thread : Optional[Thread]
+        Thread to send message in (from settings.LEADERBOARD_THREADS[itype])
+    """
     webhook = Webhook(webhook_url)
 
     try:

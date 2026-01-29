@@ -132,8 +132,6 @@ def create_navigation_embed(instance_type: str, leaderboard_thread_url: str) -> 
         Navigation embed with links to all leaderboards
     """
 
-    navigation_menu = build_navigation_menu(instance_type, leaderboard_thread_url=leaderboard_thread_url)
-
     # Title mapping
     titles = {
         "raid": "📊 Raid Leaderboards",
@@ -141,8 +139,10 @@ def create_navigation_embed(instance_type: str, leaderboard_thread_url: str) -> 
         "fractal": "🔮 Fractal Leaderboards",
     }
 
+    navigation_menu = build_navigation_menu(instance_type, leaderboard_thread_url=leaderboard_thread_url)
+
     embed = discord.Embed(
-        title=titles.get(instance_type, f"{instance_type.capitalize()} Leaderboards"),
+        title=titles[instance_type],
         description=navigation_menu,
         colour=EMBED_COLOR[instance_type],
     )
