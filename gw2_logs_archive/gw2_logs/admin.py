@@ -234,6 +234,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         # "group_clear_id",
     )
     list_filter = ["encounter", "success", "cm"]
+    search_fields = ["encounter__name", "id"]
 
     def instance_group(self, obj):
         if obj.encounter.instance is not None:

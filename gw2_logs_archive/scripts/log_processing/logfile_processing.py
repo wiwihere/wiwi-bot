@@ -122,3 +122,6 @@ def process_logs_once(
 
             processed_logs += [parsed_log]
     return processed_logs
+
+
+# %%

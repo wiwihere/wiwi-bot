@@ -127,10 +127,10 @@ class EliteInsightsParser:
             return file
 
     @staticmethod
-    def load_json_gz(js_path: Path) -> dict:
+    def load_json_gz(parsed_path: Path) -> dict:
         """Load zipped json as detailed json"""
 
-        with gzip.open(js_path, "r") as fin:
+        with gzip.open(parsed_path, "r") as fin:
             json_bytes = fin.read()
 
         json_str = json_bytes.decode("utf-8")
@@ -148,6 +148,6 @@ if __name__ == "__main__":
     ei_parser.create_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=create_html)
 
     d = ei_parser.parse_log(evtc_path=r"")
-    r2 = EliteInsightsParser.load_json_gz(js_path=d)
+    r2 = EliteInsightsParser.load_json_gz(parsed_path=d)
     r2["eiEncounterID"]
 # %%

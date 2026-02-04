@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 SLEEPTIME = 30
 MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.
-# %%
 
 
 class Command(BaseCommand):
@@ -76,7 +75,7 @@ class Command(BaseCommand):
             out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False
         )
 
-        log_paths = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
+        log_files_date_cls = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
         # Flow start
         PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
@@ -86,7 +85,7 @@ class Command(BaseCommand):
                 icgi = None
                 processed_logs = process_logs_once(
                     processing_type=processing_type,
-                    log_files_date_cls=log_paths,
+                    log_files_date_cls=log_files_date_cls,
                     ei_parser=ei_parser,
                 )
 
@@ -126,8 +125,8 @@ class Command(BaseCommand):
 if __name__ == "__main__":
     options = {}
     options["y"] = 2026
-    options["m"] = 1
-    options["d"] = 26
+    options["m"] = 2
+    options["d"] = 4
     options["itype_groups"] = False
 
 # %%
