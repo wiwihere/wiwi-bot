@@ -1,8 +1,17 @@
 # %% gw2_logs_archive\scripts\discord_interaction\build_message_cerus.py
+"""Build Cerus-specific discord messages
+
+Helpers to create the Cerus progression message embed. The functions in
+this module build message lines from `DpsLog` objects and the Cerus
+progression dataframes. These are presentation-focused utilities and should
+use the service layer for domain concerns when needed.
+"""
+
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
+
 
 import logging
 
@@ -18,7 +27,7 @@ from scripts.discord_interaction.message_helpers import (
 )
 from scripts.discord_interaction.send_message import create_or_update_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
-from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions.dpslog_service import DpsLogService
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +49,7 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     # -------------------------------
     # Build phasetime_str -> "` 52.05% | 8:24 |  --  |  -- `"
     # -------------------------------
-    health_str = DpsLogInteraction(dpslog).build_health_str()
+    health_str = DpsLogService().build_health_str(dpslog)
     if dpslog.phasetime_str != "":
         phasetime_str = f"` {health_str}% | {dpslog.phasetime_str} `{row['cups']}"
     else:

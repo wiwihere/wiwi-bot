@@ -1,13 +1,21 @@
 # %%
+"""Log uploader and dps.report client
+
+This module contains helpers to upload local Elite Insights logfiles to
+dps.report and to fetch metadata/detailed info. The `LogUploader` class is
+responsible for coordinating uploads, metadata normalization, and delegating
+creation/updating of `DpsLog` records to the `DpsLogService`.
+"""
+
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
 
+
 import datetime
 import json
 import logging
-import shutil
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -17,7 +25,6 @@ from typing import Literal, Optional, Tuple
 import requests
 from dateutil.parser import parse
 from django.conf import settings
-from django.db.models import QuerySet
 from gw2_logs.models import (
     DpsLog,
     Encounter,
@@ -26,11 +33,9 @@ from scripts.log_helpers import (
     create_unix_time,
     get_emboldened_wing,
     get_log_path_view,
-    today_y_m_d,
-    zfill_y_m_d,
 )
-from scripts.model_interactions import dps_log
-from scripts.model_interactions.dps_log import DpsLogInteraction, create_dpslog_from_detailed_logs
+from scripts.model_interactions.dpslog_service import DpsLogService
+from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
@@ -154,6 +159,7 @@ class LogUploader:
         self._detailed_info: dict | None = None  # Detailed api response
 
         self.uploader = DpsReportUploader()
+        self.dpslog_service = DpsLogService()
 
     @classmethod
     def from_log(cls, log: DpsLog):
@@ -183,37 +189,23 @@ class LogUploader:
         _detailed_info = self.get_detailed_info(report_id=report_id, url=url)
         return _detailed_info
 
-    def move_forbidden_or_failed_upload(self, move_reason: Literal["failed", "forbidden"]) -> None:
-        """The API can throw exceptions. Upload these by hand. This was mostly an issue around 2024.
-        API is more stable now."""  # noqa
-        # TODO also in move_failed_upload
-        if move_reason == "failed":
-            # Some logs are just broken. Lets remove them from the equation
-            out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", Path(self.log_path).name)
-        elif move_reason == "forbidden":
-            # The API may throw exceptions. Upload these by hand ;(
-            out_path = settings.DPS_LOGS_DIR.parent.joinpath(
-                "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
-            )
-        logger.warning(f"Moved {move_reason} log from {self.log_source_view} to\n{out_path}")
-
-        shutil.move(src=self.log_path, dst=out_path)
-
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
 
         if self.log_path:
             # TODO  this shouldnt happen here.
-            dps_log = DpsLogInteraction.find_dpslog_by_name(log_path=self.log_path)
-            if not dps_log:
+            dpslog = self.dpslog_service.find_by_name(self.log_path)
+            if not dpslog:
                 logger.warning(
                     "Log not found in database by name, trying by start time, this happens when someone else parsed it"
                 )
                 parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
-                dpslog = create_dpslog_from_detailed_logs(log_path=self.log_path, parsed_log=parsed_log)
+                dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
+                    parsed_log=parsed_log, log_path=self.log_path
+                )
             return dpslog
         if self.log_url:
-            return DpsLog.objects.filter(url=self.log_url).first()
+            return self.dpslog_service.get_by_url(self.log_url)
 
     def get_or_upload_log(self) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
         """Get log from database, if not there, upload it.
@@ -343,7 +335,7 @@ bossname:  {metadata["encounter"]["boss"]}
             log.save()
         return log
 
-    def run(self):
+    def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
         If they do not apply, move the log to forbidden or failed folder.
 
@@ -356,7 +348,7 @@ bossname:  {metadata["encounter"]["boss"]}
         metadata, move_reason = self.get_or_upload_log()
 
         if move_reason:
-            self.move_forbidden_or_failed_upload(move_reason=move_reason)
+            move_failed_log(self.log_path, move_reason)
 
         if metadata is None:
             logger.debug("    No valid metadata received")
@@ -364,41 +356,34 @@ bossname:  {metadata["encounter"]["boss"]}
 
         metadata = self.fix_bosses(metadata=metadata)
 
-        encounter = self.get_encounter(metadata=metadata)
-
         # Fix metadata is response is incorrect
         metadata = self.fix_metadata(metadata=metadata)
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
             if self.dps_log:
-                if self.dps_log.url != metadata["permalink"]:
-                    self.dps_log.url = metadata["permalink"]
-                    self.dps_log.save()
-                log = self.dps_log
+                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata["permalink"])
             else:
-                log, created = DpsLog.objects.update_or_create(
-                    defaults={
-                        "url": metadata["permalink"],
-                    },
-                    # rresponse["encounterTime"] format is 1702926477
-                    start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
+                logger.warning("Trying to update url, but log not found in database, this shouldnt happen")
+                dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
+                    metadata=metadata, log_path=self.log_path, url_only=True
                 )
-                # TODO starttime doesnt work when someone else parses it.
 
         else:
-            log = DpsLogInteraction.update_or_create_from_dps_report_metadata(metadata=metadata, encounter=encounter)
+            dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
+                metadata=metadata, log_path=self.log_path
+            )
 
-            log, move_reason = self.fix_final_health_percentage(log=log)
+            dpslog, move_reason = self.fix_final_health_percentage(log=dpslog)
             if move_reason:
-                self.move_forbidden_or_failed_upload(move_reason=move_reason)
-                log.delete()
+                move_failed_log(self.log_path, move_reason)
+                self.dpslog_service.delete(dpslog)
 
-            self.fix_emboldened(log=log)
+            self.fix_emboldened(log=dpslog)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 
-        return log
+        return dpslog
 
 
 if __name__ == "__main__":

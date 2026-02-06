@@ -24,7 +24,7 @@ from scripts.log_helpers import (
     WIPE_EMOTES,
     get_duration_str,
 )
-from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.model_interactions.instance_clear import InstanceClearInteraction
 
 if TYPE_CHECKING:
@@ -165,7 +165,7 @@ def _create_log_message_line(
             log_message_line = ""
             return log_message_line
 
-    rank_str = DpsLogInteraction(dpslog=log).get_rank_emote_log()
+    rank_str = DpsLogService().get_rank_emote_for_log(log)
 
     delay_str = _create_log_delay_str(
         log=log,
