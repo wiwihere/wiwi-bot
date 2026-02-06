@@ -153,7 +153,7 @@ class LogUploader:
         self._detailed_info: dict | None = None  # Detailed api response
 
         self.uploader = DpsReportUploader()
-        self.service = DpsLogService()
+        self.dpslog_service = DpsLogService()
 
     @classmethod
     def from_log(cls, log: DpsLog):
@@ -188,13 +188,13 @@ class LogUploader:
 
         if self.log_path:
             # TODO  this shouldnt happen here.
-            dps_log = self.service.repo.find_by_name(self.log_path)
+            dps_log = self.dpslog_service.find_by_name(self.log_path)
             if not dps_log:
                 logger.warning(
                     "Log not found in database by name, trying by start time, this happens when someone else parsed it"
                 )
                 parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
-                dpslog = self.service.create_from_ei(parsed_log=parsed_log, log_path=self.log_path)
+                dpslog = self.dpslog_service.create_from_ei(parsed_log=parsed_log, log_path=self.log_path)
             return dpslog
         if self.log_url:
             return DpsLog.objects.filter(url=self.log_url).first()
@@ -371,7 +371,7 @@ bossname:  {metadata["encounter"]["boss"]}
                 # TODO starttime doesnt work when someone else parses it.
 
         else:
-            log = self.service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
+            log = self.dpslog_service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
 
             log, move_reason = self.fix_final_health_percentage(log=log)
             if move_reason:

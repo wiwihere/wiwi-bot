@@ -22,11 +22,7 @@ from scripts.log_helpers import (
     get_rank_emote,
 )
 from scripts.model_interactions.dpslog_service import DpsLogService
-from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
-
-# Module-level service for backwards-compatible delegation
-_dpslog_service = DpsLogService()
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +45,8 @@ def create_dpslog_from_detailed_logs(log_path: Path, parsed_log: ParsedLog) -> O
     """
     # TODO replace all callers to this function with a call to DpsLogService.create_from_ei and remove this adapter to consolidate logic in the service.
     # Delegate creation to the centralized service to avoid duplicated logic.
-    return _dpslog_service.create_from_ei(parsed_log=parsed_log, log_path=log_path)
+    service = DpsLogService()
+    return service.create_from_ei(parsed_log=parsed_log, log_path=log_path)
 
 
 @dataclass

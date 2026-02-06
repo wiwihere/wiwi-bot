@@ -26,7 +26,18 @@ class DpsLogService:
     """
 
     def __init__(self, repository: DpsLogRepository = DpsLogRepository()):
-        self.repo = repository
+        # Keep repository private; expose domain methods on the service.
+        self._repo = repository
+
+    # Repository facade methods (explicit return types improve clarity)
+    def find_by_name(self, log_path: Path):
+        return self._repo.find_by_name(log_path)
+
+    def find_by_start_time(self, start_time, encounter: Encounter):
+        return self._repo.find_by_start_time(start_time=start_time, encounter=encounter)
+
+    def get_by_url(self, url: str):
+        return self._repo.get_by_url(url)
 
     def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[object]:
         """Create or return existing DpsLog from a detailed EI parsed log.
@@ -48,7 +59,7 @@ class DpsLogService:
 
         start_time = parsed_log.get_starttime()
 
-        dpslog = self.repo.find_by_start_time(start_time=start_time, encounter=encounter)
+        dpslog = self.find_by_start_time(start_time=start_time, encounter=encounter)
 
         if dpslog:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
@@ -75,7 +86,7 @@ class DpsLogService:
             "phasetime_str": parsed_log.get_phasetime_str(),
         }
 
-        dpslog, created = self.repo.update_or_create(start_time=start_time, defaults=defaults)
+        dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
     def create_or_update_from_dps_report(self, metadata: dict, log_path: Optional[Path] = None) -> DpsLog:
@@ -107,7 +118,7 @@ class DpsLogService:
             "json_dump": metadata,
         }
 
-        dpslog, created = self.repo.update_or_create(start_time=start_time, defaults=defaults)
+        dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
     def _get_encounter_for_metadata(self, metadata: dict) -> Optional[Encounter]:
