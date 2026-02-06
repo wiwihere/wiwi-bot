@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from django.conf import settings
@@ -18,7 +19,6 @@ from scripts.log_helpers import get_log_path_view, zfill_y_m_d
 logger = logging.getLogger(__name__)
 
 
-# %%
 @dataclass
 class LogFile:
     """Store information about a log file.
@@ -109,9 +109,18 @@ class LogFilesDate:
 
             self.log_search_dirs = [dir for dir in [log_search_dir1, log_search_dir2] if dir is not None]
 
+            self._df: pd.DataFrame = pd.DataFrame()  # Viewer on the class and its attributes.
+
         self._verify_log_dirs()
 
         self.logs = {}
+
+    @property
+    def df(self) -> pd.DataFrame:
+        """Viewer on the class and its attributes. Returns a dataframe of the logs.
+        .refresh_logs should have been called once to populate the dataframe.
+        """
+        return self._to_dataframe()
 
     def _verify_log_dirs(self):
         """Check if all log directories exist"""
@@ -145,10 +154,9 @@ class LogFilesDate:
         df.reset_index(inplace=True, drop=True)
         return df
 
-    def refresh_and_get_logs(self) -> pd.DataFrame:
+    def refresh_logs(self) -> None:
         """Find all log files on a specific date.
         Mutates internal state: adds newly discovered logs to self.logs.
-        Returns a DataFrame snapshot of the current state.
         """
 
         log_paths = list(
@@ -170,7 +178,11 @@ class LogFilesDate:
 
             self.logs[logfile.id] = logfile
 
-        return self._to_dataframe()
+    def get_unprocessed_logs(self, processing_type: Literal["local", "upload"]) -> list[LogFile]:
+        """Get the unprocessed logs for a given processing type. Calls refresh_logs to get the latest logs before filtering."""
+        self.refresh_logs()
+
+        return [log for log in self.logs.values() if not getattr(log, f"{processing_type}_processed")]
 
 
 # %%
@@ -179,7 +191,7 @@ if __name__ == "__main__":
     log_dirs = [settings.DPS_LOGS_DIR]
 
     self = logpaths = LogFilesDate(y, m, d, log_dirs)
-    self.refresh_and_get_logs()
+    self.refresh_logs()
     df = self._to_dataframe()
 
     for log_row in df.where(~df["local_processed"]).itertuples():

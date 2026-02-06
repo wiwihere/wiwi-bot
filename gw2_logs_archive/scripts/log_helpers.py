@@ -53,6 +53,11 @@ PLAYER_EMOTES = {
     "pug": Emoji.objects.get(name="pug").discord_tag(),
 }
 
+BOSS_MAX_DURATION = {"Temple of Febe": 10 * 60}  # s
+BOSS_HEALTH_PERCENTAGES = {
+    "Temple of Febe": [80, 50, 10],
+}
+
 
 def create_rank_emote_dict(custom_emoji_name: bool, invalid: bool):
     tag = "discord_tag"

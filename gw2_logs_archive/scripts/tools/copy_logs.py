@@ -27,11 +27,12 @@ def copy_logs(y, m, d, itype_groups):
 
     # Find logs in directory
     allowed_folder_names = create_folder_names(itype_groups=itype_groups)
-    log_paths = LogFilesDate(
+    log_files_date = LogFilesDate(
         y=y, m=m, d=d, allowed_folder_names=allowed_folder_names, log_search_dirs=[log_dir_source]
     )
 
-    logs_df = log_paths.refresh_and_get_logs()
+    log_files_date.refresh_logs()
+    logs_df = log_files_date.df
 
     # Process each log
     for row in logs_df.itertuples():
@@ -40,7 +41,7 @@ def copy_logs(y, m, d, itype_groups):
         # Skip upload if log is not in itype_group
 
         dst = log_dir_dst.joinpath(log_path.name)
-        logger.info(f"Moved: {log_path}")
+        logger.info(f"Copied: {log_path}")
         shutil.copyfile(src=log_path, dst=dst)
 
 
