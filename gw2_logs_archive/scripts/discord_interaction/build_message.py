@@ -165,7 +165,7 @@ def _create_log_message_line(
             log_message_line = ""
             return log_message_line
 
-    rank_str = DpsLogService().get_rank_emote_log(log)
+    rank_str = DpsLogService().get_rank_emote_for_log(log)
 
     delay_str = _create_log_delay_str(
         log=log,

@@ -1,8 +1,18 @@
 # %%
+"""Logfile processing orchestration
+
+Small orchestrator that detects unprocessed log files for a given date,
+parses them locally with the Elite Insights parser, or uploads them to
+dps.report. Creation and updating of database records is delegated to
+`DpsLogService` so this module focuses on file-level flow and marking
+processing state.
+"""
+
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
+
 
 import logging
 from pathlib import Path

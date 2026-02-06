@@ -1,8 +1,17 @@
 # %%
+"""Log uploader and dps.report client
+
+This module contains helpers to upload local Elite Insights logfiles to
+dps.report and to fetch metadata/detailed info. The `LogUploader` class is
+responsible for coordinating uploads, metadata normalization, and delegating
+creation/updating of `DpsLog` records to the `DpsLogService`.
+"""
+
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
+
 
 import datetime
 import json

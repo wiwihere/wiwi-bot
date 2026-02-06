@@ -1,8 +1,17 @@
 # %% gw2_logs_archive\scripts\discord_interaction\build_message_cerus.py
+"""Build Cerus-specific discord messages
+
+Helpers to create the Cerus progression message embed. The functions in
+this module build message lines from `DpsLog` objects and the Cerus
+progression dataframes. These are presentation-focused utilities and should
+use the service layer for domain concerns when needed.
+"""
+
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
+
 
 import logging
 

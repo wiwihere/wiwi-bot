@@ -4,6 +4,14 @@ if __name__ == "__main__":
 
     django_setup.run()
 
+"""DpsLog service module
+
+Provides a single public `DpsLogService` that encapsulates creation and
+lookup logic for `DpsLog` domain objects. Keep business rules (final-health,
+emboldened checks, and move-on-failure) here so callers do not need to know
+about the repository or filesystem layout.
+"""
+
 import datetime
 import logging
 from pathlib import Path
@@ -132,8 +140,17 @@ class DpsLogService:
                 raise
             return None
 
-    def get_rank_emote_log(self, dpslog: DpsLog) -> str:
-        """Return rank emote string for a log (used in discord messages)."""
+    def get_rank_emote_for_log(self, dpslog: DpsLog) -> str:
+        """Return rank emote string for a log (used in discord messages).
+
+        Looks up the rank of the log compared to previous logs.
+        Returns the emotestr with information on the rank and how much slower
+        it was compared to the fastest clear until that point in time.
+
+        Returns emote string, e.g.:
+        '<:r20_of45_slower1804_9s:1240399925502545930>'
+        """
+
         encounter_success_all = None
         if dpslog.success:
             encounter_success_all = list(
