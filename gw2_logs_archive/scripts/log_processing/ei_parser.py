@@ -93,13 +93,12 @@ class EliteInsightsParser:
         -------
         Parsed log path
         """
-        evtc_path = Path(evtc_path)
         short_path = get_log_path_view(evtc_path)
 
         if self.settings is None:
             raise ValueError("Run self.create_settings first.")
 
-        js_path = self._find_parsed_json(evtc_path=evtc_path)
+        js_path = self.find_parsed_json(log_path=evtc_path)
 
         if js_path:
             logger.info(f"{short_path}: Log already parsed")
@@ -113,15 +112,13 @@ class EliteInsightsParser:
                 logger.warning(f"{short_path}: EI parsing failed: {res.stderr}")
                 return None
 
-            js_path = self._find_parsed_json(evtc_path=evtc_path)
+            js_path = self.find_parsed_json(log_path=evtc_path)
 
         return js_path
 
-    def _find_parsed_json(self, evtc_path: Path) -> Optional[Path]:
+    def find_parsed_json(self, log_path: Path) -> Optional[Path]:
         """Output gets a bit of a different name, find it."""
-        evtc_path = Path(evtc_path)
-
-        files = list(self.out_dir.glob(f"{evtc_path.stem}*.gz"))
+        files = list(self.out_dir.glob(f"{log_path.stem}*.gz"))
         if len(files) > 0:
             file = files[0]
             return file

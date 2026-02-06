@@ -29,7 +29,9 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions import dps_log
+from scripts.model_interactions.dps_log import DpsLogInteraction, create_dpslog_from_detailed_logs
+from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +145,7 @@ class LogUploader:
 
     log_path: Path = None
     log_url: str = None
+    parsed_path: Path = None
     only_url: bool = False
 
     def __post_init__(self):
@@ -183,6 +186,7 @@ class LogUploader:
     def move_forbidden_or_failed_upload(self, move_reason: Literal["failed", "forbidden"]) -> None:
         """The API can throw exceptions. Upload these by hand. This was mostly an issue around 2024.
         API is more stable now."""  # noqa
+        # TODO also in move_failed_upload
         if move_reason == "failed":
             # Some logs are just broken. Lets remove them from the equation
             out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", Path(self.log_path).name)
@@ -195,12 +199,21 @@ class LogUploader:
 
         shutil.move(src=self.log_path, dst=out_path)
 
-    def get_django_logs(self) -> QuerySet[DpsLog]:
-        """Return queryset with DpsLogs"""
+    def get_dps_log(self) -> Optional[DpsLog]:
+        """Return DpsLog if its available in database."""
+
         if self.log_path:
-            return DpsLog.objects.filter(local_path=self.log_path)
+            # TODO  this shouldnt happen here.
+            dps_log = DpsLogInteraction.find_dpslog_by_name(log_path=self.log_path)
+            if not dps_log:
+                logger.warning(
+                    "Log not found in database by name, trying by start time, this happens when someone else parsed it"
+                )
+                parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+                dpslog = create_dpslog_from_detailed_logs(log_path=self.log_path, parsed_log=parsed_log)
+            return dpslog
         if self.log_url:
-            return DpsLog.objects.filter(url=self.log_url)
+            return DpsLog.objects.filter(url=self.log_url).first()
 
     def get_or_upload_log(self) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
         """Get log from database, if not there, upload it.
@@ -208,7 +221,8 @@ class LogUploader:
         """
 
         move_reason = None
-        if len(self.get_django_logs()) == 1:
+        self.dps_log = self.get_dps_log()  # FIXME this is terrible
+        if self.dps_log:
             if self.log_path:
                 if not self.log_url:
                     logger.info(f"{self.log_source_view}: Uploading log")
@@ -219,7 +233,7 @@ class LogUploader:
             #     response = self.uploader.request_metadata(url=self.log_url)
         else:
             logger.info("Already in database?")
-            response = self.get_django_logs().first().json_dump
+            response = self.get_dps_log().first().json_dump
         return response, move_reason
 
     def fix_bosses(self, metadata: dict) -> dict:
@@ -286,6 +300,7 @@ bossname:  {metadata["encounter"]["boss"]}
 
     def fix_final_health_percentage(self, log: DpsLog) -> Tuple[Optional[DpsLog], Literal["failed", None]]:
         """Update final health percentage"""
+        # TODO this is a duplicate of dps_log.py
         if log.final_health_percentage is None:
             if log.success is False:
                 logger.info("    Requesting final boss health")
@@ -356,13 +371,20 @@ bossname:  {metadata["encounter"]["boss"]}
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
-            log, created = DpsLog.objects.update_or_create(
-                defaults={
-                    "url": metadata["permalink"],
-                },
-                # rresponse["encounterTime"] format is 1702926477
-                start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
-            )
+            if self.dps_log:
+                if self.dps_log.url != metadata["permalink"]:
+                    self.dps_log.url = metadata["permalink"]
+                    self.dps_log.save()
+                log = self.dps_log
+            else:
+                log, created = DpsLog.objects.update_or_create(
+                    defaults={
+                        "url": metadata["permalink"],
+                    },
+                    # rresponse["encounterTime"] format is 1702926477
+                    start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
+                )
+                # TODO starttime doesnt work when someone else parses it.
 
         else:
             log = DpsLogInteraction.update_or_create_from_dps_report_metadata(metadata=metadata, encounter=encounter)
