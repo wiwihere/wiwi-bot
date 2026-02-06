@@ -49,6 +49,11 @@ class DpsLogService:
     def get_by_url(self, url: str) -> Optional[DpsLog]:
         return self._repo.get_by_url(url)
 
+    def delete(self, dpslog: DpsLog) -> None:
+        """Delete log from database to avoid dangling references on failure"""
+        logger.info(f"Deleting DpsLog {dpslog} from database")
+        self._repo.delete(dpslog)
+
     def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
@@ -99,36 +104,55 @@ class DpsLogService:
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
-    def create_or_update_from_dps_report(self, metadata: dict, log_path: Optional[Path] = None) -> DpsLog:
+    def create_or_update_from_dps_report(
+        self, metadata: dict, log_path: Optional[Path] = None, url_only: bool = False
+    ) -> DpsLog:
         """Create or update a DpsLog from dps.report metadata.
 
-        Returns DpsLog object.
+        When `url_only` is True only minimal fields are written (the permalink),
         """
-        if metadata.get("players"):
-            players = [i["display_name"] for i in metadata["players"].values()]
-        else:
-            players = []
-
         start_time = datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc)
 
-        defaults = {
-            "encounter": self._get_encounter_for_metadata(metadata),
-            "success": metadata["encounter"]["success"],
-            "duration": datetime.timedelta(seconds=metadata["encounter"]["duration"]),
-            "url": metadata.get("permalink"),
-            "player_count": metadata["encounter"].get("numberOfPlayers"),
-            "boss_name": metadata["encounter"].get("boss"),
-            "cm": metadata["encounter"].get("isCm"),
-            "gw2_build": metadata["encounter"].get("gw2Build"),
-            "players": players,
-            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "report_id": metadata.get("id"),
-            "local_path": log_path,
-            "json_dump": metadata,
-        }
+        if url_only:
+            defaults = {"url": metadata.get("permalink")}
+
+        else:
+            if metadata.get("players"):
+                players = [i["display_name"] for i in metadata["players"].values()]
+            else:
+                players = []
+
+            defaults = {
+                "encounter": self._get_encounter_for_metadata(metadata),
+                "success": metadata["encounter"]["success"],
+                "duration": datetime.timedelta(seconds=metadata["encounter"]["duration"]),
+                "url": metadata.get("permalink"),
+                "player_count": metadata["encounter"].get("numberOfPlayers"),
+                "boss_name": metadata["encounter"].get("boss"),
+                "cm": metadata["encounter"].get("isCm"),
+                "gw2_build": metadata["encounter"].get("gw2Build"),
+                "players": players,
+                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+                "report_id": metadata.get("id"),
+                "local_path": log_path,
+                "json_dump": metadata,
+            }
 
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
+        return dpslog
+
+    # `create_or_update_url_only` removed in favor of `create_or_update_from_dps_report(..., url_only=True)`
+
+    def update_permalink(self, dpslog: DpsLog, permalink: str) -> DpsLog:
+        """Update only the `url` field on an existing `DpsLog` and persist it.
+
+        Keeps the intent explicit: callers can update a permalink without
+        touching other fields or constructing defaults.
+        """
+        if dpslog.url != permalink:
+            dpslog.url = permalink
+            self._repo.save(dpslog)
         return dpslog
 
     def _get_encounter_for_metadata(self, metadata: dict) -> Optional[Encounter]:

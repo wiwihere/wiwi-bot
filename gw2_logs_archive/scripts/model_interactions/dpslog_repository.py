@@ -41,3 +41,13 @@ class DpsLogRepository:
     @staticmethod
     def get_by_url(url: str) -> Optional[DpsLog]:
         return DpsLog.objects.filter(url=url).first()
+
+    @staticmethod
+    def save(dpslog: DpsLog) -> None:
+        """Persist an existing DpsLog instance."""
+        dpslog.save()
+
+    @staticmethod
+    def delete(dpslog: DpsLog) -> None:
+        """Delete an existing DpsLog instance."""
+        dpslog.delete()

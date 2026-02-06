@@ -203,7 +203,7 @@ class LogUploader:
                 dpslog = self.dpslog_service.create_from_ei(parsed_log=parsed_log, log_path=self.log_path)
             return dpslog
         if self.log_url:
-            return DpsLog.objects.filter(url=self.log_url).first()
+            return self.dpslog_service.get_by_url(self.log_url)
 
     def get_or_upload_log(self) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
         """Get log from database, if not there, upload it.
@@ -354,41 +354,32 @@ bossname:  {metadata["encounter"]["boss"]}
 
         metadata = self.fix_bosses(metadata=metadata)
 
-        encounter = self.get_encounter(metadata=metadata)
-
         # Fix metadata is response is incorrect
         metadata = self.fix_metadata(metadata=metadata)
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
             if self.dps_log:
-                if self.dps_log.url != metadata["permalink"]:
-                    self.dps_log.url = metadata["permalink"]
-                    self.dps_log.save()
-                log = self.dps_log
+                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata["permalink"])
             else:
-                log, created = DpsLog.objects.update_or_create(
-                    defaults={
-                        "url": metadata["permalink"],
-                    },
-                    # rresponse["encounterTime"] format is 1702926477
-                    start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
+                logger.warning("Trying to update url, but log not found in database, this shouldnt happen")
+                dpslog = self.dpslog_service.create_or_update_from_dps_report(
+                    metadata=metadata, log_path=self.log_path, url_only=True
                 )
-                # TODO starttime doesnt work when someone else parses it.
 
         else:
-            log = self.dpslog_service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
+            dpslog = self.dpslog_service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
 
-            log, move_reason = self.fix_final_health_percentage(log=log)
+            dpslog, move_reason = self.fix_final_health_percentage(log=dpslog)
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
-                log.delete()
+                self.dpslog_service.delete(dpslog)
 
-            self.fix_emboldened(log=log)
+            self.fix_emboldened(log=dpslog)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 
-        return log
+        return dpslog
 
 
 if __name__ == "__main__":
