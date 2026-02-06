@@ -81,7 +81,7 @@ class EliteInsightsParser:
         setting_output_path.write_text(settings_output)
         self.settings = setting_output_path
 
-    def parse_log(self, evtc_path: Path) -> Optional[Path]:
+    def parse_log(self, log_path: Path) -> Optional[Path]:
         """Parse to json locally. Uploading to dps.report is not implemented.
         returns evtc_path=None when process doesnt parse the log. For instance due to
         Program: Fight is too short: 0 < 2200
@@ -93,26 +93,26 @@ class EliteInsightsParser:
         -------
         Parsed log path
         """
-        short_path = get_log_path_view(evtc_path)
+        short_path = get_log_path_view(log_path)
 
         if self.settings is None:
             raise ValueError("Run self.create_settings first.")
 
-        js_path = self.find_parsed_json(log_path=evtc_path)
+        js_path = self.find_parsed_json(log_path=log_path)
 
         if js_path:
             logger.info(f"{short_path}: Log already parsed")
         else:
             # Call the parser
             res = subprocess.run(
-                [str(self.EI_exe), "-c", f"{self.settings}", evtc_path], capture_output=True, text=True
+                [str(self.EI_exe), "-c", f"{self.settings}", log_path], capture_output=True, text=True
             )
 
             if res.returncode != 0:
                 logger.warning(f"{short_path}: EI parsing failed: {res.stderr}")
                 return None
 
-            js_path = self.find_parsed_json(log_path=evtc_path)
+            js_path = self.find_parsed_json(log_path=log_path)
 
         return js_path
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     create_html = True
     ei_parser.create_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=create_html)
 
-    d = ei_parser.parse_log(evtc_path=r"")
+    d = ei_parser.parse_log(log_path=r"")
     r2 = EliteInsightsParser.load_json_gz(parsed_path=d)
     r2["eiEncounterID"]
 # %%

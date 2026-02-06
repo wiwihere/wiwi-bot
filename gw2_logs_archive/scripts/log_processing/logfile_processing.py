@@ -5,6 +5,7 @@ if __name__ == "__main__":
     django_setup.run()
 
 import logging
+from pathlib import Path
 from typing import Literal
 
 from gw2_logs.models import DpsLog
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_or_upload_log(
-    logfile: LogFile,
+    log_path: Path,
     processing_type: Literal["local", "upload"],
     ei_parser: EliteInsightsParser,
 ) -> DpsLog | None:
@@ -25,8 +26,8 @@ def _parse_or_upload_log(
 
     Parameters
     ----------
-    log : LogFile
-        The log class that tracks the processing and hold the path to the logfile
+    log_path : Path
+        Path to the logfile
     processing_type : Literal["local", "upload"]
         local -> proces log locally with the EliteInsightsParser
         upload -> upload the log to dps.report and retrieve the result
@@ -38,20 +39,18 @@ def _parse_or_upload_log(
         Parsed DpsLog on success, or None if parsing/upload failed
         or the log is not eligible for the requested processing step.
     """
-    log_path = logfile.path
-    # 2. Parse locally with EI
+    # Parse locally with EI
     if processing_type == "local":
-        parsed_path = ei_parser.parse_log(evtc_path=log_path)
+        parsed_path = ei_parser.parse_log(log_path=log_path)
         dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
         if dli is False:
             parsed_log = None
         else:
             parsed_log = dli.dpslog
 
-    # 3. Upload to dps.report
+    # Upload to dps.report
     elif processing_type == "upload":
-        if logfile.local_processed:  # Log must be parsed locally before uploading
-            # Upload log
+        if log_path.local_processed:  # Log must be parsed locally before uploading
             parsed_path = ei_parser.find_parsed_json(log_path=log_path)
             log_upload = LogUploader(log_path=log_path, parsed_path=parsed_path, only_url=True)
             parsed_log = log_upload.run()
@@ -90,24 +89,20 @@ def process_logs_once(
     bool
         True if at least one log was processed, False otherwise.
     """
-    # 1. Find unprocessed logs for date
-    logs_df = log_files_date_cls.refresh_and_get_logs()
-    # Filter for unprocessed logs
-    loop_df = logs_df[~logs_df[f"{processing_type}_processed"]]
+    # Find unprocessed logs for date
+    logfiles: list[LogFile] = log_files_date_cls.get_unprocessed_logs(processing_type=processing_type)
 
     # Process each log
     processed_logs = []
-    for idx, row in enumerate(loop_df.itertuples()):
-        logfile: LogFile = row.log
+    for logfile in logfiles:
+        log_path = logfile.path
+        parsed_log = _parse_or_upload_log(log_path=log_path, processing_type=processing_type, ei_parser=ei_parser)
 
-        parsed_log = _parse_or_upload_log(logfile=logfile, processing_type=processing_type, ei_parser=ei_parser)
-
-        # 4. Create/update InstanceClearGroup
-
+        # Mark processing status
         if parsed_log is None:
             if processing_type == "local":
                 logger.warning(
-                    f"Parsing didn't work, too short log maybe. {logfile.path}. Skipping all further processing."
+                    f"Parsing didn't work, too short log maybe. {log_path}. Skipping all further processing."
                 )
                 logfile.mark_local_processed()
                 logfile.mark_upload_processed()
