@@ -25,8 +25,7 @@ def move_failed_log(log_path: Path, reason: Literal["failed", "forbidden"]) -> N
         return
 
     base = settings.DPS_LOGS_DIR.parent
-    y, m, d = today_y_m_d()
-    out_path = base.joinpath(f"{reason}_logs", zfill_y_m_d(y, m, d), *Path(log_path).parts[-3:])
+    out_path = base.joinpath(f"{reason}_logs", zfill_y_m_d(*today_y_m_d()), *Path(log_path).parts[-3:])
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     logger.warning("Moved %s log from %s to", reason, log_path)
