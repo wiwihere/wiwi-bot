@@ -7,7 +7,6 @@ if __name__ == "__main__":
 import datetime
 import json
 import logging
-import shutil
 import time
 from dataclasses import dataclass
 from itertools import chain
@@ -25,8 +24,6 @@ from scripts.log_helpers import (
     create_unix_time,
     get_emboldened_wing,
     get_log_path_view,
-    today_y_m_d,
-    zfill_y_m_d,
 )
 from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
@@ -327,7 +324,7 @@ bossname:  {metadata["encounter"]["boss"]}
             log.save()
         return log
 
-    def run(self):
+    def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
         If they do not apply, move the log to forbidden or failed folder.
 

@@ -39,7 +39,7 @@ class DpsLogService:
     def get_by_url(self, url: str):
         return self._repo.get_by_url(url)
 
-    def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[object]:
+    def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
         Returns the DpsLog or False on handled failures (to match existing callers).
@@ -50,12 +50,12 @@ class DpsLogService:
         if encounter is None:
             logger.error(f"Encounter for log {log_path} could not be found. Skipping log.")
             move_failed_log(log_path, reason="failed")
-            return False
+            return None
 
         final_health_percentage = parsed_log.get_final_health_percentage()
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
             move_failed_log(log_path, reason="failed")
-            return False
+            return None
 
         start_time = parsed_log.get_starttime()
 

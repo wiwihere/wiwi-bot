@@ -6,13 +6,14 @@ if __name__ == "__main__":
 
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from gw2_logs.models import DpsLog
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_processing.log_uploader import LogUploader
-from scripts.model_interactions.dps_log import DpsLogInteraction
+from scripts.model_interactions.dpslog_service import DpsLogService
+from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ def _parse_or_upload_log(
     log_path: Path,
     processing_type: Literal["local", "upload"],
     ei_parser: EliteInsightsParser,
-) -> DpsLog | None:
+) -> Optional[DpsLog]:
     """Parse (EliteInsights, local) or upload (dps.report, upload) a single log file depending on processing type.
 
     Parameters
@@ -42,22 +43,22 @@ def _parse_or_upload_log(
     # Parse locally with EI
     if processing_type == "local":
         parsed_path = ei_parser.parse_log(log_path=log_path)
-        dli = DpsLogInteraction.from_local_ei_parser(log_path=log_path, parsed_path=parsed_path)
-        if dli is False:
-            parsed_log = None
-        else:
-            parsed_log = dli.dpslog
+        # Use centralized service for creating DpsLog from EI parsed JSON
+        dps_log = None
+        if parsed_path is not None:
+            parsed_log_obj = ParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
+            dps_log = DpsLogService().create_from_ei(parsed_log=parsed_log_obj, log_path=log_path)
 
     # Upload to dps.report
     elif processing_type == "upload":
         if log_path.local_processed:  # Log must be parsed locally before uploading
             parsed_path = ei_parser.find_parsed_json(log_path=log_path)
             log_upload = LogUploader(log_path=log_path, parsed_path=parsed_path, only_url=True)
-            parsed_log = log_upload.run()
+            dps_log = log_upload.run()
         else:
-            parsed_log = None
+            dps_log = None
 
-    return parsed_log
+    return dps_log
 
 
 def process_logs_once(
