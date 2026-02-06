@@ -56,8 +56,8 @@ def _parse_or_upload_log(
         # Use centralized service for creating DpsLog from EI parsed JSON
         dps_log = None
         if parsed_path is not None:
-            parsed_log_obj = ParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
-            dps_log = DpsLogService().create_from_ei(parsed_log=parsed_log_obj, log_path=log_path)
+            parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
+            dps_log = DpsLogService().get_update_create_from_ei_parsed_log(parsed_log=parsed_log, log_path=log_path)
 
     # Upload to dps.report
     elif processing_type == "upload":

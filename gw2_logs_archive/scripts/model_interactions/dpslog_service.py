@@ -54,7 +54,7 @@ class DpsLogService:
         logger.info(f"Deleting DpsLog {dpslog} from database")
         self._repo.delete(dpslog)
 
-    def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
+    def get_update_create_from_ei_parsed_log(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
         Returns the DpsLog or None on handled failures.
@@ -78,33 +78,32 @@ class DpsLogService:
 
         if dpslog:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
-            return dpslog
+        else:
+            logger.info(f"Creating new log entry for {log_path}")
+            players = [player["account"] for player in parsed_log.json_detailed["players"]]
 
-        logger.info(f"Creating new log entry for {log_path}")
-        players = [player["account"] for player in parsed_log.json_detailed["players"]]
+            defaults = {
+                "duration": parsed_log.get_duration(),
+                "player_count": len(players),
+                "encounter": encounter,
+                "boss_name": parsed_log.json_detailed["fightName"],
+                "cm": parsed_log.json_detailed["isCM"],
+                "lcm": parsed_log.json_detailed["isLegendaryCM"],
+                "emboldened": "b68087" in parsed_log.json_detailed.get("buffMap", {}),
+                "success": parsed_log.json_detailed["success"],
+                "final_health_percentage": final_health_percentage,
+                "gw2_build": parsed_log.json_detailed.get("gW2Build"),
+                "players": players,
+                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+                "local_path": log_path,
+                "phasetime_str": parsed_log.get_phasetime_str(),
+            }
 
-        defaults = {
-            "duration": parsed_log.get_duration(),
-            "player_count": len(players),
-            "encounter": encounter,
-            "boss_name": parsed_log.json_detailed["fightName"],
-            "cm": parsed_log.json_detailed["isCM"],
-            "lcm": parsed_log.json_detailed["isLegendaryCM"],
-            "emboldened": "b68087" in parsed_log.json_detailed.get("buffMap", {}),
-            "success": parsed_log.json_detailed["success"],
-            "final_health_percentage": final_health_percentage,
-            "gw2_build": parsed_log.json_detailed.get("gW2Build"),
-            "players": players,
-            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "local_path": log_path,
-            "phasetime_str": parsed_log.get_phasetime_str(),
-        }
-
-        dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
+            dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
-    def create_or_update_from_dps_report(
+    def create_or_update_from_dps_report_metadata(
         self, metadata: dict, log_path: Optional[Path] = None, url_only: bool = False
     ) -> DpsLog:
         """Create or update a DpsLog from dps.report metadata.

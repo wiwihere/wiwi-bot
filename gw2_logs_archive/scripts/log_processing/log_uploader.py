@@ -200,7 +200,9 @@ class LogUploader:
                     "Log not found in database by name, trying by start time, this happens when someone else parsed it"
                 )
                 parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
-                dpslog = self.dpslog_service.create_from_ei(parsed_log=parsed_log, log_path=self.log_path)
+                dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
+                    parsed_log=parsed_log, log_path=self.log_path
+                )
             return dpslog
         if self.log_url:
             return self.dpslog_service.get_by_url(self.log_url)
@@ -363,12 +365,14 @@ bossname:  {metadata["encounter"]["boss"]}
                 dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata["permalink"])
             else:
                 logger.warning("Trying to update url, but log not found in database, this shouldnt happen")
-                dpslog = self.dpslog_service.create_or_update_from_dps_report(
+                dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
                     metadata=metadata, log_path=self.log_path, url_only=True
                 )
 
         else:
-            dpslog = self.dpslog_service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
+            dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
+                metadata=metadata, log_path=self.log_path
+            )
 
             dpslog, move_reason = self.fix_final_health_percentage(log=dpslog)
             if move_reason:
