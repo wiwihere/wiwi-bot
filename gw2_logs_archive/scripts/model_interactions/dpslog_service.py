@@ -1,9 +1,4 @@
 # %%
-if __name__ == "__main__":
-    from scripts.utilities import django_setup
-
-    django_setup.run()
-
 """DpsLog service module
 
 Provides a single public `DpsLogService` that encapsulates creation and
@@ -11,6 +6,11 @@ lookup logic for `DpsLog` domain objects. Keep business rules (final-health,
 emboldened checks, and move-on-failure) here so callers do not need to know
 about the repository or filesystem layout.
 """
+
+if __name__ == "__main__":
+    from scripts.utilities import django_setup
+
+    django_setup.run()
 
 import datetime
 import logging
