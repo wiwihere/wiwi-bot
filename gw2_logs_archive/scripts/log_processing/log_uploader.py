@@ -185,8 +185,8 @@ class LogUploader:
 
         if self.log_path:
             # TODO  this shouldnt happen here.
-            dps_log = self.dpslog_service.find_by_name(self.log_path)
-            if not dps_log:
+            dpslog = self.dpslog_service.find_by_name(self.log_path)
+            if not dpslog:
                 logger.warning(
                     "Log not found in database by name, trying by start time, this happens when someone else parsed it"
                 )

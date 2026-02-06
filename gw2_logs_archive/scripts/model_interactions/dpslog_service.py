@@ -30,19 +30,19 @@ class DpsLogService:
         self._repo = repository
 
     # Repository facade methods (explicit return types improve clarity)
-    def find_by_name(self, log_path: Path):
+    def find_by_name(self, log_path: Path) -> Optional[DpsLog]:
         return self._repo.find_by_name(log_path)
 
-    def find_by_start_time(self, start_time, encounter: Encounter):
+    def find_by_start_time(self, start_time, encounter: Encounter) -> Optional[DpsLog]:
         return self._repo.find_by_start_time(start_time=start_time, encounter=encounter)
 
-    def get_by_url(self, url: str):
+    def get_by_url(self, url: str) -> Optional[DpsLog]:
         return self._repo.get_by_url(url)
 
     def create_from_ei(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
-        Returns the DpsLog or False on handled failures (to match existing callers).
+        Returns the DpsLog or None on handled failures.
         """
         logger.info(f"Processing detailed log: {log_path}")
 

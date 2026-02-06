@@ -16,7 +16,6 @@ from django.db.models import Q
 from gw2_logs.models import (
     DpsLog,
     Encounter,
-    Player,
 )
 from scripts.log_helpers import (
     get_rank_emote,
@@ -25,28 +24,6 @@ from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
-
-
-def create_dpslog_from_detailed_logs(log_path: Path, parsed_log: ParsedLog) -> Optional[DpsLog]:
-    """
-    Create or update a DpsLog instance from detailed log data.
-
-    Parameters
-    ----------
-    log_path : Path
-        Path to the log file.
-    json_detailed : dict
-        Detailed JSON data from the log (EliteInsightsParser.load_json_gz(parsed_path=parsed_path))
-
-    Returns
-    -------
-    Optional[DpsLog]
-        The created or updated DpsLog instance, or None if creation failed.
-    """
-    # TODO replace all callers to this function with a call to DpsLogService.create_from_ei and remove this adapter to consolidate logic in the service.
-    # Delegate creation to the centralized service to avoid duplicated logic.
-    service = DpsLogService()
-    return service.create_from_ei(parsed_log=parsed_log, log_path=log_path)
 
 
 @dataclass
@@ -63,13 +40,13 @@ class DpsLogInteraction:
         if dpslog is None:
             if parsed_path is None:
                 logger.warning(f"{log_path} was not parsed")
-                return False
+                return None
 
             parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
-            dpslog = create_dpslog_from_detailed_logs(log_path=log_path, parsed_log=parsed_log)
+            dpslog = DpsLogService().create_from_ei(parsed_log=parsed_log, log_path=log_path)
 
-            if dpslog is False:
-                return False
+            if dpslog is None:
+                return None
 
         return cls(dpslog=dpslog)
 

@@ -97,10 +97,10 @@ def process_logs_once(
     processed_logs = []
     for logfile in logfiles:
         log_path = logfile.path
-        parsed_log = _parse_or_upload_log(log_path=log_path, processing_type=processing_type, ei_parser=ei_parser)
+        dpslog = _parse_or_upload_log(log_path=log_path, processing_type=processing_type, ei_parser=ei_parser)
 
         # Mark processing status
-        if parsed_log is None:
+        if dpslog is None:
             if processing_type == "local":
                 logger.warning(
                     f"Parsing didn't work, too short log maybe. {log_path}. Skipping all further processing."
@@ -108,16 +108,16 @@ def process_logs_once(
                 logfile.mark_local_processed()
                 logfile.mark_upload_processed()
 
-        if parsed_log is not None:
+        if dpslog is not None:
             if processing_type == "local":
                 logfile.mark_local_processed()
-                if parsed_log.url != "":
+                if dpslog.url != "":
                     logfile.mark_upload_processed()
 
             if processing_type == "upload":
                 logfile.mark_upload_processed()
 
-            processed_logs += [parsed_log]
+            processed_logs += [dpslog]
     return processed_logs
 
 
