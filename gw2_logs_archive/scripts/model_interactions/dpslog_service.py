@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Optional
 
 from django.conf import settings
+from django.db.models import Q
 from gw2_logs.models import DpsLog, Encounter, Player
+from scripts.log_helpers import get_rank_emote
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
@@ -129,3 +131,32 @@ class DpsLogService:
             if settings.DEBUG:
                 raise
             return None
+
+    def get_rank_emote_log(self, dpslog: DpsLog) -> str:
+        """Return rank emote string for a log (used in discord messages)."""
+        encounter_success_all = None
+        if dpslog.success:
+            encounter_success_all = list(
+                dpslog.encounter.dps_logs.filter(success=True, cm=dpslog.cm, emboldened=False)
+                .filter(
+                    Q(start_time__gte=dpslog.start_time - datetime.timedelta(days=9999))
+                    & Q(start_time__lte=dpslog.start_time)
+                )
+                .order_by("duration")
+            )
+        rank_str = get_rank_emote(
+            indiv=dpslog,
+            group_list=encounter_success_all,
+            core_minimum=settings.CORE_MINIMUM[dpslog.encounter.instance.instance_group.name],
+            custom_emoji_name=False,
+        )
+        return rank_str
+
+    def build_health_str(self, dpslog: DpsLog) -> str:
+        """Build health string with leading zeros for discord message."""
+        health_str = ".".join(
+            [str(int(i)).zfill(2) for i in str(round(dpslog.final_health_percentage, 2)).split(".")]
+        )  # makes 02.20%
+        if health_str == "100.00":
+            health_str = "100.0"
+        return health_str
