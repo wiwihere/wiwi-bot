@@ -31,6 +31,7 @@ from scripts.log_helpers import (
 )
 from scripts.model_interactions import dps_log
 from scripts.model_interactions.dps_log import DpsLogInteraction, create_dpslog_from_detailed_logs
+from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
@@ -182,22 +183,6 @@ class LogUploader:
         url = log.url
         _detailed_info = self.get_detailed_info(report_id=report_id, url=url)
         return _detailed_info
-
-    def move_forbidden_or_failed_upload(self, move_reason: Literal["failed", "forbidden"]) -> None:
-        """The API can throw exceptions. Upload these by hand. This was mostly an issue around 2024.
-        API is more stable now."""  # noqa
-        # TODO also in move_failed_upload
-        if move_reason == "failed":
-            # Some logs are just broken. Lets remove them from the equation
-            out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", Path(self.log_path).name)
-        elif move_reason == "forbidden":
-            # The API may throw exceptions. Upload these by hand ;(
-            out_path = settings.DPS_LOGS_DIR.parent.joinpath(
-                "forbidden_logs", zfill_y_m_d(*today_y_m_d()), Path(self.log_path).name
-            )
-        logger.warning(f"Moved {move_reason} log from {self.log_source_view} to\n{out_path}")
-
-        shutil.move(src=self.log_path, dst=out_path)
 
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
@@ -356,7 +341,7 @@ bossname:  {metadata["encounter"]["boss"]}
         metadata, move_reason = self.get_or_upload_log()
 
         if move_reason:
-            self.move_forbidden_or_failed_upload(move_reason=move_reason)
+            move_failed_log(self.log_path, move_reason)
 
         if metadata is None:
             logger.debug("    No valid metadata received")
@@ -391,7 +376,7 @@ bossname:  {metadata["encounter"]["boss"]}
 
             log, move_reason = self.fix_final_health_percentage(log=log)
             if move_reason:
-                self.move_forbidden_or_failed_upload(move_reason=move_reason)
+                move_failed_log(self.log_path, move_reason)
                 log.delete()
 
             self.fix_emboldened(log=log)

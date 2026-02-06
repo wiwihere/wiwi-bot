@@ -7,7 +7,6 @@ if __name__ == "__main__":
 
 import datetime
 import logging
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -22,18 +21,10 @@ from gw2_logs.models import (
 from scripts.log_helpers import (
     get_rank_emote,
 )
+from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
-
-
-def move_failed_upload(log_path: Path) -> None:
-    """Some logs are just broken. Lets remove them from the equation"""  # noqa
-    out_path = settings.DPS_LOGS_DIR.parent.joinpath("failed_logs", *log_path.parts[-3:])
-    out_path.parent.mkdir(exist_ok=True, parents=True)
-    logger.warning(f"Moved failing log from {log_path} to")
-    logger.warning(out_path)
-    shutil.move(src=log_path, dst=out_path)
 
 
 def create_dpslog_from_detailed_logs(log_path: Path, parsed_log: ParsedLog) -> Optional[DpsLog]:
@@ -57,12 +48,12 @@ def create_dpslog_from_detailed_logs(log_path: Path, parsed_log: ParsedLog) -> O
     encounter = parsed_log.get_encounter()
     if encounter is None:
         logger.error(f"Encounter for log {log_path} could not be found. Skipping log.")
-        move_failed_upload(log_path)
+        move_failed_log(log_path, reason="failed")
         return False
 
     final_health_percentage = parsed_log.get_final_health_percentage()
     if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
-        move_failed_upload(log_path)
+        move_failed_log(log_path, reason="failed")
         return False
 
     start_time = parsed_log.get_starttime()
