@@ -21,8 +21,12 @@ from gw2_logs.models import (
 from scripts.log_helpers import (
     get_rank_emote,
 )
+from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
+
+# Module-level service for backwards-compatible delegation
+_dpslog_service = DpsLogService()
 
 logger = logging.getLogger(__name__)
 
@@ -43,49 +47,9 @@ def create_dpslog_from_detailed_logs(log_path: Path, parsed_log: ParsedLog) -> O
     Optional[DpsLog]
         The created or updated DpsLog instance, or None if creation failed.
     """
-    logger.info(f"Processing detailed log: {log_path}")
-
-    encounter = parsed_log.get_encounter()
-    if encounter is None:
-        logger.error(f"Encounter for log {log_path} could not be found. Skipping log.")
-        move_failed_log(log_path, reason="failed")
-        return False
-
-    final_health_percentage = parsed_log.get_final_health_percentage()
-    if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
-        move_failed_log(log_path, reason="failed")
-        return False
-
-    start_time = parsed_log.get_starttime()
-
-    dpslog = DpsLogInteraction.find_dpslog_by_start_time(start_time=start_time, encounter=encounter)
-
-    if dpslog:
-        logger.info(f"Log already found in database, returning existing log {dpslog}")
-    else:
-        logger.info(f"Creating new log entry for {log_path}")
-        players = [player["account"] for player in parsed_log.json_detailed["players"]]
-        dpslog, created = DpsLog.objects.update_or_create(
-            defaults={
-                "duration": parsed_log.get_duration(),
-                "player_count": len(players),
-                "encounter": encounter,
-                "boss_name": parsed_log.json_detailed["fightName"],
-                "cm": parsed_log.json_detailed["isCM"],
-                "lcm": parsed_log.json_detailed["isLegendaryCM"],
-                "emboldened": "b68087" in parsed_log.json_detailed["buffMap"],
-                "success": parsed_log.json_detailed["success"],
-                "final_health_percentage": final_health_percentage,
-                "gw2_build": parsed_log.json_detailed["gW2Build"],
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-                "local_path": log_path,
-                "phasetime_str": parsed_log.get_phasetime_str(),
-            },
-            start_time=start_time,
-        )
-    return dpslog
+    # TODO replace all callers to this function with a call to DpsLogService.create_from_ei and remove this adapter to consolidate logic in the service.
+    # Delegate creation to the centralized service to avoid duplicated logic.
+    return _dpslog_service.create_from_ei(parsed_log=parsed_log, log_path=log_path)
 
 
 @dataclass
@@ -114,39 +78,15 @@ class DpsLogInteraction:
 
     @staticmethod
     def update_or_create_from_dps_report_metadata(
-        self,
-        metadata: dict,
-        encounter: Optional[Encounter],
+        metadata: dict, encounter: Optional[Encounter] = None, log_path: Optional[Path] = None
     ) -> DpsLog:
-        """Create or update a dpslog from dps.report metadata json."""
-        # Arcdps error 'File had invalid agents. Please update arcdps' would return some
-        # empty jsons. This makes sure the log is still processed
-        if metadata["players"] != []:
-            players = [i["display_name"] for i in metadata["players"].values()]
-        else:
-            players = []
+        """Backward-compatible adapter that delegates to `DpsLogService`.
 
-        dpslog, created = DpsLog.objects.update_or_create(
-            defaults={
-                "encounter": encounter,
-                "success": metadata["encounter"]["success"],
-                "duration": datetime.timedelta(seconds=metadata["encounter"]["duration"]),
-                "url": metadata["permalink"],
-                "player_count": metadata["encounter"]["numberOfPlayers"],
-                "boss_name": metadata["encounter"]["boss"],
-                "cm": metadata["encounter"]["isCm"],
-                "gw2_build": metadata["encounter"]["gw2Build"],
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-                "report_id": metadata["id"],
-                "local_path": self.log_source,
-                "json_dump": metadata,
-            },
-            # metadata["encounterTime"] format is 1702926477
-            start_time=datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc),
-        )
-        return dpslog
+        Keeps the same callsite shape so callers can migrate incrementally.
+        """
+        # TODO replace all callers to this function with a call to DpsLogService.create_from_ei and remove this adapter to consolidate logic in the service.
+        service = DpsLogService()
+        return service.create_or_update_from_dps_report(metadata=metadata, log_path=log_path)
 
     @staticmethod
     def find_dpslog_by_start_time(start_time: datetime.datetime, encounter: Encounter) -> Optional[DpsLog]:

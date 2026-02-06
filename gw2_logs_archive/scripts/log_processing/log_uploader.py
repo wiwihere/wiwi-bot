@@ -17,7 +17,6 @@ from typing import Literal, Optional, Tuple
 import requests
 from dateutil.parser import parse
 from django.conf import settings
-from django.db.models import QuerySet
 from gw2_logs.models import (
     DpsLog,
     Encounter,
@@ -29,8 +28,7 @@ from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
-from scripts.model_interactions import dps_log
-from scripts.model_interactions.dps_log import DpsLogInteraction, create_dpslog_from_detailed_logs
+from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
 
@@ -155,6 +153,7 @@ class LogUploader:
         self._detailed_info: dict | None = None  # Detailed api response
 
         self.uploader = DpsReportUploader()
+        self.service = DpsLogService()
 
     @classmethod
     def from_log(cls, log: DpsLog):
@@ -189,13 +188,13 @@ class LogUploader:
 
         if self.log_path:
             # TODO  this shouldnt happen here.
-            dps_log = DpsLogInteraction.find_dpslog_by_name(log_path=self.log_path)
+            dps_log = self.service.repo.find_by_name(self.log_path)
             if not dps_log:
                 logger.warning(
                     "Log not found in database by name, trying by start time, this happens when someone else parsed it"
                 )
                 parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
-                dpslog = create_dpslog_from_detailed_logs(log_path=self.log_path, parsed_log=parsed_log)
+                dpslog = self.service.create_from_ei(parsed_log=parsed_log, log_path=self.log_path)
             return dpslog
         if self.log_url:
             return DpsLog.objects.filter(url=self.log_url).first()
@@ -372,7 +371,7 @@ bossname:  {metadata["encounter"]["boss"]}
                 # TODO starttime doesnt work when someone else parses it.
 
         else:
-            log = DpsLogInteraction.update_or_create_from_dps_report_metadata(metadata=metadata, encounter=encounter)
+            log = self.service.create_or_update_from_dps_report(metadata=metadata, log_path=self.log_path)
 
             log, move_reason = self.fix_final_health_percentage(log=log)
             if move_reason:
