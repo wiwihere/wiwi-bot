@@ -30,21 +30,21 @@ class InstanceClearInteraction:
     @classmethod
     def update_or_create_from_logs(
         cls,
-        logs: list[DpsLog],
+        dpslog_list: list[DpsLog],
         instance_group: InstanceClearGroup = None,
     ) -> "InstanceClearInteraction":
         """Log should be filtered on instance"""
-        iname = f"{logs[0].encounter.instance.name_lower}__{logs[0].start_time.strftime('%Y%m%d')}"
+        iname = f"{dpslog_list[0].encounter.instance.name_lower}__{dpslog_list[0].start_time.strftime('%Y%m%d')}"
 
         # Check if all logs are from the same wing.
-        same_wing = all(log.encounter.instance == logs[0].encounter.instance for log in logs)
+        same_wing = all(log.encounter.instance == dpslog_list[0].encounter.instance for log in dpslog_list)
         if not same_wing:
             raise ValueError("Not all logs of same wing.")
 
         # Create or update instance
         iclear, created = InstanceClear.objects.update_or_create(
             defaults={
-                "instance": logs[0].encounter.instance,
+                "instance": dpslog_list[0].encounter.instance,
                 "instance_clear_group": instance_group,
             },
             name=iname,
@@ -53,9 +53,9 @@ class InstanceClearInteraction:
             logger.info(f"Created {iclear}")
 
         # All logs that are not yet part of the instance clear will be added.
-        for log in set(logs).difference(set(iclear.dps_logs.all())):
-            log.instance_clear = iclear
-            log.save()
+        for dpslog in set(dpslog_list).difference(set(iclear.dps_logs.all())):
+            dpslog.instance_clear = iclear
+            dpslog.save()
 
         # Update start_time
         iclear.start_time = iclear.dps_logs.all().order_by("start_time").first().start_time

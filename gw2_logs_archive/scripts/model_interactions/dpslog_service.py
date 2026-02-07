@@ -29,11 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class DpsLogService:
-    """Service consolidating creation/update logic for `DpsLog` records.
-
-    This is intentionally conservative: it extracts the mapping logic from
-    existing helpers so callers can be migrated gradually.
-    """
+    """TODO add docstring here"""
 
     def __init__(self, repository: DpsLogRepository = DpsLogRepository()):
         # Keep repository private; expose domain methods on the service.
@@ -103,8 +99,20 @@ class DpsLogService:
             dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
+    def _get_encounter_for_metadata(self, metadata: dict) -> Optional[Encounter]:
+        try:
+            return Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
+        except Encounter.DoesNotExist:
+            logger.critical("Encounter not part of database. Register? %s", metadata["encounter"])
+            if settings.DEBUG:
+                raise
+            return None
+
     def create_or_update_from_dps_report_metadata(
-        self, metadata: dict, log_path: Optional[Path] = None, url_only: bool = False
+        self,
+        metadata: dict,
+        log_path: Optional[Path] = None,
+        url_only: bool = False,
     ) -> DpsLog:
         """Create or update a DpsLog from dps.report metadata.
 
@@ -141,27 +149,12 @@ class DpsLogService:
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
-    # `create_or_update_url_only` removed in favor of `create_or_update_from_dps_report(..., url_only=True)`
-
     def update_permalink(self, dpslog: DpsLog, permalink: str) -> DpsLog:
-        """Update only the `url` field on an existing `DpsLog` and persist it.
-
-        Keeps the intent explicit: callers can update a permalink without
-        touching other fields or constructing defaults.
-        """
+        """Update only the `url` field on an existing `DpsLog` and persist it."""
         if dpslog.url != permalink:
             dpslog.url = permalink
             self._repo.save(dpslog)
         return dpslog
-
-    def _get_encounter_for_metadata(self, metadata: dict) -> Optional[Encounter]:
-        try:
-            return Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
-        except Encounter.DoesNotExist:
-            logger.critical("Encounter not part of database. Register? %s", metadata["encounter"])
-            if settings.DEBUG:
-                raise
-            return None
 
     def get_rank_emote_for_log(self, dpslog: DpsLog) -> str:
         """Return rank emote string for a log (used in discord messages).

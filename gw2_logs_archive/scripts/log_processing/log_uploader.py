@@ -188,6 +188,7 @@ class LogUploader:
         url = log.url
         _detailed_info = self.get_detailed_info(report_id=report_id, url=url)
         return _detailed_info
+    TODO change how this works. Maybe a cached property that gets filled when requesting detailed info the first time?
 
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
@@ -290,50 +291,50 @@ bossname:  {metadata["encounter"]["boss"]}
             metadata["encounterTime"] = create_unix_time(start_time)
         return metadata
 
-    def fix_final_health_percentage(self, log: DpsLog) -> Tuple[Optional[DpsLog], Literal["failed", None]]:
+    def fix_final_health_percentage(self, dpslog: DpsLog) -> Tuple[Optional[DpsLog], Literal["failed", None]]:
         """Update final health percentage"""
         # TODO this is a duplicate of dps_log.py
-        if log.final_health_percentage is None:
-            if log.success is False:
+        if dpslog.final_health_percentage is None:
+            if dpslog.success is False:
                 logger.info("    Requesting final boss health")
-                self._detailed_info = self.get_detailed_info_from_log(log=log)
-                log.final_health_percentage = round(100 - self._detailed_info["targets"][0]["healthPercentBurned"], 2)
+                self._detailed_info = self.get_detailed_info_from_log(log=dpslog)
+                dpslog.final_health_percentage = round(100 - self._detailed_info["targets"][0]["healthPercentBurned"], 2)
 
                 # Sometimes people get in combat at eyes which creates an uneccesary log.
-                if log.final_health_percentage == 100.0 and log.boss_name == "Eye of Fate":
+                if dpslog.final_health_percentage == 100.0 and dpslog.boss_name == "Eye of Fate":
                     move_reason = "failed"
 
                     return None, move_reason
 
             else:
-                log.final_health_percentage = 0
-            log.save()
-        return log, None
+                dpslog.final_health_percentage = 0
+            dpslog.save()
+        return dpslog, None
 
-    def fix_emboldened(self, log: DpsLog) -> DpsLog:
+    def fix_emboldened(self, dpslog: DpsLog) -> DpsLog:
         """Legacy code. Older dps.report response didnt include the emboldened status.
         Check emboldened
 
         """
-        if (log.emboldened is None) and (log.encounter is not None):
-            emboldened_wing = get_emboldened_wing(log.start_time)
+        if (dpslog.emboldened is None) and (dpslog.encounter is not None):
+            emboldened_wing = get_emboldened_wing(dpslog.start_time)
             if (
-                (emboldened_wing == log.encounter.instance.nr)
-                and (log.encounter.instance.instance_group.name == "raid")
-                and not (log.cm)
+                (emboldened_wing == dpslog.encounter.instance.nr)
+                and (dpslog.encounter.instance.instance_group.name == "raid")
+                and not (dpslog.cm)
             ):
                 logger.info("    Checking for emboldened")
-                self._detailed_info = self.get_detailed_info_from_log(log=log)
+                self._detailed_info = self.get_detailed_info_from_log(log=dpslog)
 
                 if "presentInstanceBuffs" in self._detailed_info:
-                    log.emboldened = 68087 in list(chain(*self._detailed_info["presentInstanceBuffs"]))
+                    dpslog.emboldened = 68087 in list(chain(*self._detailed_info["presentInstanceBuffs"]))
                 else:
-                    log.emboldened = False
+                    dpslog.emboldened = False
             else:
-                log.emboldened = False
+                dpslog.emboldened = False
 
-            log.save()
-        return log
+            dpslog.save()
+        return dpslog
 
     def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
@@ -374,12 +375,12 @@ bossname:  {metadata["encounter"]["boss"]}
                 metadata=metadata, log_path=self.log_path
             )
 
-            dpslog, move_reason = self.fix_final_health_percentage(log=dpslog)
+            dpslog, move_reason = self.fix_final_health_percentage(dpslog=dpslog)
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
 
-            self.fix_emboldened(log=dpslog)
+            self.fix_emboldened(dpslog=dpslog)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 
