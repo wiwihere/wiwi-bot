@@ -124,7 +124,7 @@ def process_logs_once(
                 if dpslog.url != "":
                     logfile.mark_upload_processed()
 
-            if processing_type == "upload":
+            elif processing_type == "upload":
                 logfile.mark_upload_processed()
 
             processed_logs += [dpslog]

@@ -24,7 +24,7 @@ from scripts.log_processing.ei_parser import EliteInsightsParser
 logger = logging.getLogger(__name__)
 
 
-class HealthData:
+class _HealthData:
     """Search the time in seconds when a certain health percentage was reached.
     Return the remaining time on the clock.
 
@@ -54,7 +54,7 @@ class HealthData:
         return BOSS_MAX_DURATION[self.encounter_name]
 
     @classmethod
-    def from_detailed_logs(cls, encounter_name: str, json_detailed: dict) -> Optional["HealthData"]:
+    def from_detailed_logs(cls, encounter_name: str, json_detailed: dict) -> Optional["_HealthData"]:
         """Create HealthData from detailed logs json."""
         health_data = json_detailed["targets"][0]["healthPercents"]
 
@@ -117,7 +117,7 @@ class ParsedLog:
         logger.info(
             f"Calculating phase times at health percentages {BOSS_HEALTH_PERCENTAGES[self.name]} for {self.name}"
         )
-        hd = HealthData.from_detailed_logs(encounter_name=self.name, json_detailed=self.json_detailed)
+        hd = _HealthData.from_detailed_logs(encounter_name=self.name, json_detailed=self.json_detailed)
 
         phasetime_lst = [hd.get_time_at_healthpercentage(target_hp=hp) for hp in BOSS_HEALTH_PERCENTAGES[self.name]]
         return " | ".join(phasetime_lst)
