@@ -83,7 +83,7 @@ class DpsReportUploader:
 
         if response.status_code == 200:  # All good
             metadata = response.json()
-            return MetadataParsed(raw=metadata), None
+            return MetadataParsed(data=metadata), None
 
         else:
             logger.error(f"Code {response.status_code}: Failed uploading {get_log_path_view(log_path)}")
@@ -120,7 +120,7 @@ class DpsReportUploader:
             logger.error(f"Code {response.status_code}: Failed retrieving log {url}")
             return None
         metadata = response.json()
-        return MetadataParsed(raw=metadata)
+        return MetadataParsed(data=metadata)
 
     def request_detailed_info(
         self, report_id: Optional[str] = None, url: Optional[str] = None
@@ -170,7 +170,7 @@ class LogUploader:
         """Get detailed info from dps.report API. Dont request multiple times."""
 
         if self.parsed_path:
-            detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=self.parsed_path)
+            detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
         if self.log_url:
             detailed_parsed_log = self.uploader.request_detailed_info(url=self.log_url)
         return detailed_parsed_log
@@ -196,7 +196,7 @@ class LogUploader:
             # Fallback: if not found, optionally try to (re)create from an EI parsed file
             if not dpslog and self.allow_reparse and self.parsed_path:
                 logger.warning("Log not found in database by name, trying by start time via parsed file")
-                parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=self.parsed_path)
+                parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
                 dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
                     parsed_log=parsed_log, log_path=self.log_path
                 )

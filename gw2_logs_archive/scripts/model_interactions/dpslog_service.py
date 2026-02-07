@@ -104,7 +104,7 @@ class DpsLogService:
         mdi = MetadataInteractor(metadata=metadata)
 
         if url_only:
-            defaults = {"url": metadata.raw.get("permalink")}
+            defaults = {"url": metadata.data.get("permalink")}
         else:
             defaults = mdi.to_defaults(metadata, log_path=log_path)
 

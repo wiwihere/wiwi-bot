@@ -9,6 +9,7 @@ from zipfile import Path
 from dateutil.parser import parse
 from django.conf import settings
 from gw2_logs.models import Encounter, Player
+from scripts.log_processing.log_uploader import DpsReportUploader
 from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
@@ -16,11 +17,17 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MetadataParsed:
-    raw: dict
+    data: dict
+
+    @classmethod
+    def from_dps_report_url(cls, url: str) -> "MetadataParsed":
+        """Create DetailedParsedLog from dps.report url by requesting detailed info from the API."""
+        data = DpsReportUploader().request_metadata(url=url)
+        return cls(data=data)
 
     @property
     def start_time(self) -> Optional[datetime.datetime]:
-        et = self.raw["encounterTime"]
+        et = self.data["encounterTime"]
         if et is None:
             return None
         try:
@@ -30,19 +37,19 @@ class MetadataParsed:
 
     @property
     def duration(self) -> float:
-        return float(self.raw["encounter"]["duration"])
+        return float(self.data["encounter"]["duration"])
 
     @property
     def boss_id(self) -> int:
-        return self.raw["encounter"]["bossId"]
+        return self.data["encounter"]["bossId"]
 
     @property
     def boss_name(self) -> str:
-        return self.raw["encounter"]["boss"]
+        return self.data["encounter"]["boss"]
 
     def get_players(self) -> list[str]:
         """Create list of players each entry is the gw2 account name"""
-        return [p.get("display_name") for p in self.raw["players"].values()]
+        return [p.get("display_name") for p in self.data["players"].values()]
 
     def apply_boss_fixes(self, detailed: Optional[dict] = None) -> "MetadataParsed":
         """Apply boss fixes (Ai, OLC mappings, Eye of Judgement).
@@ -50,22 +57,22 @@ class MetadataParsed:
         Returns self to allow chaining.
         """
         # Ai: use detailed fightName split if available
-        if self.raw["encounter"]["boss"] == "Ai" and detailed:
+        if self.data["encounter"]["boss"] == "Ai" and detailed:
             try:
-                self.raw["encounter"]["boss"] = detailed["fightName"].split(",")[0]
-                if self.raw["encounter"]["boss"] == "Dark Ai":
-                    self.raw["encounter"]["bossId"] = -23254
+                self.data["encounter"]["boss"] = detailed["fightName"].split(",")[0]
+                if self.data["encounter"]["boss"] == "Dark Ai":
+                    self.data["encounter"]["bossId"] = -23254
             except Exception:
                 logger.debug("Could not apply Ai boss fix")
 
         # OLC boss id mapping
-        if self.raw["encounter"]["bossId"] in [25413, 25423, 25416]:
-            self.raw["encounter"]["bossId"] = 25414
+        if self.data["encounter"]["bossId"] in [25413, 25423, 25416]:
+            self.data["encounter"]["bossId"] = 25414
 
         # Eye of Judgement -> Eye of Fate
-        if self.raw["encounter"]["boss"] == "Eye of Judgement":
-            self.raw["encounter"]["boss"] = "Eye of Fate"
-            self.raw["encounter"]["bossId"] = 19844
+        if self.data["encounter"]["boss"] == "Eye of Judgement":
+            self.data["encounter"]["boss"] = "Eye of Fate"
+            self.data["encounter"]["bossId"] = 19844
 
         return self
 
@@ -82,9 +89,9 @@ class MetadataParsed:
         if duration_seconds == 0 and detailed:
             try:
                 start_time = parse(detailed["timeStart"]).astimezone(datetime.timezone.utc)
-                self.raw["encounter"]["duration"] = detailed.get("durationMS", 0) / 1000
-                self.raw["encounter"]["isCm"] = detailed.get("isCM")
-                self.raw["encounterTime"] = int(start_time.timestamp())
+                self.data["encounter"]["duration"] = detailed.get("durationMS", 0) / 1000
+                self.data["encounter"]["isCm"] = detailed.get("isCM")
+                self.data["encounterTime"] = int(start_time.timestamp())
             except Exception:
                 logger.debug("Could not apply metadata fix from detailed info")
 
@@ -125,21 +132,21 @@ bossname:  {self.data["encounter"]["boss"]}
         players = self.data.get_players()
 
         defaults = {
-            "success": self.data.raw["encounter"]["success"],
-            "duration": datetime.timedelta(seconds=self.data.raw["encounter"]["duration"]),
-            "url": self.data.raw.get("permalink"),
-            "player_count": self.data.raw["encounter"]["numberOfPlayers"],
+            "success": self.data.data["encounter"]["success"],
+            "duration": datetime.timedelta(seconds=self.data.data["encounter"]["duration"]),
+            "url": self.data.data.get("permalink"),
+            "player_count": self.data.data["encounter"]["numberOfPlayers"],
             "encounter": self.get_encounter(),
-            "boss_name": self.data.raw["encounter"]["boss"],
-            "cm": self.data.raw["encounter"]["isCm"],
-            "lcm": self.data.raw["encounter"]["isLegendaryCm"],
-            "gw2_build": self.data.raw["encounter"]["gw2Build"],
+            "boss_name": self.data.data["encounter"]["boss"],
+            "cm": self.data.data["encounter"]["isCm"],
+            "lcm": self.data.data["encounter"]["isLegendaryCm"],
+            "gw2_build": self.data.data["encounter"]["gw2Build"],
             "players": players,
             "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
             "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "report_id": self.data.raw["id"],
+            "report_id": self.data.data["id"],
             "local_path": log_path,
-            "json_dump": self.data.raw,
+            "json_dump": self.data.data,
         }
 
         return defaults
