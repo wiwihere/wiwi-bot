@@ -24,7 +24,7 @@ from gw2_logs.models import DpsLog, Encounter
 from scripts.log_helpers import get_emboldened_wing, get_rank_emote
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
-from scripts.utilities.metadata_parsed import MetadataInteractor, MetadataParsed
+from scripts.utilities.metadata_parsed import MetadataParsed
 from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
@@ -99,12 +99,10 @@ class DpsLogService:
         """
         start_time = datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc)
 
-        mdi = MetadataInteractor(metadata=metadata)
-
         if url_only:
             defaults = {"url": metadata.data.get("permalink")}
         else:
-            defaults = mdi.to_defaults(metadata, log_path=log_path)
+            defaults = metadata.to_dpslog_defaults(log_path=log_path)
 
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog

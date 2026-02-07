@@ -104,6 +104,30 @@ class DetailedParsedLog:
         data = DpsReportUploader().request_detailed_info(url=url)
         return cls(data=data)
 
+    def to_dpslog_defaults(self, log_path: Path) -> dict:
+        """Build defaults dict for DpsLog from an Elite Insights parsed log."""
+        players = [player["account"] for player in self.data["players"]]
+
+        defaults = {
+            "duration": self.get_duration(),
+            "player_count": len(players),
+            # encounter resolution belongs to the service; factory doesn't touch DB for Encounter
+            "boss_name": self.data.get("fightName"),
+            "cm": self.data.get("isCM"),
+            "lcm": self.data.get("isLegendaryCM"),
+            "emboldened": "b68087" in self.data.get("buffMap", {}),
+            "success": self.data.get("success"),
+            "final_health_percentage": self.get_final_health_percentage(),
+            "gw2_build": self.data.get("gW2Build"),
+            "players": players,
+            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+            "local_path": log_path,
+            "phasetime_str": self.get_phasetime_str(),
+        }
+
+        return defaults
+
     @cached_property
     def name(self) -> str:
         return self.data["name"].replace("CM", "").replace("LCM", "").strip()
@@ -144,27 +168,3 @@ class DetailedParsedLog:
 
     def get_duration(self) -> datetime.timedelta:
         return datetime.timedelta(seconds=self.data["durationMS"] / 1000)
-
-    def to_dpslog_defaults(self, log_path: Path) -> dict:
-        """Build defaults dict for DpsLog from an Elite Insights parsed log."""
-        players = [player["account"] for player in self.data["players"]]
-
-        defaults = {
-            "duration": self.get_duration(),
-            "player_count": len(players),
-            # encounter resolution belongs to the service; factory doesn't touch DB for Encounter
-            "boss_name": self.data.get("fightName"),
-            "cm": self.data.get("isCM"),
-            "lcm": self.data.get("isLegendaryCM"),
-            "emboldened": "b68087" in self.data.get("buffMap", {}),
-            "success": self.data.get("success"),
-            "final_health_percentage": self.get_final_health_percentage(),
-            "gw2_build": self.data.get("gW2Build"),
-            "players": players,
-            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "local_path": log_path,
-            "phasetime_str": self.get_phasetime_str(),
-        }
-
-        return defaults
