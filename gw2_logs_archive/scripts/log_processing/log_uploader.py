@@ -197,9 +197,7 @@ class LogUploader:
             dpslog = self.dpslog_service.find_by_name(self.log_path)
             # Fallback: if not found, optionally try to (re)create from an EI parsed file
             if not dpslog and self.allow_reparse and self.parsed_path:
-                logger.warning(
-                    "Log not found in database by name, trying by start time via parsed file"
-                )
+                logger.warning("Log not found in database by name, trying by start time via parsed file")
                 parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
                 dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
                     parsed_log=parsed_log, log_path=self.log_path
@@ -225,20 +223,20 @@ class LogUploader:
             or not has_log_url  # DB record exists but not uploaded
         )
 
-        response = None
+        metadata = None
         move_reason = None
 
         if should_upload:
             logger.info(f"{self.log_source_view}: Uploading log")
-            response, move_reason = self.uploader.upload_log(log_path=self.log_path)
+            metadata, move_reason = self.uploader.upload_log(log_path=self.log_path)
 
         elif has_log_url:
-            response = self.uploader.request_metadata(url=self.log_url)
+            metadata = self.uploader.request_metadata(url=self.log_url)
 
         elif has_dps_log:
-            response = getattr(self.dps_log, "json_dump", None)
+            metadata = getattr(self.dps_log, "json_dump", None)
 
-        return response, move_reason
+        return metadata, move_reason
 
     def fix_bosses(self, metadata: dict) -> dict:
         """Change raw results a bit to assign logs to the correct Encounter."""

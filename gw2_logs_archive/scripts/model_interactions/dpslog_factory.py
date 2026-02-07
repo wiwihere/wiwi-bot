@@ -51,13 +51,13 @@ def defaults_from_metadata(
 
     defaults = {
         # Service is responsible for resolving Encounter objects from boss ids
-        "success": mp.raw.get("encounter", {}).get("success"),
+        "success": mp.encounter_info.get("success"),
         "duration": datetime.timedelta(seconds=mp.duration),
         "url": mp.raw.get("permalink"),
-        "player_count": mp.raw.get("encounter", {}).get("numberOfPlayers"),
+        "player_count": mp.encounter_info.get("numberOfPlayers"),
         "boss_name": mp.boss_name,
-        "cm": mp.raw.get("encounter", {}).get("isCm"),
-        "gw2_build": mp.raw.get("encounter", {}).get("gw2Build"),
+        "cm": mp.encounter_info.get("isCm"),
+        "gw2_build": mp.encounter_info.get("gw2Build"),
         "players": players,
         "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
         "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
