@@ -12,7 +12,7 @@ class DpsLogRepository:
     """
 
     @staticmethod
-    def find_by_name(log_path: Path) -> Optional[DpsLog]:
+    def find_by_log_path(log_path: Path) -> Optional[DpsLog]:
         try:
             return DpsLog.objects.get(local_path__endswith=log_path.name)
         except DpsLog.DoesNotExist:

@@ -39,7 +39,7 @@ class DpsLogService:
 
     # Repository facade methods (explicit return types improve clarity)
     def find_by_name(self, log_path: Path) -> Optional[DpsLog]:
-        return self._repo.find_by_name(log_path)
+        return self._repo.find_by_log_path(log_path)
 
     def find_by_start_time(self, start_time, encounter: Encounter) -> Optional[DpsLog]:
         return self._repo.find_by_start_time(start_time=start_time, encounter=encounter)

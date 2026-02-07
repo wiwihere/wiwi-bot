@@ -135,7 +135,7 @@ class DetailedParsedLog:
         return [player["account"] for player in self.data["players"]]
 
     def get_encounter(self) -> Optional[Encounter]:
-        return EncounterInteraction.get_encounter_from_detailed_logs(detailed_metadata=self.data)
+        return EncounterInteraction.find_by_detailed_logs(detailed_metadata=self.data)
 
     def get_starttime(self) -> datetime.datetime:
         return datetime.datetime.strptime(self.data["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(

@@ -39,7 +39,7 @@ class EncounterInteraction:
         ).order_by("duration")
 
     @staticmethod
-    def get_encounter_from_dpsreport_metadata(metadata: dict) -> Optional[Encounter]:
+    def find_by_dpsreport_metadata(metadata: dict) -> Optional[Encounter]:
         try:
             return Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
         except Encounter.DoesNotExist:
@@ -56,7 +56,7 @@ bossname:  {metadata["encounter"]["boss"]}
             return None
 
     @staticmethod
-    def get_encounter_from_detailed_logs(detailed_metadata: dict) -> Optional[Encounter]:
+    def find_by_detailed_logs(detailed_metadata: dict) -> Optional[Encounter]:
         """Get encounter from detailed logs by matching boss name."""
         boss_name = detailed_metadata.get("fightName")
         if boss_name is None:

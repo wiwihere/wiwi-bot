@@ -121,7 +121,7 @@ class MetadataInteractor:
             "duration": datetime.timedelta(seconds=self.obj.data["encounter"]["duration"]),
             "url": self.obj.data.get("permalink"),
             "player_count": self.obj.data["encounter"]["numberOfPlayers"],
-            "encounter": EncounterInteraction.get_encounter_from_dpsreport_metadata(self.obj.data),
+            "encounter": EncounterInteraction.find_by_dpsreport_metadata(self.obj.data),
             "boss_name": self.obj.data["encounter"]["boss"],
             "cm": self.obj.data["encounter"]["isCm"],
             "lcm": self.obj.data["encounter"]["isLegendaryCm"],
