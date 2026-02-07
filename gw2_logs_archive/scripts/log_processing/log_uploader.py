@@ -152,6 +152,7 @@ class LogUploader:
     log_url: str = None
     parsed_path: Path = None
     only_url: bool = False
+    allow_reparse: bool = True
 
     def __post_init__(self):
         if self.log_path:
@@ -193,7 +194,17 @@ class LogUploader:
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
         if self.log_path:
-            return self.dpslog_service.find_by_name(self.log_path)
+            dpslog = self.dpslog_service.find_by_name(self.log_path)
+            # Fallback: if not found, optionally try to (re)create from an EI parsed file
+            if not dpslog and self.allow_reparse and self.parsed_path:
+                logger.warning(
+                    "Log not found in database by name, trying by start time via parsed file"
+                )
+                parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+                dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
+                    parsed_log=parsed_log, log_path=self.log_path
+                )
+            return dpslog
         if self.log_url:
             return self.dpslog_service.get_by_url(self.log_url)
         return None
