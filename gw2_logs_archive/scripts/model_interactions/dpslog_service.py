@@ -56,25 +56,27 @@ class DpsLogService:
         logger.info(f"Deleting DpsLog {dpslog} from database")
         self._repo.delete(dpslog)
 
-    def get_update_create_from_ei_parsed_log(self, parsed_log: DetailedParsedLog, log_path: Path) -> Optional[DpsLog]:
+    def get_update_create_from_ei_parsed_log(
+        self, detailed_parsed_log: DetailedParsedLog, log_path: Path
+    ) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
         Returns the DpsLog or None on handled failures.
         """
         logger.info(f"Processing detailed log: {log_path}")
 
-        encounter = parsed_log.get_encounter()
+        encounter = detailed_parsed_log.get_encounter()
         if encounter is None:
             logger.error(f"Encounter for log {log_path} could not be found. Skipping log.")
             move_failed_log(log_path, reason="failed")
             return None
 
-        final_health_percentage = parsed_log.get_final_health_percentage()
+        final_health_percentage = detailed_parsed_log.get_final_health_percentage()
         if final_health_percentage == 100.0 and encounter.name == "Eye of Fate":
             move_failed_log(log_path, reason="failed")
             return None
 
-        start_time = parsed_log.get_starttime()
+        start_time = detailed_parsed_log.get_starttime()
 
         dpslog = self.find_by_start_time(start_time=start_time, encounter=encounter)
 
@@ -82,7 +84,7 @@ class DpsLogService:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
         else:
             logger.info(f"Creating new log entry for {log_path}")
-            defaults = defaults_from_parsedlog(parsed_log=parsed_log, log_path=log_path)
+            defaults = defaults_from_parsedlog(parsed_log=detailed_parsed_log, log_path=log_path)
             # ensure encounter object is set
             defaults["encounter"] = encounter
 

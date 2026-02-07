@@ -166,7 +166,7 @@ class LogUploader:
         self.dpslog_service = DpsLogService()
 
     @cached_property
-    def detailed_metadata(self) -> Optional[DetailedParsedLog]:
+    def detailed_parsed_log(self) -> Optional[DetailedParsedLog]:
         """Get detailed info from dps.report API. Dont request multiple times."""
 
         if self.parsed_path:
@@ -196,9 +196,9 @@ class LogUploader:
             # Fallback: if not found, optionally try to (re)create from an EI parsed file
             if not dpslog and self.allow_reparse and self.parsed_path:
                 logger.warning("Log not found in database by name, trying by start time via parsed file")
-                parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+
                 dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
-                    parsed_log=parsed_log, log_path=self.log_path
+                    detailed_parsed_log=self.detailed_parsed_log, log_path=self.log_path
                 )
             return dpslog
         if self.log_url:
@@ -278,13 +278,13 @@ class LogUploader:
             )
 
             dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
-                dpslog=dpslog, detailed_info=self.detailed_metadata
+                dpslog=dpslog, detailed_info=self.detailed_parsed_log
             )
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
 
-            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=self.detailed_metadata)
+            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=self.detailed_parsed_log)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 
