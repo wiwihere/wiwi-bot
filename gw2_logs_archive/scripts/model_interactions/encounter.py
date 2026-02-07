@@ -6,7 +6,9 @@ if __name__ == "__main__":
 
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
+from django.conf import settings
 from django.db.models import QuerySet
 from gw2_logs.models import (
     Encounter,
@@ -35,3 +37,43 @@ class EncounterInteraction:
             lcm=lcm,
             core_player_count__gte=min_core_count,
         ).order_by("duration")
+
+    @staticmethod
+    def find_by_dpsreport_metadata(metadata: dict) -> Optional[Encounter]:
+        try:
+            return Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
+        except Encounter.DoesNotExist:
+            logger.critical(
+                f"""
+Encounter not part of database. Register? {metadata["encounter"]}
+bossId:  {metadata["encounter"]["bossId"]}
+bossname:  {metadata["encounter"]["boss"]}
+
+"""
+            )
+            if settings.DEBUG:
+                raise Encounter.DoesNotExist
+            return None
+
+    @staticmethod
+    def find_by_detailed_logs(detailed_metadata: dict) -> Optional[Encounter]:
+        """Get encounter from detailed logs by matching boss name."""
+        boss_name = detailed_metadata.get("fightName")
+        if boss_name is None:
+            logger.error("Detailed logs do not contain fightName. Cannot determine encounter.")
+            return None
+
+        try:
+            return Encounter.objects.get(name__iexact=boss_name)
+        except Encounter.DoesNotExist:
+            logger.critical(
+                f"""
+Encounter not part of database. Register? {detailed_metadata["encounter"]}
+bossId:  {detailed_metadata["encounter"]["bossId"]}
+bossname:  {detailed_metadata["encounter"]["boss"]}
+
+"""
+            )
+            if settings.DEBUG:
+                raise Encounter.DoesNotExist
+            return None

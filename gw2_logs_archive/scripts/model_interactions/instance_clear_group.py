@@ -77,7 +77,9 @@ class InstanceClearGroupInteraction:
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
         for instance_name in instances_day:
             logs_instance = logs_day.filter(encounter__instance__name=instance_name)
-            ici = InstanceClearInteraction.update_or_create_from_logs(logs=logs_instance, instance_group=iclear_group)
+            ici = InstanceClearInteraction.update_or_create_from_logs(
+                dpslog_list=logs_instance, instance_group=iclear_group
+            )
 
         # Set start time of clear
         if iclear_group.instance_clears.all():

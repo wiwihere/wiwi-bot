@@ -14,6 +14,7 @@ from typing import Optional
 from django.conf import settings
 from scripts.log_helpers import get_log_path_view
 from scripts.log_processing.ei_updater import EliteInsightsUpdater
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class EliteInsightsParser:
             return file
 
     @staticmethod
-    def load_json_gz(parsed_path: Path) -> dict:
+    def load_parsed_json(parsed_path: Path) -> DetailedParsedLog:
         """Load zipped json as detailed json"""
 
         with gzip.open(parsed_path, "r") as fin:
@@ -132,7 +133,7 @@ class EliteInsightsParser:
 
         json_str = json_bytes.decode("utf-8")
         data = json.loads(json_str)
-        return data
+        return DetailedParsedLog(data=data)
 
 
 # %%
@@ -145,6 +146,6 @@ if __name__ == "__main__":
     ei_parser.create_settings(out_dir=out_dir, setting_in_path=setting_in_path, create_html=create_html)
 
     d = ei_parser.parse_log(log_path=r"")
-    r2 = EliteInsightsParser.load_json_gz(parsed_path=d)
+    r2 = EliteInsightsParser.load_parsed_json(parsed_path=d)
     r2["eiEncounterID"]
 # %%

@@ -61,8 +61,8 @@ if __name__ == "__main__":
         iclear.duration = calculated_duration
         iclear.save()
 
-    for log in cm_logs:
-        if log.instance_clear != iclear:
-            logger.info(f"Updating instance clear for log {log.id} to {iclear.name}")
-            log.instance_clear = iclear
-            log.save()
+    for dpslog in cm_logs:
+        if dpslog.instance_clear != iclear:
+            logger.info(f"Updating instance clear for log {dpslog.id} to {iclear.name}")
+            dpslog.instance_clear = iclear
+            dpslog.save()

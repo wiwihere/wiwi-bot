@@ -28,13 +28,13 @@ for png_name, png_id in emote_ids.items():
     if png_name.endswith("_cm"):
         png_name = png_name[:-3]
         cm = True
-    e = Emoji.objects.get(png_name=png_name)
+    emoji = Emoji.objects.get(png_name=png_name)
 
     if png_id:
         if cm:
-            e.discord_id_cm = int(png_id)
+            emoji.discord_id_cm = int(png_id)
         else:
-            e.discord_id = int(png_id)
-        print(f"Update {e.name}. CM:{cm}")
+            emoji.discord_id = int(png_id)
+        print(f"Update {emoji.name}. CM:{cm}")
 
-        e.save()
+        emoji.save()
