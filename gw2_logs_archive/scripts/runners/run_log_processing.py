@@ -32,6 +32,7 @@ def run_log_processing(
     d: Optional[int] = None,
     itype_groups: Optional[list[Literal["raid", "strike", "fractal"]]] = None,
 ) -> None:
+    """Run complete log processing flow for a given date and instance type groups."""
     if y is None:
         y, m, d = today_y_m_d()
     if itype_groups is None:
@@ -66,7 +67,7 @@ def run_log_processing(
                     y=y, m=m, d=d, itype_group=log.encounter.instance.instance_group.name
                 )
 
-                # 5. Build and send Discord message
+                # Build and send Discord message
                 if icgi is not None:
                     icgi.sync_discord_message_id()
 
@@ -97,3 +98,5 @@ def run_log_processing(
 if __name__ == "__main__":
     y, m, d = 2026, 2, 5
     itype_groups = ["raid", "strike"]
+
+    # run_log_processing(y=y, m=m, d=d, itype_groups=itype_groups)
