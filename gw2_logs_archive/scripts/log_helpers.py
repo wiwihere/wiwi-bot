@@ -238,6 +238,7 @@ def get_emboldened_wing(log_date: datetime.datetime):
     """Check if a wing had the possibility of emboldened buff
     Embolded was at wing 6 4th week of 2024
     """
+    # TODO probably can be removed
     # FIXME WING8 probably broke this.
     start_year = 2022
     start_week = 26

@@ -133,6 +133,7 @@ class DpsLogService:
 
     def fix_emboldened(self, dpslog: DpsLog, detailed_info: Optional[dict] = None) -> DpsLog:
         """Set emboldened flag on a DpsLog using available detailed_info or wing schedule."""
+        # FIXME can probably be removed? Or always just request detailed info when emboldened is None, since the wing schedule
         if (dpslog.emboldened is None) and (dpslog.encounter is not None):
             emboldened_wing = get_emboldened_wing(dpslog.start_time)
             if (
@@ -142,7 +143,7 @@ class DpsLogService:
             ):
                 logger.info("    Checking for emboldened (service)")
                 if detailed_info is None:
-                    logger.debug("No detailed_info provided to fix_emboldened")
+                    logger.warning("No detailed_info provided to fix_emboldened")
                     dpslog.emboldened = False
                 else:
                     if "presentInstanceBuffs" in detailed_info:

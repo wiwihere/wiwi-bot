@@ -22,6 +22,7 @@ from scripts.log_helpers import (
 )
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_uploader import DpsReportUploader
+from scripts.model_interactions.encounter import EncounterInteraction
 
 logger = logging.getLogger(__name__)
 
@@ -134,16 +135,7 @@ class DetailedParsedLog:
         return [player["account"] for player in self.data["players"]]
 
     def get_encounter(self) -> Optional[Encounter]:
-        try:
-            encounter = Encounter.objects.get(
-                ei_encounter_id=self.data["eiEncounterID"]
-            )  # FIXME on new encounters this is 0 somehow.
-            if self.data["eiEncounterID"] == 0:
-                logger.warning(f"{self.name} has eiEncounterID 0, which now returned {encounter}")
-        except Encounter.DoesNotExist:
-            logger.error(f"{self.name} with id {self.data['eiEncounterID']} doesnt exist")
-            return None
-        return encounter
+        return EncounterInteraction.get_encounter_from_detailed_logs(detailed_metadata=self.data)
 
     def get_starttime(self) -> datetime.datetime:
         return datetime.datetime.strptime(self.data["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
