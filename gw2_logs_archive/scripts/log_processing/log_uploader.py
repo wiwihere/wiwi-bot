@@ -291,50 +291,7 @@ bossname:  {metadata["encounter"]["boss"]}
             metadata["encounterTime"] = create_unix_time(start_time)
         return metadata
 
-    def fix_final_health_percentage(self, dpslog: DpsLog) -> Tuple[Optional[DpsLog], Literal["failed", None]]:
-        """Update final health percentage"""
-        # TODO this is a duplicate of dps_log.py
-        if dpslog.final_health_percentage is None:
-            if dpslog.success is False:
-                logger.info("    Requesting final boss health")
-                self._detailed_info = self.get_detailed_info_from_log(log=dpslog)
-                dpslog.final_health_percentage = round(100 - self._detailed_info["targets"][0]["healthPercentBurned"], 2)
-
-                # Sometimes people get in combat at eyes which creates an uneccesary log.
-                if dpslog.final_health_percentage == 100.0 and dpslog.boss_name == "Eye of Fate":
-                    move_reason = "failed"
-
-                    return None, move_reason
-
-            else:
-                dpslog.final_health_percentage = 0
-            dpslog.save()
-        return dpslog, None
-
-    def fix_emboldened(self, dpslog: DpsLog) -> DpsLog:
-        """Legacy code. Older dps.report response didnt include the emboldened status.
-        Check emboldened
-
-        """
-        if (dpslog.emboldened is None) and (dpslog.encounter is not None):
-            emboldened_wing = get_emboldened_wing(dpslog.start_time)
-            if (
-                (emboldened_wing == dpslog.encounter.instance.nr)
-                and (dpslog.encounter.instance.instance_group.name == "raid")
-                and not (dpslog.cm)
-            ):
-                logger.info("    Checking for emboldened")
-                self._detailed_info = self.get_detailed_info_from_log(log=dpslog)
-
-                if "presentInstanceBuffs" in self._detailed_info:
-                    dpslog.emboldened = 68087 in list(chain(*self._detailed_info["presentInstanceBuffs"]))
-                else:
-                    dpslog.emboldened = False
-            else:
-                dpslog.emboldened = False
-
-            dpslog.save()
-        return dpslog
+    # Delegated: emboldened and final-health fixes live in DpsLogService now.
 
     def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
@@ -375,12 +332,15 @@ bossname:  {metadata["encounter"]["boss"]}
                 metadata=metadata, log_path=self.log_path
             )
 
-            dpslog, move_reason = self.fix_final_health_percentage(dpslog=dpslog)
+            # Try to fetch detailed info once and pass to service fixes
+            detailed_info = self.get_detailed_info(report_id=metadata.get("id"), url=metadata.get("permalink"))
+
+            dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(dpslog=dpslog, detailed_info=detailed_info)
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
 
-            self.fix_emboldened(dpslog=dpslog)
+            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=detailed_info)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 

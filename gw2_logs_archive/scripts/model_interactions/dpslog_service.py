@@ -14,13 +14,18 @@ if __name__ == "__main__":
 
 import datetime
 import logging
+from itertools import chain
 from pathlib import Path
 from typing import Optional
 
 from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import DpsLog, Encounter, Player
-from scripts.log_helpers import get_rank_emote
+from scripts.log_helpers import get_emboldened_wing, get_rank_emote
+from scripts.model_interactions.dpslog_factory import (
+    defaults_from_metadata,
+    defaults_from_parsedlog,
+)
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.parsed_log import ParsedLog
@@ -76,25 +81,9 @@ class DpsLogService:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
         else:
             logger.info(f"Creating new log entry for {log_path}")
-            players = [player["account"] for player in parsed_log.json_detailed["players"]]
-
-            defaults = {
-                "duration": parsed_log.get_duration(),
-                "player_count": len(players),
-                "encounter": encounter,
-                "boss_name": parsed_log.json_detailed["fightName"],
-                "cm": parsed_log.json_detailed["isCM"],
-                "lcm": parsed_log.json_detailed["isLegendaryCM"],
-                "emboldened": "b68087" in parsed_log.json_detailed.get("buffMap", {}),
-                "success": parsed_log.json_detailed["success"],
-                "final_health_percentage": final_health_percentage,
-                "gw2_build": parsed_log.json_detailed.get("gW2Build"),
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-                "local_path": log_path,
-                "phasetime_str": parsed_log.get_phasetime_str(),
-            }
+            defaults = defaults_from_parsedlog(parsed_log=parsed_log, log_path=log_path)
+            # ensure encounter object is set
+            defaults["encounter"] = encounter
 
             dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
@@ -122,31 +111,58 @@ class DpsLogService:
 
         if url_only:
             defaults = {"url": metadata.get("permalink")}
-
         else:
-            if metadata.get("players"):
-                players = [i["display_name"] for i in metadata["players"].values()]
-            else:
-                players = []
-
-            defaults = {
-                "encounter": self._get_encounter_for_metadata(metadata),
-                "success": metadata["encounter"]["success"],
-                "duration": datetime.timedelta(seconds=metadata["encounter"]["duration"]),
-                "url": metadata.get("permalink"),
-                "player_count": metadata["encounter"].get("numberOfPlayers"),
-                "boss_name": metadata["encounter"].get("boss"),
-                "cm": metadata["encounter"].get("isCm"),
-                "gw2_build": metadata["encounter"].get("gw2Build"),
-                "players": players,
-                "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-                "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-                "report_id": metadata.get("id"),
-                "local_path": log_path,
-                "json_dump": metadata,
-            }
+            defaults = defaults_from_metadata(metadata=metadata, log_path=log_path)
+            # resolve encounter to model instance
+            defaults["encounter"] = self._get_encounter_for_metadata(metadata)
 
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
+        return dpslog
+
+    def fix_final_health_percentage(
+        self, dpslog: DpsLog, detailed_info: Optional[dict] = None
+    ) -> tuple[Optional[DpsLog], str | None]:
+        """Update final health percentage on a DpsLog using optional detailed_info.
+
+        Returns (dpslog, None) on success or (None, move_reason) when the log should be moved.
+        """
+        if dpslog.final_health_percentage is None:
+            if dpslog.success is False:
+                logger.info("    Requesting final boss health (service)")
+                if detailed_info is None:
+                    logger.debug("No detailed_info provided to fix_final_health_percentage")
+                    return dpslog, None
+                dpslog.final_health_percentage = round(100 - detailed_info["targets"][0]["healthPercentBurned"], 2)
+
+                if dpslog.final_health_percentage == 100.0 and dpslog.boss_name == "Eye of Fate":
+                    return None, "failed"
+            else:
+                dpslog.final_health_percentage = 0
+            dpslog.save()
+        return dpslog, None
+
+    def fix_emboldened(self, dpslog: DpsLog, detailed_info: Optional[dict] = None) -> DpsLog:
+        """Set emboldened flag on a DpsLog using available detailed_info or wing schedule."""
+        if (dpslog.emboldened is None) and (dpslog.encounter is not None):
+            emboldened_wing = get_emboldened_wing(dpslog.start_time)
+            if (
+                (emboldened_wing == dpslog.encounter.instance.nr)
+                and (dpslog.encounter.instance.instance_group.name == "raid")
+                and not (dpslog.cm)
+            ):
+                logger.info("    Checking for emboldened (service)")
+                if detailed_info is None:
+                    logger.debug("No detailed_info provided to fix_emboldened")
+                    dpslog.emboldened = False
+                else:
+                    if "presentInstanceBuffs" in detailed_info:
+                        dpslog.emboldened = 68087 in list(chain(*detailed_info["presentInstanceBuffs"]))
+                    else:
+                        dpslog.emboldened = False
+            else:
+                dpslog.emboldened = False
+
+            dpslog.save()
         return dpslog
 
     def update_permalink(self, dpslog: DpsLog, permalink: str) -> DpsLog:
