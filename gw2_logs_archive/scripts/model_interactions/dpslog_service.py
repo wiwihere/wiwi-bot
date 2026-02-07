@@ -29,7 +29,7 @@ from scripts.model_interactions.dpslog_factory import (
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.metadata_parsed import MetadataInteractor, MetadataParsed
-from scripts.utilities.parsed_log import ParsedLog
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class DpsLogService:
         logger.info(f"Deleting DpsLog {dpslog} from database")
         self._repo.delete(dpslog)
 
-    def get_update_create_from_ei_parsed_log(self, parsed_log: ParsedLog, log_path: Path) -> Optional[DpsLog]:
+    def get_update_create_from_ei_parsed_log(self, parsed_log: DetailedParsedLog, log_path: Path) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
         Returns the DpsLog or None on handled failures.

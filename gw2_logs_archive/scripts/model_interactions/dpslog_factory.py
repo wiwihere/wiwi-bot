@@ -7,12 +7,12 @@ from typing import Optional
 
 from gw2_logs.models import Player
 from scripts.utilities.metadata_parsed import MetadataParsed
-from scripts.utilities.parsed_log import ParsedLog
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
 
-def defaults_from_parsedlog(parsed_log: ParsedLog, log_path: Path) -> dict:
+def defaults_from_parsedlog(parsed_log: DetailedParsedLog, log_path: Path) -> dict:
     """Build defaults dict for DpsLog from an Elite Insights parsed log."""
     players = [player["account"] for player in parsed_log.json_detailed["players"]]
 

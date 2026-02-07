@@ -84,14 +84,14 @@ class _HealthData:
             return get_duration_str(self.max_duration_seconds - time_s_int)
 
 
-class ParsedLog:
+class DetailedParsedLog:
     """Class to hold information on a parsed log, either from EI parser or dps.report"""
 
     def __init__(self, json_detailed: Optional[dict]):
         self.json_detailed = json_detailed
 
     @classmethod
-    def from_ei_parsed_path(cls, parsed_path: Path) -> "ParsedLog":
+    def from_ei_parsed_path(cls, parsed_path: Path) -> "DetailedParsedLog":
         json_detailed = EliteInsightsParser.load_json_gz(parsed_path=parsed_path)
         return cls(json_detailed=json_detailed)
 

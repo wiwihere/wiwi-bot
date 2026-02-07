@@ -23,7 +23,7 @@ from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_processing.log_uploader import LogUploader
 from scripts.model_interactions.dpslog_service import DpsLogService
-from scripts.utilities.parsed_log import ParsedLog
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def _parse_or_upload_log(
         # Use centralized service for creating DpsLog from EI parsed JSON
         dps_log = None
         if parsed_path is not None:
-            parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
+            parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
             dps_log = DpsLogService().get_update_create_from_ei_parsed_log(parsed_log=parsed_log, log_path=log_path)
 
     # Upload to dps.report

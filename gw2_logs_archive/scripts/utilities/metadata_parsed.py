@@ -120,7 +120,14 @@ class MetadataInteractor:
         try:
             return Encounter.objects.get(dpsreport_boss_id=self.data["encounter"]["bossId"])
         except Encounter.DoesNotExist:
-            logger.critical("Encounter not part of database. Register? %s", self.data["encounter"])
+            logger.critical(
+                f"""
+Encounter not part of database. Register? {self.data["encounter"]}
+bossId:  {self.data["encounter"]["bossId"]}
+bossname:  {self.data["encounter"]["boss"]}
+
+"""
+            )
             if settings.DEBUG:
-                raise
+                raise Encounter.DoesNotExist
             return None

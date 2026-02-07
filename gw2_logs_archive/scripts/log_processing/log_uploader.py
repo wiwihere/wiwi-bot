@@ -18,6 +18,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
 from pathlib import Path
 from typing import Literal, Optional, Tuple
@@ -37,7 +38,7 @@ from scripts.log_helpers import (
 from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.metadata_parsed import MetadataParsed
-from scripts.utilities.parsed_log import ParsedLog
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class DpsReportUploader:
 
         return None, move_reason
 
-    def request_metadata(self, report_id=None, url=None) -> Optional[MetadataParsed]:
+    def request_metadata(self, report_id: Optional[str] = None, url: Optional[str] = None) -> Optional[MetadataParsed]:
         """Get metadata from dps.report if an url is available. Either provide report_id or url."""
         data = {"id": report_id, "permalink": url}
         response = requests.get(self.endpoints.metadata, params=data)
@@ -120,7 +121,9 @@ class DpsReportUploader:
         metadata = response.json()
         return MetadataParsed(raw=metadata)
 
-    def request_detailed_info(self, report_id: Optional[str] = None, url: Optional[str] = None) -> Optional[dict]:
+    def request_detailed_info(
+        self, report_id: Optional[str] = None, url: Optional[str] = None
+    ) -> Optional[DetailedParsedLog]:
         """Upload can have corrupt metadata. We then have to request the detailed log info.
         More info of the output can be found here: https://baaron4.github.io/GW2-Elite-Insights-Parser/Json/index.html
         """
@@ -129,7 +132,7 @@ class DpsReportUploader:
         if detailed_response.status_code != 200:
             logger.error(f"Code {detailed_response.status_code}: Failed retrieving log {url}")
             return None
-        return detailed_response.json()
+        return DetailedParsedLog(detailed_response.json())
 
 
 @dataclass
@@ -157,10 +160,19 @@ class LogUploader:
     def __post_init__(self):
         if self.log_path:
             self.log_path = Path(self.log_path)
-        self._detailed_info: dict | None = None  # Detailed api response
 
         self.uploader = DpsReportUploader()
         self.dpslog_service = DpsLogService()
+
+    @cached_property
+    def detailed_metadata(self) -> Optional[DetailedParsedLog]:
+        """Get detailed info from dps.report API. Dont request multiple times."""
+
+        if self.parsed_path:
+            detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+        if self.log_url:
+            detailed_parsed_log = self.uploader.request_detailed_info(url=self.log_url)
+        return detailed_parsed_log
 
     @classmethod
     def from_log(cls, log: DpsLog):
@@ -176,21 +188,6 @@ class LogUploader:
         else:
             return str(self.log_url)
 
-    def get_detailed_info(self, report_id: str = None, url: str = None) -> dict:
-        """Get detailed info from dps.report API. Dont request multiple times."""
-        if self._detailed_info is None:
-            self._detailed_info = self.uploader.request_detailed_info(report_id=report_id, url=url)
-
-        return self._detailed_info
-
-    def get_detailed_info_from_log(self, log: DpsLog) -> dict:
-        """Get detailed info from dps.report API. Dont request multiple times."""
-        report_id = log.report_id
-        url = log.url
-        _detailed_info = self.get_detailed_info(report_id=report_id, url=url)
-        return _detailed_info
-        # TODO change how this works. Maybe a cached property that gets filled when requesting detailed info the first time?
-
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
         if self.log_path:
@@ -198,7 +195,7 @@ class LogUploader:
             # Fallback: if not found, optionally try to (re)create from an EI parsed file
             if not dpslog and self.allow_reparse and self.parsed_path:
                 logger.warning("Log not found in database by name, trying by start time via parsed file")
-                parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+                parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
                 dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
                     parsed_log=parsed_log, log_path=self.log_path
                 )
@@ -240,24 +237,6 @@ class LogUploader:
 
         return metadata, move_reason
 
-    @staticmethod
-    def get_encounter(metadata: dict) -> Optional[Encounter]:
-        try:
-            encounter = Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
-        except Encounter.DoesNotExist:
-            encounter = None
-            logger.critical(
-                f"""
-Encounter not part of database. Register? {metadata["encounter"]}
-bossId:  {metadata["encounter"]["bossId"]}
-bossname:  {metadata["encounter"]["boss"]}
-
-"""
-            )
-            if settings.DEBUG:
-                raise Encounter.DoesNotExist
-        return encounter
-
     def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
         If they do not apply, move the log to forbidden or failed folder.
@@ -297,19 +276,14 @@ bossname:  {metadata["encounter"]["boss"]}
                 metadata=metadata_dict, log_path=self.log_path
             )
 
-            # Try to fetch detailed info once and pass to service fixes
-            detailed_info = self.get_detailed_info(
-                report_id=metadata_dict.get("id"), url=metadata_dict.get("permalink")
-            )
-
             dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
-                dpslog=dpslog, detailed_info=detailed_info
+                dpslog=dpslog, detailed_info=self.detailed_metadata
             )
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
 
-            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=detailed_info)
+            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=self.detailed_metadata)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 
