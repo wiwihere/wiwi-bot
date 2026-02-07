@@ -36,6 +36,7 @@ from scripts.log_helpers import (
 )
 from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
+from scripts.utilities.metadata_parsed import MetadataParsed
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class DpsReportUploader:
     def __init__(self):
         self.endpoints = DpsReportEndpoints()
 
-    def upload_log(self, log_path: Path) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
+    def upload_log(self, log_path: Path) -> Tuple[Optional[MetadataParsed], Literal["failed", "forbidden", None]]:
         """Upload log to dps.report, a.dps.report or b.dps.report"""
 
         data = {
@@ -79,7 +80,8 @@ class DpsReportUploader:
             response = requests.post(self.endpoints.upload, files=files, data=data)
 
         if response.status_code == 200:  # All good
-            return response.json(), None
+            metadata = response.json()
+            return MetadataParsed.from_raw(metadata), None
 
         else:
             logger.error(f"Code {response.status_code}: Failed uploading {get_log_path_view(log_path)}")
@@ -110,7 +112,7 @@ class DpsReportUploader:
 
         return None, None
 
-    def request_metadata(self, report_id=None, url=None) -> Optional[dict]:
+    def request_metadata(self, report_id=None, url=None) -> Optional[MetadataParsed]:
         """Get metadata from dps.report if an url is available. Either provide report_id or url."""
         data = {"id": report_id, "permalink": url}
         response = requests.get(self.endpoints.metadata, params=data)
@@ -118,7 +120,8 @@ class DpsReportUploader:
         if response.status_code != 200:
             logger.error(f"Code {response.status_code}: Failed retrieving log {url}")
             return None
-        return response.json()
+        metadata = response.json()
+        return MetadataParsed.from_raw(metadata)
 
     def request_detailed_info(self, report_id: Optional[str] = None, url: Optional[str] = None) -> Optional[dict]:
         """Upload can have corrupt metadata. We then have to request the detailed log info.
@@ -207,7 +210,7 @@ class LogUploader:
             return self.dpslog_service.get_by_url(self.log_url)
         return None
 
-    def get_or_upload_log(self) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
+    def get_or_upload_log(self) -> Tuple[Optional[MetadataParsed], Literal["failed", "forbidden", None]]:
         """Get log from database, if not there, upload it.
         If there is a reason to move the log, return that too.
         """
@@ -234,7 +237,9 @@ class LogUploader:
             metadata = self.uploader.request_metadata(url=self.log_url)
 
         elif has_dps_log:
-            metadata = getattr(self.dps_log, "json_dump", None)
+            # existing DB record stores raw JSON; wrap in MetadataParsed for consistency
+            raw = getattr(self.dps_log, "json_dump", None)
+            metadata = MetadataParsed.from_raw(raw) if raw else None
 
         return metadata, move_reason
 
@@ -321,28 +326,36 @@ bossname:  {metadata["encounter"]["boss"]}
             logger.debug("    No valid metadata received")
             return None
 
-        metadata = self.fix_bosses(metadata=metadata)
+        # `metadata` is a MetadataParsed instance; get mutable dict for legacy fixes
+        if isinstance(metadata, MetadataParsed):
+            metadata_dict = metadata.as_dict()
+        else:
+            metadata_dict = metadata
 
-        # Fix metadata is response is incorrect
-        metadata = self.fix_metadata(metadata=metadata)
+        metadata_dict = self.fix_bosses(metadata=metadata_dict)
+
+        # Fix metadata if response is incorrect
+        metadata_dict = self.fix_metadata(metadata=metadata_dict)
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
             if self.dps_log:
-                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata["permalink"])
+                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata_dict["permalink"])
             else:
                 logger.warning("Trying to update url, but log not found in database, this shouldnt happen")
                 dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
-                    metadata=metadata, log_path=self.log_path, url_only=True
+                    metadata=metadata_dict, log_path=self.log_path, url_only=True
                 )
 
         else:
             dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
-                metadata=metadata, log_path=self.log_path
+                metadata=metadata_dict, log_path=self.log_path
             )
 
             # Try to fetch detailed info once and pass to service fixes
-            detailed_info = self.get_detailed_info(report_id=metadata.get("id"), url=metadata.get("permalink"))
+            detailed_info = self.get_detailed_info(
+                report_id=metadata_dict.get("id"), url=metadata_dict.get("permalink")
+            )
 
             dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
                 dpslog=dpslog, detailed_info=detailed_info
