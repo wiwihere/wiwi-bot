@@ -260,21 +260,19 @@ class LogUploader:
         metadata.apply_boss_fixes()
         metadata.apply_metadata_fix()
 
-        metadata_dict = metadata.as_dict()
-
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
             if self.dps_log:
-                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata_dict["permalink"])
+                dpslog = self.dpslog_service.update_permalink(self.dps_log, metadata.data["permalink"])
             else:
                 logger.warning("Trying to update url, but log not found in database, this shouldnt happen")
                 dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
-                    metadata=metadata_dict, log_path=self.log_path, url_only=True
+                    metadata=metadata, log_path=self.log_path, url_only=True
                 )
 
         else:
             dpslog = self.dpslog_service.create_or_update_from_dps_report_metadata(
-                metadata=metadata_dict, log_path=self.log_path
+                metadata=metadata, log_path=self.log_path
             )
 
             dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
