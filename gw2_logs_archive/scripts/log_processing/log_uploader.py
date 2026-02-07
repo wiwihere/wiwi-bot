@@ -276,13 +276,13 @@ class LogUploader:
             )
 
             dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
-                dpslog=dpslog, detailed_info=self.detailed_parsed_log
+                dpslog=dpslog, detailed_parsed_log=self.detailed_parsed_log
             )
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
 
-            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_info=self.detailed_parsed_log)
+            self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_parsed_log=self.detailed_parsed_log)
 
         logger.info(f"Finished processing: {self.log_source_view}")
 

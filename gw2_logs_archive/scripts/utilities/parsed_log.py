@@ -13,7 +13,6 @@ from typing import Optional
 import numpy as np
 from gw2_logs.models import (
     Encounter,
-    Player,
 )
 from scripts.log_helpers import (
     BOSS_HEALTH_PERCENTAGES,
@@ -90,8 +89,34 @@ class _HealthData:
 class DetailedParsedLog:
     """Class to hold information on a parsed log, either from EI parser or dps.report"""
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, log_path: Optional[Path] = None):
         self.data = data
+        self.log_path = log_path
+
+    def to_dpslog_defaults(self, log_path: Optional[Path] = None) -> dict:
+        """Return a pure dict of dpslog defaults derived from the detailed parsed log.
+
+        This function must not perform any ORM calls. It should only return
+        primitive types and lists so it can be used outside a Django context.
+        """
+        players = self.get_players()
+
+        defaults = {
+            "success": self.data["success"],
+            "duration": self.get_duration(),
+            "player_count": len(players),
+            "boss_name": self.data["fightName"],
+            "cm": self.data["isCM"],
+            "lcm": self.data["isLegendaryCM"],
+            "emboldened": "b68087" in self.data["buffMap"],
+            "final_health_percentage": self.get_final_health_percentage(),
+            "gw2_build": self.data["gW2Build"],
+            "players": players,
+            "local_path": log_path,
+            "phasetime_str": self.get_phasetime_str(),
+        }
+
+        return defaults
 
     @classmethod
     def from_ei_parsed_path(cls, parsed_path: Path) -> "DetailedParsedLog":
@@ -103,30 +128,6 @@ class DetailedParsedLog:
         """Create DetailedParsedLog from dps.report url by requesting detailed info from the API."""
         data = DpsReportUploader().request_detailed_info(url=url)
         return cls(data=data)
-
-    def to_dpslog_defaults(self, log_path: Path) -> dict:
-        """Build defaults dict for DpsLog from an Elite Insights parsed log."""
-        players = [player["account"] for player in self.data["players"]]
-
-        defaults = {
-            "duration": self.get_duration(),
-            "player_count": len(players),
-            # encounter resolution belongs to the service; factory doesn't touch DB for Encounter
-            "boss_name": self.data.get("fightName"),
-            "cm": self.data.get("isCM"),
-            "lcm": self.data.get("isLegendaryCM"),
-            "emboldened": "b68087" in self.data.get("buffMap", {}),
-            "success": self.data.get("success"),
-            "final_health_percentage": self.get_final_health_percentage(),
-            "gw2_build": self.data.get("gW2Build"),
-            "players": players,
-            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
-            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "local_path": log_path,
-            "phasetime_str": self.get_phasetime_str(),
-        }
-
-        return defaults
 
     @cached_property
     def name(self) -> str:
@@ -158,7 +159,8 @@ class DetailedParsedLog:
     def get_players(self) -> list[str]:
         return [player["account"] for player in self.data["players"]]
 
-    def get_encounter(self) -> Optional[Encounter]:
+    @cached_property
+    def encounter(self) -> Optional[Encounter]:
         return EncounterInteraction.find_by_detailed_logs(detailed_metadata=self.data)
 
     def get_starttime(self) -> datetime.datetime:
@@ -168,3 +170,17 @@ class DetailedParsedLog:
 
     def get_duration(self) -> datetime.timedelta:
         return datetime.timedelta(seconds=self.data["durationMS"] / 1000)
+
+    def validate(self) -> bool:
+        """Check if the parsed log contains valid data."""
+
+        if self.encounter is None:
+            logger.error(f"Encounter for log {self.log_path} could not be found. Skipping log.")
+            raise ValueError(f"Encounter for log {self.log_path} could not be found.")
+            # move_failed_log(log_path, reason="failed")
+            # return None
+
+        final_health_percentage = self.get_final_health_percentage()
+        if final_health_percentage == 100.0 and self.encounter.name == "Eye of Fate":
+            return False, "failed"
+        return True, None

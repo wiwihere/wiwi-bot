@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 class MetadataParsed:
     data: dict
 
-    def as_dict(self) -> dict:
-        return self.data
-
     def to_dpslog_defaults(self, log_path: Optional[Path] = None) -> dict:
         """Return a pure dict of dpslog defaults derived from metadata (no ORM).
 
@@ -53,14 +50,8 @@ class MetadataParsed:
         return cls(data=data)
 
     @property
-    def start_time(self) -> Optional[datetime.datetime]:
-        et = self.data["encounterTime"]
-        if et is None:
-            return None
-        try:
-            return datetime.datetime.fromtimestamp(et, tz=datetime.timezone.utc)
-        except Exception:
-            return None
+    def start_time(self) -> datetime.datetime:
+        return datetime.datetime.fromtimestamp(self.data["encounterTime"], tz=datetime.timezone.utc)
 
     @property
     def duration(self) -> float:
