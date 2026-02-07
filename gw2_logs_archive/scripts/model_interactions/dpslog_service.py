@@ -28,6 +28,7 @@ from scripts.model_interactions.dpslog_factory import (
 )
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
+from scripts.utilities.metadata_parsed import MetadataInteractor, MetadataParsed
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
@@ -88,18 +89,9 @@ class DpsLogService:
             dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog
 
-    def _get_encounter_for_metadata(self, metadata: dict) -> Optional[Encounter]:
-        try:
-            return Encounter.objects.get(dpsreport_boss_id=metadata["encounter"]["bossId"])
-        except Encounter.DoesNotExist:
-            logger.critical("Encounter not part of database. Register? %s", metadata["encounter"])
-            if settings.DEBUG:
-                raise
-            return None
-
     def create_or_update_from_dps_report_metadata(
         self,
-        metadata: dict,
+        metadata: MetadataParsed,
         log_path: Optional[Path] = None,
         url_only: bool = False,
     ) -> DpsLog:
@@ -109,12 +101,14 @@ class DpsLogService:
         """
         start_time = datetime.datetime.fromtimestamp(metadata["encounterTime"], tz=datetime.timezone.utc)
 
+        mdi = MetadataInteractor(metadata=metadata)
+
         if url_only:
-            defaults = {"url": metadata.get("permalink")}
+            defaults = {"url": metadata.raw.get("permalink")}
         else:
             defaults = defaults_from_metadata(metadata=metadata, log_path=log_path)
             # resolve encounter to model instance
-            defaults["encounter"] = self._get_encounter_for_metadata(metadata)
+            defaults["encounter"] = mdi.get_encounter()
 
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog

@@ -38,32 +38,30 @@ def defaults_from_parsedlog(parsed_log: ParsedLog, log_path: Path) -> dict:
 
 
 def defaults_from_metadata(
-    metadata: dict, log_path: Optional[Path] = None, detailed_info: Optional[dict] = None
+    metadata: MetadataParsed, log_path: Optional[Path] = None, detailed_info: Optional[dict] = None
 ) -> dict:
     """Build defaults dict for DpsLog from dps.report metadata dict.
 
     Normalizes `metadata` with `MetadataParsed` then constructs the defaults
     dictionary expected by the service/repository.
     """
-    mp = MetadataParsed.from_raw(metadata, detailed_info=detailed_info)
-
-    players = mp.players_raw
+    players = metadata.players_raw
 
     defaults = {
         # Service is responsible for resolving Encounter objects from boss ids
-        "success": mp.encounter_info.get("success"),
-        "duration": datetime.timedelta(seconds=mp.duration),
-        "url": mp.raw.get("permalink"),
-        "player_count": mp.encounter_info.get("numberOfPlayers"),
-        "boss_name": mp.boss_name,
-        "cm": mp.encounter_info.get("isCm"),
-        "gw2_build": mp.encounter_info.get("gw2Build"),
+        "success": metadata.encounter_info.get("success"),
+        "duration": datetime.timedelta(seconds=metadata.duration),
+        "url": metadata.raw.get("permalink"),
+        "player_count": metadata.encounter_info.get("numberOfPlayers"),
+        "boss_name": metadata.boss_name,
+        "cm": metadata.encounter_info.get("isCm"),
+        "gw2_build": metadata.encounter_info.get("gw2Build"),
         "players": players,
         "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
         "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-        "report_id": mp.raw.get("id"),
+        "report_id": metadata.raw.get("id"),
         "local_path": log_path,
-        "json_dump": mp.as_dict(),
+        "json_dump": metadata.as_dict(),
     }
 
     return defaults

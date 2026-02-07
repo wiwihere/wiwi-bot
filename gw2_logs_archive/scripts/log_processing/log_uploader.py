@@ -81,19 +81,18 @@ class DpsReportUploader:
 
         if response.status_code == 200:  # All good
             metadata = response.json()
-            return MetadataParsed.from_raw(metadata), None
+            return MetadataParsed(raw=metadata), None
 
         else:
             logger.error(f"Code {response.status_code}: Failed uploading {get_log_path_view(log_path)}")
             logger.error(f"Reason: {response.reason}")
 
+        move_reason = None
         if response.status_code == 503:
             if hasattr(response, "error"):
                 logger.error(f"{response.error}")
-            return None, None
 
         elif response.status_code == 403:
-            move_reason = None
             try:
                 logger.error(response.json().get("error"))
 
@@ -108,9 +107,7 @@ class DpsReportUploader:
             if str(response.reason) == "Forbidden":
                 move_reason = "forbidden"
 
-            return None, move_reason
-
-        return None, None
+        return None, move_reason
 
     def request_metadata(self, report_id=None, url=None) -> Optional[MetadataParsed]:
         """Get metadata from dps.report if an url is available. Either provide report_id or url."""
@@ -121,7 +118,7 @@ class DpsReportUploader:
             logger.error(f"Code {response.status_code}: Failed retrieving log {url}")
             return None
         metadata = response.json()
-        return MetadataParsed.from_raw(metadata)
+        return MetadataParsed(raw=metadata)
 
     def request_detailed_info(self, report_id: Optional[str] = None, url: Optional[str] = None) -> Optional[dict]:
         """Upload can have corrupt metadata. We then have to request the detailed log info.
@@ -239,7 +236,7 @@ class LogUploader:
         elif has_dps_log:
             # existing DB record stores raw JSON; wrap in MetadataParsed for consistency
             raw = getattr(self.dps_log, "json_dump", None)
-            metadata = MetadataParsed.from_raw(raw) if raw else None
+            metadata = MetadataParsed(raw) if raw else None
 
         return metadata, move_reason
 
@@ -280,16 +277,10 @@ bossname:  {metadata["encounter"]["boss"]}
             logger.debug("    No valid metadata received")
             return None
 
-        # Normalize and apply legacy fixes via MetadataParsed
-        if isinstance(metadata, MetadataParsed):
-            mp = metadata
-        else:
-            mp = MetadataParsed.from_raw(metadata)
+        metadata.apply_boss_fixes()
+        metadata.apply_metadata_fix()
 
-        mp.apply_boss_fixes()
-        mp.apply_metadata_fix()
-
-        metadata_dict = mp.as_dict()
+        metadata_dict = metadata.as_dict()
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)

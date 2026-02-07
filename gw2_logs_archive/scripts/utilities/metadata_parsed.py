@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from dateutil.parser import parse
+from django.conf import settings
+from gw2_logs.models import Encounter
 
 logger = logging.getLogger(__name__)
 
@@ -13,46 +15,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MetadataParsed:
     raw: dict
-    detailed: Optional[dict]
-
-    @classmethod
-    def from_raw(cls, metadata: dict, detailed_info: Optional[dict] = None) -> "MetadataParsed":
-        m = metadata.copy()
-
-        # Fix boss name for Ai if possible
-        if m.get("encounter", {}).get("boss") == "Ai" and detailed_info:
-            try:
-                m["encounter"]["boss"] = detailed_info["fightName"].split(",")[0]
-                if m["encounter"]["boss"] == "Dark Ai":
-                    m["encounter"]["bossId"] = -23254
-            except Exception:
-                logger.debug("Could not fix Ai boss name from detailed_info")
-
-        # Map OLC boss ids to canonical id
-        if m.get("encounter", {}).get("bossId") in [25413, 25423, 25416]:
-            m["encounter"]["bossId"] = 25414
-
-        # Eye of Judgement -> Eye of Fate
-        if m.get("encounter", {}).get("boss") == "Eye of Judgement":
-            m["encounter"]["boss"] = "Eye of Fate"
-            m["encounter"]["bossId"] = 19844
-
-        # Fix broken metadata if duration is zero using detailed_info
-        try:
-            duration_seconds = int(m.get("encounter", {}).get("duration", 0))
-        except Exception:
-            duration_seconds = 0
-
-        if duration_seconds == 0 and detailed_info:
-            try:
-                start_time = parse(detailed_info["timeStart"]).astimezone(datetime.timezone.utc)
-                m["encounter"]["duration"] = detailed_info.get("durationMS", 0) / 1000
-                m["encounter"]["isCm"] = detailed_info.get("isCM")
-                m["encounterTime"] = int(start_time.timestamp())
-            except Exception:
-                logger.debug("Could not normalize metadata from detailed_info")
-
-        return cls(raw=m, detailed=detailed_info)
 
     @property
     def encounter_info(self) -> dict:
@@ -77,11 +39,11 @@ class MetadataParsed:
 
     @property
     def boss_id(self) -> Optional[int]:
-        return self.encounter_info.get("bossId")
+        return self.raw["encounter"]["bossId"]
 
     @property
     def boss_name(self) -> Optional[str]:
-        return self.encounter_info.get("boss")
+        return self.raw["encounter"]["boss"]
 
     @property
     def players_raw(self) -> list:
@@ -97,15 +59,15 @@ class MetadataParsed:
     def as_dict(self) -> dict:
         return self.raw
 
-    def apply_boss_fixes(self) -> "MetadataParsed":
-        """Apply legacy boss fixes (Ai, OLC mappings, Eye of Judgement).
+    def apply_boss_fixes(self, detailed: Optional[dict] = None) -> "MetadataParsed":
+        """Apply boss fixes (Ai, OLC mappings, Eye of Judgement).
 
         Returns self to allow chaining.
         """
         # Ai: use detailed fightName split if available
-        if self.raw["encounter"]["boss"] == "Ai" and self.detailed:
+        if self.raw["encounter"]["boss"] == "Ai" and detailed:
             try:
-                self.raw["encounter"]["boss"] = self.detailed["fightName"].split(",")[0]
+                self.raw["encounter"]["boss"] = detailed["fightName"].split(",")[0]
                 if self.raw["encounter"]["boss"] == "Dark Ai":
                     self.raw["encounter"]["bossId"] = -23254
             except Exception:
@@ -122,7 +84,7 @@ class MetadataParsed:
 
         return self
 
-    def apply_metadata_fix(self) -> "MetadataParsed":
+    def apply_metadata_fix(self, detailed: Optional[dict] = None) -> "MetadataParsed":
         """Apply legacy metadata fixes (duration/isCm/start time) using detailed info.
 
         Returns self to allow chaining.
@@ -132,13 +94,33 @@ class MetadataParsed:
         except Exception:
             duration_seconds = 0
 
-        if duration_seconds == 0 and self.detailed:
+        if duration_seconds == 0 and detailed:
             try:
-                start_time = parse(self.detailed["timeStart"]).astimezone(datetime.timezone.utc)
-                self.raw["encounter"]["duration"] = self.detailed.get("durationMS", 0) / 1000
-                self.raw["encounter"]["isCm"] = self.detailed.get("isCM")
+                start_time = parse(detailed["timeStart"]).astimezone(datetime.timezone.utc)
+                self.raw["encounter"]["duration"] = detailed.get("durationMS", 0) / 1000
+                self.raw["encounter"]["isCm"] = detailed.get("isCM")
                 self.raw["encounterTime"] = int(start_time.timestamp())
             except Exception:
                 logger.debug("Could not apply metadata fix from detailed info")
 
         return self
+
+
+class MetadataInteractor:
+    """Class to interact with MetadataParsed, applying fixes and normalization."""
+
+    data: MetadataParsed
+
+    @staticmethod
+    def apply_fixes(self, detailed: Optional[dict] = None) -> MetadataParsed:
+        """Apply all relevant fixes to the metadata."""
+        return self.data.apply_boss_fixes(detailed=detailed).apply_metadata_fix(detailed=detailed)
+
+    def get_encounter(self) -> Optional[Encounter]:
+        try:
+            return Encounter.objects.get(dpsreport_boss_id=self.data["encounter"]["bossId"])
+        except Encounter.DoesNotExist:
+            logger.critical("Encounter not part of database. Register? %s", self.data["encounter"])
+            if settings.DEBUG:
+                raise
+            return None
