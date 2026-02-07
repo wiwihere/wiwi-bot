@@ -188,45 +188,45 @@ class LogUploader:
         url = log.url
         _detailed_info = self.get_detailed_info(report_id=report_id, url=url)
         return _detailed_info
-    TODO change how this works. Maybe a cached property that gets filled when requesting detailed info the first time?
+        # TODO change how this works. Maybe a cached property that gets filled when requesting detailed info the first time?
 
     def get_dps_log(self) -> Optional[DpsLog]:
         """Return DpsLog if its available in database."""
-
         if self.log_path:
-            # TODO  this shouldnt happen here.
-            dpslog = self.dpslog_service.find_by_name(self.log_path)
-            if not dpslog:
-                logger.warning(
-                    "Log not found in database by name, trying by start time, this happens when someone else parsed it"
-                )
-                parsed_log = ParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
-                dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
-                    parsed_log=parsed_log, log_path=self.log_path
-                )
-            return dpslog
+            return self.dpslog_service.find_by_name(self.log_path)
         if self.log_url:
             return self.dpslog_service.get_by_url(self.log_url)
+        return None
 
     def get_or_upload_log(self) -> Tuple[Optional[dict], Literal["failed", "forbidden", None]]:
         """Get log from database, if not there, upload it.
         If there is a reason to move the log, return that too.
         """
 
-        move_reason = None
-        self.dps_log = self.get_dps_log()  # FIXME this is terrible
-        if self.dps_log:
-            if self.log_path:
-                if not self.log_url:
-                    logger.info(f"{self.log_source_view}: Uploading log")
-                    response, move_reason = self.uploader.upload_log(log_path=self.log_path)
+        self.dps_log = self.get_dps_log()
 
-            # if self.log_url:
-            #     logger.info("    Requesting info from url")
-            #     response = self.uploader.request_metadata(url=self.log_url)
-        else:
-            logger.info("Already in database?")
-            response = self.get_dps_log().first().json_dump
+        has_log_path = self.log_path is not None
+        has_dps_log = self.dps_log is not None
+        has_log_url = self.log_url is not None
+
+        should_upload = has_log_path and (
+            not has_dps_log  # no DB record yet
+            or not has_log_url  # DB record exists but not uploaded
+        )
+
+        response = None
+        move_reason = None
+
+        if should_upload:
+            logger.info(f"{self.log_source_view}: Uploading log")
+            response, move_reason = self.uploader.upload_log(log_path=self.log_path)
+
+        elif has_log_url:
+            response = self.uploader.request_metadata(url=self.log_url)
+
+        elif has_dps_log:
+            response = getattr(self.dps_log, "json_dump", None)
+
         return response, move_reason
 
     def fix_bosses(self, metadata: dict) -> dict:
@@ -335,7 +335,9 @@ bossname:  {metadata["encounter"]["boss"]}
             # Try to fetch detailed info once and pass to service fixes
             detailed_info = self.get_detailed_info(report_id=metadata.get("id"), url=metadata.get("permalink"))
 
-            dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(dpslog=dpslog, detailed_info=detailed_info)
+            dpslog, move_reason = self.dpslog_service.fix_final_health_percentage(
+                dpslog=dpslog, detailed_info=detailed_info
+            )
             if move_reason:
                 move_failed_log(self.log_path, move_reason)
                 self.dpslog_service.delete(dpslog)
