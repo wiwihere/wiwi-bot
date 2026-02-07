@@ -64,13 +64,13 @@ bossname:  {metadata["encounter"]["boss"]}
             return None
 
         try:
-            return Encounter.objects.get(name__iexact=boss_name)
+            return Encounter.objects.get(ei_encounter_id=detailed_metadata["eiEncounterID"])
         except Encounter.DoesNotExist:
             logger.critical(
                 f"""
-Encounter not part of database. Register? {detailed_metadata["encounter"]}
-bossId:  {detailed_metadata["encounter"]["bossId"]}
-bossname:  {detailed_metadata["encounter"]["boss"]}
+Encounter not part of database. Register?
+ei_encounter_id:  {detailed_metadata["eiEncounterID"]}
+bossname:  {detailed_metadata["fightName"]}
 
 """
             )

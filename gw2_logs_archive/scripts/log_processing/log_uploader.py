@@ -248,7 +248,7 @@ class LogUploader:
             move_failed_log(self.log_path, move_reason)
 
         if metadata is None:
-            logger.debug("    No valid metadata received")
+            logger.debug("No valid metadata received")
             return None
 
         metadata.apply_boss_fixes()
@@ -278,7 +278,7 @@ class LogUploader:
 
             self.dpslog_service.fix_emboldened(dpslog=dpslog, detailed_parsed_log=self.detailed_parsed_log)
 
-        logger.info(f"Finished processing: {self.log_source_view}")
+        logger.info(f"{self.log_source_view}: Finished processing")
 
         return dpslog
 

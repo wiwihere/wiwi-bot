@@ -21,7 +21,7 @@ from typing import Optional
 from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import DpsLog, Player
-from scripts.log_helpers import get_emboldened_wing, get_rank_emote
+from scripts.log_helpers import get_emboldened_wing, get_log_path_view, get_rank_emote
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.model_interactions.encounter import EncounterInteraction
 from scripts.utilities.failed_log_mover import move_failed_log
@@ -57,14 +57,14 @@ class DpsLogService:
 
         Returns the DpsLog or None on handled failures.
         """
-        logger.info(f"Processing detailed log: {log_path}")
+        logger.info(f"{get_log_path_view(log_path)}: Processing detailed log")
 
         start_time = detailed_parsed_log.get_starttime()
 
         valid, move_reason = detailed_parsed_log.validate()  # raises ValueError on invalid log
         if not valid:
             if move_reason is not None:
-                logger.warning(f"Log {log_path} is invalid: {move_reason}. Moving log to failed folder.")
+                logger.warning(f"{get_log_path_view(log_path)}: Log is invalid. Moving log to {move_reason} folder.")
                 move_failed_log(log_path, reason=move_reason)
             return None
 
@@ -73,7 +73,7 @@ class DpsLogService:
         if dpslog:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
         else:
-            logger.info(f"Creating new log entry for {log_path}")
+            logger.info(f"{get_log_path_view(log_path)}: Creating new log entry for {log_path}")
             defaults = detailed_parsed_log.to_dpslog_defaults(log_path=log_path)
 
             # Resolve encounter and compute role-based player counts in service (ORM)
@@ -144,7 +144,7 @@ class DpsLogService:
             ):
                 logger.info("    Checking for emboldened (service)")
                 if detailed_parsed_log is None:
-                    logger.warning("No detailed_info provided to fix_emboldened")
+                    logger.warning("No detailed_parsed_log provided to fix_emboldened")
                     dpslog.emboldened = False
                 else:
                     if "presentInstanceBuffs" in detailed_parsed_log.data:

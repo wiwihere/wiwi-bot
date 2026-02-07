@@ -58,6 +58,7 @@ def _process_log_upload(
     ei_parser: EliteInsightsParser,
 ) -> Optional[DpsLog]:
     """Upload log to dps.report and update the DpsLog in database.
+    Log must be parsed locally before uploading
 
     Parameters
     ----------
@@ -67,8 +68,8 @@ def _process_log_upload(
         Initialized EliteInsightsParser instance for parsing the log
     """
     # Upload to dps.report
-    if log_path.local_processed:  # Log must be parsed locally before uploading
-        parsed_path = ei_parser.find_parsed_json(log_path=log_path)
+    parsed_path = ei_parser.find_parsed_json(log_path=log_path)
+    if parsed_path:
         log_upload = LogUploader(log_path=log_path, parsed_path=parsed_path, only_url=True)
         dpslog = log_upload.run()
     else:
