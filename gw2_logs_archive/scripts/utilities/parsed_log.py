@@ -19,8 +19,6 @@ from scripts.log_helpers import (
     BOSS_MAX_DURATION,
     get_duration_str,
 )
-from scripts.log_processing.ei_parser import EliteInsightsParser
-from scripts.log_processing.log_uploader import DpsReportUploader
 from scripts.model_interactions.encounter import EncounterInteraction
 
 logger = logging.getLogger(__name__)
@@ -87,7 +85,12 @@ class _HealthData:
 
 
 class DetailedParsedLog:
-    """Class to hold information on a parsed log, either from EI parser or dps.report"""
+    """Class to hold information on a parsed log, either from EI parser or dps.report
+
+    These functions return this object;
+        EliteInsightsParser().find_parsed_json
+        DpsReportUploader().request_detailed_info
+    """
 
     def __init__(self, data: dict, log_path: Optional[Path] = None):
         self.data = data
@@ -117,17 +120,6 @@ class DetailedParsedLog:
         }
 
         return defaults
-
-    @classmethod
-    def from_ei_parsed_path(cls, parsed_path: Path) -> "DetailedParsedLog":
-        """Create DetailedParsedLog from parsed path."""
-        return EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
-
-    @classmethod
-    def from_dps_report_url(cls, url: str) -> "DetailedParsedLog":
-        """Create DetailedParsedLog from dps.report url by requesting detailed info from the API."""
-        data = DpsReportUploader().request_detailed_info(url=url)
-        return cls(data=data)
 
     @cached_property
     def name(self) -> str:

@@ -13,26 +13,20 @@ if __name__ == "__main__":
     django_setup.run()
 
 
-import datetime
 import json
 import logging
 import time
 from dataclasses import dataclass
 from functools import cached_property
-from itertools import chain
 from pathlib import Path
 from typing import Literal, Optional, Tuple
 
 import requests
-from dateutil.parser import parse
 from django.conf import settings
 from gw2_logs.models import (
     DpsLog,
-    Encounter,
 )
 from scripts.log_helpers import (
-    create_unix_time,
-    get_emboldened_wing,
     get_log_path_view,
 )
 from scripts.log_processing.ei_parser import EliteInsightsParser
@@ -170,7 +164,7 @@ class LogUploader:
         """Get detailed info from dps.report API. Dont request multiple times."""
 
         if self.parsed_path:
-            detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+            detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=self.parsed_path)
         if self.log_url:
             detailed_parsed_log = self.uploader.request_detailed_info(url=self.log_url)
         return detailed_parsed_log

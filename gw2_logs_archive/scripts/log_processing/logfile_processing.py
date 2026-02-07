@@ -23,7 +23,6 @@ from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_processing.log_uploader import LogUploader
 from scripts.model_interactions.dpslog_service import DpsLogService
-from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +43,13 @@ def _process_log_local(
 
     parsed_path = ei_parser.parse_log(log_path=log_path)
     if parsed_path is not None:
-        detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
+        detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
         dpslog = DpsLogService().get_update_create_from_ei_parsed_log(
             detailed_parsed_log=detailed_parsed_log, log_path=log_path
         )
     else:
         dpslog = None
+
     return dpslog
 
 

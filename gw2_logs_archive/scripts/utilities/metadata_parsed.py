@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from dateutil.parser import parse
-from scripts.log_processing.log_uploader import DpsReportUploader
 from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
@@ -22,6 +21,9 @@ class MetadataParsed:
 
         This should only contain primitive types and lists so it is safe to
         pass around without Django configured.
+
+        These functions return this object;
+            DpsReportUploader().request_metadata(url=url)
         """
         players = self.get_players()
 
@@ -42,12 +44,6 @@ class MetadataParsed:
         }
 
         return defaults
-
-    @classmethod
-    def from_dps_report_url(cls, url: str) -> "MetadataParsed":
-        """Create DetailedParsedLog from dps.report url by requesting detailed info from the API."""
-        data = DpsReportUploader().request_metadata(url=url)
-        return cls(data=data)
 
     @property
     def start_time(self) -> datetime.datetime:
