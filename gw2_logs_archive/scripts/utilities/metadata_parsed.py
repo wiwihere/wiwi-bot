@@ -4,10 +4,12 @@ import datetime
 import logging
 from dataclasses import dataclass
 from typing import Optional
+from zipfile import Path
 
 from dateutil.parser import parse
 from django.conf import settings
-from gw2_logs.models import Encounter
+from gw2_logs.models import Encounter, Player
+from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +19,8 @@ class MetadataParsed:
     raw: dict
 
     @property
-    def encounter_info(self) -> dict:
-        return self.raw.get("encounter", {})
-
-    @property
     def start_time(self) -> Optional[datetime.datetime]:
-        et = self.raw.get("encounterTime")
+        et = self.raw["encounterTime"]
         if et is None:
             return None
         try:
@@ -32,32 +30,19 @@ class MetadataParsed:
 
     @property
     def duration(self) -> float:
-        try:
-            return float(self.raw.get("encounter", {}).get("duration", 0))
-        except Exception:
-            return 0.0
+        return float(self.raw["encounter"]["duration"])
 
     @property
-    def boss_id(self) -> Optional[int]:
+    def boss_id(self) -> int:
         return self.raw["encounter"]["bossId"]
 
     @property
-    def boss_name(self) -> Optional[str]:
+    def boss_name(self) -> str:
         return self.raw["encounter"]["boss"]
 
-    @property
-    def players_raw(self) -> list:
-        players = []
-        if self.raw.get("players"):
-            try:
-                players = [(p.get("account") or p.get("display_name")) for p in self.raw["players"].values()]
-            except Exception:
-                logger.debug("Failed to extract players from metadata")
-                players = []
-        return players
-
-    def as_dict(self) -> dict:
-        return self.raw
+    def get_players(self) -> list[str]:
+        """Create list of players each entry is the gw2 account name"""
+        return [p.get("display_name") for p in self.raw["players"].values()]
 
     def apply_boss_fixes(self, detailed: Optional[dict] = None) -> "MetadataParsed":
         """Apply boss fixes (Ai, OLC mappings, Eye of Judgement).
@@ -84,13 +69,13 @@ class MetadataParsed:
 
         return self
 
-    def apply_metadata_fix(self, detailed: Optional[dict] = None) -> "MetadataParsed":
+    def apply_metadata_fix(self, detailed: Optional[DetailedParsedLog] = None) -> "MetadataParsed":
         """Apply legacy metadata fixes (duration/isCm/start time) using detailed info.
 
         Returns self to allow chaining.
         """
         try:
-            duration_seconds = int(self.encounter_info.get("duration", 0))
+            duration_seconds = int(self["encounter"]["duration"])
         except Exception:
             duration_seconds = 0
 
@@ -112,7 +97,7 @@ class MetadataInteractor:
     data: MetadataParsed
 
     @staticmethod
-    def apply_fixes(self, detailed: Optional[dict] = None) -> MetadataParsed:
+    def apply_fixes(self, detailed: Optional[DetailedParsedLog] = None) -> MetadataParsed:
         """Apply all relevant fixes to the metadata."""
         return self.data.apply_boss_fixes(detailed=detailed).apply_metadata_fix(detailed=detailed)
 
@@ -131,3 +116,30 @@ bossname:  {self.data["encounter"]["boss"]}
             if settings.DEBUG:
                 raise Encounter.DoesNotExist
             return None
+
+    def to_defaults(
+        self,
+        log_path: Optional[Path] = None,
+    ) -> dict:
+        """Build defaults dict for DpsLog from dps.report self.data dict."""
+        players = self.data.get_players()
+
+        defaults = {
+            "success": self.data.raw["encounter"]["success"],
+            "duration": datetime.timedelta(seconds=self.data.raw["encounter"]["duration"]),
+            "url": self.data.raw.get("permalink"),
+            "player_count": self.data.raw["encounter"]["numberOfPlayers"],
+            "encounter": self.get_encounter(),
+            "boss_name": self.data.raw["encounter"]["boss"],
+            "cm": self.data.raw["encounter"]["isCm"],
+            "lcm": self.data.raw["encounter"]["isLegendaryCm"],
+            "gw2_build": self.data.raw["encounter"]["gw2Build"],
+            "players": players,
+            "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
+            "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
+            "report_id": self.data.raw["id"],
+            "local_path": log_path,
+            "json_dump": self.data.raw,
+        }
+
+        return defaults

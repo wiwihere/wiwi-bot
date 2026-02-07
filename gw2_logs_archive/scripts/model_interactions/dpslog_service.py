@@ -106,9 +106,7 @@ class DpsLogService:
         if url_only:
             defaults = {"url": metadata.raw.get("permalink")}
         else:
-            defaults = defaults_from_metadata(metadata=metadata, log_path=log_path)
-            # resolve encounter to model instance
-            defaults["encounter"] = mdi.get_encounter()
+            defaults = mdi.to_defaults(metadata, log_path=log_path)
 
         dpslog, created = self._repo.update_or_create(start_time=start_time, defaults=defaults)
         return dpslog

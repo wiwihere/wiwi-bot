@@ -87,8 +87,8 @@ class _HealthData:
 class DetailedParsedLog:
     """Class to hold information on a parsed log, either from EI parser or dps.report"""
 
-    def __init__(self, json_detailed: Optional[dict]):
-        self.json_detailed = json_detailed
+    def __init__(self, data: Optional[dict]):
+        self.data = data
 
     @classmethod
     def from_ei_parsed_path(cls, parsed_path: Path) -> "DetailedParsedLog":
@@ -97,11 +97,11 @@ class DetailedParsedLog:
 
     @cached_property
     def name(self) -> str:
-        return self.json_detailed["name"].replace("CM", "").replace("LCM", "").strip()
+        return self.data["name"].replace("CM", "").replace("LCM", "").strip()
 
     def get_final_health_percentage(self) -> float:
         """Get final health percentage from detailed logs."""
-        return round(100 - self.json_detailed["targets"][0]["healthPercentBurned"], 2)
+        return round(100 - self.data["targets"][0]["healthPercentBurned"], 2)
 
     def get_phasetime_str(self) -> str:
         """For progression logging when a milestone (from BOSS_HEALTH_PERCENTAGES) has been reached
@@ -117,30 +117,30 @@ class DetailedParsedLog:
         logger.info(
             f"Calculating phase times at health percentages {BOSS_HEALTH_PERCENTAGES[self.name]} for {self.name}"
         )
-        hd = _HealthData.from_detailed_logs(encounter_name=self.name, json_detailed=self.json_detailed)
+        hd = _HealthData.from_detailed_logs(encounter_name=self.name, json_detailed=self.data)
 
         phasetime_lst = [hd.get_time_at_healthpercentage(target_hp=hp) for hp in BOSS_HEALTH_PERCENTAGES[self.name]]
         return " | ".join(phasetime_lst)
 
     def get_players(self) -> list[str]:
-        return [player["account"] for player in self.json_detailed["players"]]
+        return [player["account"] for player in self.data["players"]]
 
     def get_encounter(self) -> Optional[Encounter]:
         try:
             encounter = Encounter.objects.get(
-                ei_encounter_id=self.json_detailed["eiEncounterID"]
+                ei_encounter_id=self.data["eiEncounterID"]
             )  # FIXME on new encounters this is 0 somehow.
-            if self.json_detailed["eiEncounterID"] == 0:
+            if self.data["eiEncounterID"] == 0:
                 logger.warning(f"{self.name} has eiEncounterID 0, which now returned {encounter}")
         except Encounter.DoesNotExist:
-            logger.error(f"{self.name} with id {self.json_detailed['eiEncounterID']} doesnt exist")
+            logger.error(f"{self.name} with id {self.data['eiEncounterID']} doesnt exist")
             return None
         return encounter
 
     def get_starttime(self) -> datetime.datetime:
-        return datetime.datetime.strptime(self.json_detailed["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
+        return datetime.datetime.strptime(self.data["timeStartStd"], "%Y-%m-%d %H:%M:%S %z").astimezone(
             datetime.timezone.utc
         )
 
     def get_duration(self) -> datetime.timedelta:
-        return datetime.timedelta(seconds=self.json_detailed["durationMS"] / 1000)
+        return datetime.timedelta(seconds=self.data["durationMS"] / 1000)
