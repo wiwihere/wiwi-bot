@@ -96,3 +96,49 @@ class MetadataParsed:
 
     def as_dict(self) -> dict:
         return self.raw
+
+    def apply_boss_fixes(self) -> "MetadataParsed":
+        """Apply legacy boss fixes (Ai, OLC mappings, Eye of Judgement).
+
+        Returns self to allow chaining.
+        """
+        # Ai: use detailed fightName split if available
+        if self.raw["encounter"]["boss"] == "Ai" and self.detailed:
+            try:
+                self.raw["encounter"]["boss"] = self.detailed["fightName"].split(",")[0]
+                if self.raw["encounter"]["boss"] == "Dark Ai":
+                    self.raw["encounter"]["bossId"] = -23254
+            except Exception:
+                logger.debug("Could not apply Ai boss fix")
+
+        # OLC boss id mapping
+        if self.raw["encounter"]["bossId"] in [25413, 25423, 25416]:
+            self.raw["encounter"]["bossId"] = 25414
+
+        # Eye of Judgement -> Eye of Fate
+        if self.raw["encounter"]["boss"] == "Eye of Judgement":
+            self.raw["encounter"]["boss"] = "Eye of Fate"
+            self.raw["encounter"]["bossId"] = 19844
+
+        return self
+
+    def apply_metadata_fix(self) -> "MetadataParsed":
+        """Apply legacy metadata fixes (duration/isCm/start time) using detailed info.
+
+        Returns self to allow chaining.
+        """
+        try:
+            duration_seconds = int(self.encounter_info.get("duration", 0))
+        except Exception:
+            duration_seconds = 0
+
+        if duration_seconds == 0 and self.detailed:
+            try:
+                start_time = parse(self.detailed["timeStart"]).astimezone(datetime.timezone.utc)
+                self.raw["encounter"]["duration"] = self.detailed.get("durationMS", 0) / 1000
+                self.raw["encounter"]["isCm"] = self.detailed.get("isCM")
+                self.raw["encounterTime"] = int(start_time.timestamp())
+            except Exception:
+                logger.debug("Could not apply metadata fix from detailed info")
+
+        return self

@@ -243,31 +243,6 @@ class LogUploader:
 
         return metadata, move_reason
 
-    def fix_bosses(self, metadata: dict) -> dict:
-        """Change raw results a bit to assign logs to the correct Encounter."""
-
-        if metadata["encounter"]["boss"] == "Ai":
-            # Dark and light Ai have the same boss id. This doesnt work in the database.
-            # fightName in detailed logs do names as below, so we can look them up
-            # 'Dark Ai, Keeper of the Peak'
-            # 'Elemental Ai, Keeper of the Peak'
-            logger.info("Fixing Ai boss name")
-            _detailed_info = self.get_detailed_info(report_id=metadata["id"])
-            metadata["encounter"]["boss"] = _detailed_info["fightName"].split(",")[0]
-            # Dark to different bossid so it gives separate log
-            if metadata["encounter"]["boss"] == "Dark Ai":
-                metadata["encounter"]["bossId"] = -23254
-
-        if metadata["encounter"]["bossId"] in [25413, 25423, 25416]:
-            # OLC has different bossId's. We map all logs to one.
-            metadata["encounter"]["bossId"] = 25414
-
-        if metadata["encounter"]["boss"] == "Eye of Judgement":
-            metadata["encounter"]["boss"] = "Eye of Fate"
-            metadata["encounter"]["bossId"] = 19844
-
-        return metadata
-
     @staticmethod
     def get_encounter(metadata: dict) -> Optional[Encounter]:
         try:
@@ -285,27 +260,6 @@ bossname:  {metadata["encounter"]["boss"]}
             if settings.DEBUG:
                 raise Encounter.DoesNotExist
         return encounter
-
-    def fix_metadata(self, metadata: dict) -> dict:
-        """
-        Check wrong metadata, sometimes the normal json response has empty
-        or plain wrong data. This has to do with some memory issues on dps.report.
-        Can be fixed by requesting the detailed info.
-        Still relevant when only requesting url because start time can be off
-        """
-        if datetime.timedelta(seconds=metadata["encounter"]["duration"]).seconds == 0:
-            logger.info(f"Log seems broken. Requesting more info {self.log_source_view}")
-
-            self._detailed_info = self.get_detailed_info(report_id=metadata["id"])
-            # r2["timeStart"] format is '2023-12-18 14:07:57 -05'
-            start_time = parse(self._detailed_info["timeStart"]).astimezone(datetime.timezone.utc)
-
-            metadata["encounter"]["duration"] = self._detailed_info["durationMS"] / 1000
-            metadata["encounter"]["isCm"] = self._detailed_info["isCM"]
-            metadata["encounterTime"] = create_unix_time(start_time)
-        return metadata
-
-    # Delegated: emboldened and final-health fixes live in DpsLogService now.
 
     def run(self) -> Optional[DpsLog]:
         """Get or upload the log and add to database. Some conditions apply for logs to be valid.
@@ -326,16 +280,16 @@ bossname:  {metadata["encounter"]["boss"]}
             logger.debug("    No valid metadata received")
             return None
 
-        # `metadata` is a MetadataParsed instance; get mutable dict for legacy fixes
+        # Normalize and apply legacy fixes via MetadataParsed
         if isinstance(metadata, MetadataParsed):
-            metadata_dict = metadata.as_dict()
+            mp = metadata
         else:
-            metadata_dict = metadata
+            mp = MetadataParsed.from_raw(metadata)
 
-        metadata_dict = self.fix_bosses(metadata=metadata_dict)
+        mp.apply_boss_fixes()
+        mp.apply_metadata_fix()
 
-        # Fix metadata if response is incorrect
-        metadata_dict = self.fix_metadata(metadata=metadata_dict)
+        metadata_dict = mp.as_dict()
 
         if self.only_url:
             # Just update the url, skip all further processing and fixes (since it is already done with the ei_parser)
