@@ -10,6 +10,7 @@ from dateutil.parser import parse
 from django.conf import settings
 from gw2_logs.models import Encounter, Player
 from scripts.log_processing.log_uploader import DpsReportUploader
+from scripts.model_interactions.encounter import EncounterInteraction
 from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
@@ -101,52 +102,36 @@ class MetadataParsed:
 class MetadataInteractor:
     """Class to interact with MetadataParsed, applying fixes and normalization."""
 
-    data: MetadataParsed
+    obj: MetadataParsed
 
     @staticmethod
     def apply_fixes(self, detailed: Optional[DetailedParsedLog] = None) -> MetadataParsed:
         """Apply all relevant fixes to the metadata."""
-        return self.data.apply_boss_fixes(detailed=detailed).apply_metadata_fix(detailed=detailed)
-
-    def get_encounter(self) -> Optional[Encounter]:
-        try:
-            return Encounter.objects.get(dpsreport_boss_id=self.data["encounter"]["bossId"])
-        except Encounter.DoesNotExist:
-            logger.critical(
-                f"""
-Encounter not part of database. Register? {self.data["encounter"]}
-bossId:  {self.data["encounter"]["bossId"]}
-bossname:  {self.data["encounter"]["boss"]}
-
-"""
-            )
-            if settings.DEBUG:
-                raise Encounter.DoesNotExist
-            return None
+        return self.obj.apply_boss_fixes(detailed=detailed).apply_metadata_fix(detailed=detailed)
 
     def to_defaults(
         self,
         log_path: Optional[Path] = None,
     ) -> dict:
         """Build defaults dict for DpsLog from dps.report self.data dict."""
-        players = self.data.get_players()
+        players = self.obj.get_players()
 
         defaults = {
-            "success": self.data.data["encounter"]["success"],
-            "duration": datetime.timedelta(seconds=self.data.data["encounter"]["duration"]),
-            "url": self.data.data.get("permalink"),
-            "player_count": self.data.data["encounter"]["numberOfPlayers"],
-            "encounter": self.get_encounter(),
-            "boss_name": self.data.data["encounter"]["boss"],
-            "cm": self.data.data["encounter"]["isCm"],
-            "lcm": self.data.data["encounter"]["isLegendaryCm"],
-            "gw2_build": self.data.data["encounter"]["gw2Build"],
+            "success": self.obj.data["encounter"]["success"],
+            "duration": datetime.timedelta(seconds=self.obj.data["encounter"]["duration"]),
+            "url": self.obj.data.get("permalink"),
+            "player_count": self.obj.data["encounter"]["numberOfPlayers"],
+            "encounter": EncounterInteraction.get_encounter_from_dpsreport_metadata(self.obj.data),
+            "boss_name": self.obj.data["encounter"]["boss"],
+            "cm": self.obj.data["encounter"]["isCm"],
+            "lcm": self.obj.data["encounter"]["isLegendaryCm"],
+            "gw2_build": self.obj.data["encounter"]["gw2Build"],
             "players": players,
             "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
             "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-            "report_id": self.data.data["id"],
+            "report_id": self.obj.data["id"],
             "local_path": log_path,
-            "json_dump": self.data.data,
+            "json_dump": self.obj.data,
         }
 
         return defaults

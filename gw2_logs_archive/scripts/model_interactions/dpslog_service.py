@@ -22,10 +22,6 @@ from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import DpsLog, Encounter
 from scripts.log_helpers import get_emboldened_wing, get_rank_emote
-from scripts.model_interactions.dpslog_factory import (
-    defaults_from_metadata,
-    defaults_from_parsedlog,
-)
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.metadata_parsed import MetadataInteractor, MetadataParsed
@@ -84,7 +80,7 @@ class DpsLogService:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
         else:
             logger.info(f"Creating new log entry for {log_path}")
-            defaults = defaults_from_parsedlog(parsed_log=detailed_parsed_log, log_path=log_path)
+            defaults = detailed_parsed_log.to_dpslog_defaults(log_path=log_path)
             # ensure encounter object is set
             defaults["encounter"] = encounter
 
