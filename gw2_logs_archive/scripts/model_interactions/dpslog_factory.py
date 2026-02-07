@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from gw2_logs.models import Player
+from scripts.utilities.metadata_parsed import MetadataParsed
 from scripts.utilities.parsed_log import ParsedLog
 
 logger = logging.getLogger(__name__)
@@ -36,38 +37,33 @@ def defaults_from_parsedlog(parsed_log: ParsedLog, log_path: Path) -> dict:
     return defaults
 
 
-def defaults_from_metadata(metadata: dict, log_path: Optional[Path] = None) -> dict:
+def defaults_from_metadata(
+    metadata: dict, log_path: Optional[Path] = None, detailed_info: Optional[dict] = None
+) -> dict:
     """Build defaults dict for DpsLog from dps.report metadata dict.
 
-    This function tries to canonicalize player identifiers to GW2 account ids
-    when present; otherwise it falls back to display names.
+    Normalizes `metadata` with `MetadataParsed` then constructs the defaults
+    dictionary expected by the service/repository.
     """
-    # Extract players: prefer an 'account' field if present, otherwise display_name
-    players = []
-    if metadata.get("players"):
-        try:
-            players = [(p.get("account") or p.get("display_name")) for p in metadata["players"].values()]
-        except Exception:
-            logger.exception("Failed extracting players from metadata")
-            players = []
+    mp = MetadataParsed.from_raw(metadata, detailed_info=detailed_info)
 
-    encounter_info = metadata.get("encounter", {})
+    players = mp.players_raw
 
     defaults = {
         # Service is responsible for resolving Encounter objects from boss ids
-        "success": encounter_info.get("success"),
-        "duration": datetime.timedelta(seconds=encounter_info.get("duration", 0)),
-        "url": metadata.get("permalink"),
-        "player_count": encounter_info.get("numberOfPlayers"),
-        "boss_name": encounter_info.get("boss"),
-        "cm": encounter_info.get("isCm"),
-        "gw2_build": encounter_info.get("gw2Build"),
+        "success": mp.raw.get("encounter", {}).get("success"),
+        "duration": datetime.timedelta(seconds=mp.duration),
+        "url": mp.raw.get("permalink"),
+        "player_count": mp.raw.get("encounter", {}).get("numberOfPlayers"),
+        "boss_name": mp.boss_name,
+        "cm": mp.raw.get("encounter", {}).get("isCm"),
+        "gw2_build": mp.raw.get("encounter", {}).get("gw2Build"),
         "players": players,
         "core_player_count": len(Player.objects.filter(gw2_id__in=players, role="core")),
         "friend_player_count": len(Player.objects.filter(gw2_id__in=players, role="friend")),
-        "report_id": metadata.get("id"),
+        "report_id": mp.raw.get("id"),
         "local_path": log_path,
-        "json_dump": metadata,
+        "json_dump": mp.as_dict(),
     }
 
     return defaults

@@ -55,6 +55,10 @@ class MetadataParsed:
         return cls(raw=m, detailed=detailed_info)
 
     @property
+    def encounter_info(self) -> dict:
+        return self.raw.get("encounter", {})
+
+    @property
     def start_time(self) -> Optional[datetime.datetime]:
         et = self.raw.get("encounterTime")
         if et is None:
@@ -73,11 +77,11 @@ class MetadataParsed:
 
     @property
     def boss_id(self) -> Optional[int]:
-        return self.raw.get("encounter", {}).get("bossId")
+        return self.encounter_info.get("bossId")
 
     @property
     def boss_name(self) -> Optional[str]:
-        return self.raw.get("encounter", {}).get("boss")
+        return self.encounter_info.get("boss")
 
     @property
     def players_raw(self) -> list:

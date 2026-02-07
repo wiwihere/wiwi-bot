@@ -20,7 +20,7 @@ from typing import Optional
 
 from django.conf import settings
 from django.db.models import Q
-from gw2_logs.models import DpsLog, Encounter, Player
+from gw2_logs.models import DpsLog, Encounter
 from scripts.log_helpers import get_emboldened_wing, get_rank_emote
 from scripts.model_interactions.dpslog_factory import (
     defaults_from_metadata,
