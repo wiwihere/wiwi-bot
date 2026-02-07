@@ -87,13 +87,12 @@ class _HealthData:
 class DetailedParsedLog:
     """Class to hold information on a parsed log, either from EI parser or dps.report"""
 
-    def __init__(self, data: Optional[dict]):
+    def __init__(self, data: dict):
         self.data = data
 
     @classmethod
     def from_ei_parsed_path(cls, parsed_path: Path) -> "DetailedParsedLog":
-        json_detailed = EliteInsightsParser.load_json_gz(parsed_path=parsed_path)
-        return cls(json_detailed=json_detailed)
+        return EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
 
     @cached_property
     def name(self) -> str:

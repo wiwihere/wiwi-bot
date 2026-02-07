@@ -35,6 +35,7 @@ from scripts.log_helpers import (
     get_emboldened_wing,
     get_log_path_view,
 )
+from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.model_interactions.dpslog_service import DpsLogService
 from scripts.utilities.failed_log_mover import move_failed_log
 from scripts.utilities.metadata_parsed import MetadataParsed
@@ -169,7 +170,7 @@ class LogUploader:
         """Get detailed info from dps.report API. Dont request multiple times."""
 
         if self.parsed_path:
-            detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+            detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=self.parsed_path)
         if self.log_url:
             detailed_parsed_log = self.uploader.request_detailed_info(url=self.log_url)
         return detailed_parsed_log
@@ -195,7 +196,7 @@ class LogUploader:
             # Fallback: if not found, optionally try to (re)create from an EI parsed file
             if not dpslog and self.allow_reparse and self.parsed_path:
                 logger.warning("Log not found in database by name, trying by start time via parsed file")
-                parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=self.parsed_path)
+                parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=self.parsed_path)
                 dpslog = self.dpslog_service.get_update_create_from_ei_parsed_log(
                     parsed_log=parsed_log, log_path=self.log_path
                 )
