@@ -5,9 +5,86 @@ import logging.config
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+logger = logging.getLogger(__name__)
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+
+class BaseEnvSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        extra="forbid",
+    )
+    # Env setup
+    PYTHONPATH: str
+    DJANGO_SETTINGS_MODULE: str
+    ENV: str
+
+    # Tokens
+    DISCORD_API_TOKEN: str
+    DPS_REPORT_USERTOKEN: str
+    DJANGO_SECRET_KEY: str
+
+    # Setup
+    CORE_MINIMUM_RAID: int
+    CORE_MINIMUM_STRIKE: int
+    CORE_MINIMUM_FRACTAL: int
+    INCLUDE_NON_CORE_LOGS: bool
+    MEAN_OR_MEDIAN: str
+    MEDALS_TYPE: str
+    RANK_BINS_PERCENTILE: list
+    DPS_LOGS_DIR: Path
+    EXTRA_LOGS_DIR: Path | None
+
+    @classmethod
+    def load(cls):
+        return cls(_env_file=[BASE_DIR / ".env"])
+
+
+class EnvSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        extra="allow",
+    )
+
+    # Django
+    DEBUG: bool = False
+
+    # Database
+    DJANGO_DATABASE_ENGINE: str
+    DJANGO_DATABASE_NAME: str
+    DJANGO_DATABASE_USER: str | None = None
+    DJANGO_DATABASE_PASSWORD: str | None = None
+    DJANGO_DATABASE_HOST: str | None = None
+    DJANGO_DATABASE_PORT: str | None = None
+
+    # Webhooks
+    WEBHOOK_BOT_CHANNEL_RAID: str
+    WEBHOOK_BOT_CHANNEL_STRIKE: str
+    WEBHOOK_BOT_CHANNEL_FRACTAL: str
+    WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK: str
+    WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK: str
+
+    # Webhooks Leaderboard
+    WEBHOOK_BOT_CHANNEL_LEADERBOARD: str
+    CHANNEL_ID_LEADERBOARD: str
+    WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS: str
+    WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES: str
+    WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS: str
+
+    # Webhooks Progression
+    WEBHOOK_BOT_CHANNEL_PROGRESSION: str | None
+    WEBHOOK_BOT_CHANNEL_CERUS_CM: str | None
+
+    @classmethod
+    def load(cls, env):
+        return cls(_env_file=[BASE_DIR / f".env.{env.lower()}"])
+
+
+base_settings = BaseEnvSettings.load()
+env_settings = EnvSettings.load(env=base_settings.ENV)
 
 
 class MissingEnvironmentVariable(Exception):
@@ -226,6 +303,7 @@ DATABASES = {
         "PORT": os.environ.get("DJANGO_DATABASE_PORT"),  # empty string for default.
     },
 }
+logger.warning(f"Environment is set to: {base_settings.ENV}")
 logger.warning(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE')}")
 logger.warning(f"DATABASE NAME: {DATABASES['default'].get('NAME')}")
 

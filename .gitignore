@@ -131,6 +131,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.prd
+.env.tst
 .env-life
 .env-test
 .env-test-raidstrike_combi
