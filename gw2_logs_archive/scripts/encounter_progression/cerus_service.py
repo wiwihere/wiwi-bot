@@ -1,4 +1,4 @@
-# %% gw2_logs_archive\scripts\encounter_progression\cerus.py
+# %% gw2_logs_archive\scripts\encounter_progression\cerus_service.py
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
@@ -25,8 +25,8 @@ from scripts.log_helpers import (
 
 logger = logging.getLogger(__name__)
 
-# For cerus always use percentiles.
-RANK_EMOTES_CERUS, RANK_BINS_PERCENTILE_CERUS = create_rank_emote_dict_percentiles(
+# For progression always use percentiles.
+RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(
     custom_emoji_name=False, invalid=False
 )
 
@@ -57,8 +57,8 @@ class CerusProgressionService(ProgressionService):
         e.g. -> '<:4_masterwork:1218309092477767810>'
         """
         percentile_rank = 100 - dpslog.final_health_percentage
-        rank_binned = np.searchsorted(RANK_BINS_PERCENTILE_CERUS, percentile_rank, side="left")
-        rank_emote = RANK_EMOTES_CERUS[rank_binned].format(int(percentile_rank))
+        rank_binned = np.searchsorted(RANK_BINS_PERCENTILE_PROGRESSION, percentile_rank, side="left")
+        rank_emote = RANK_EMOTES_PROGRESSION[rank_binned].format(int(percentile_rank))
         return rank_emote
 
     def create_health_df(self, minimal_delay_seconds: int) -> pd.DataFrame:
@@ -127,7 +127,7 @@ class CerusProgressionService(ProgressionService):
         return boss_title
 
     def get_table_header(self) -> str:
-        return f"`##`{RANK_EMOTES_CERUS[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
+        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
 
 
 if __name__ == "__main__":
