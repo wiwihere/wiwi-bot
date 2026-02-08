@@ -66,7 +66,6 @@ RANK_BINS_PERCENTILE = base_settings.RANK_BINS_PERCENTILE  # Distribution of per
 # 90% to 100% of other logs, it will be assigned to the last bin.
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
 EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 
@@ -191,6 +190,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
+BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "collected_static")
 

@@ -12,8 +12,9 @@ Secrets use `SecretStr` to avoid accidental exposure; call
 """
 
 from pathlib import Path
+from typing import Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
@@ -33,8 +34,8 @@ class BaseEnvSettings(BaseSettings):
     )
     # Env setup
     PYTHONPATH: str
-    DJANGO_SETTINGS_MODULE: str
-    APP_ENV: str
+    DJANGO_SETTINGS_MODULE: str = Field(..., description="relative path to Django settings.py module.")
+    APP_ENV: Literal["PRD", "DEV"] = Field(..., description="Environment name. Used to load .env.<APP_ENV> files.")
 
     # Tokens (secrets)
     DISCORD_API_TOKEN: SecretStr
@@ -90,6 +91,7 @@ class EnvSettings(BaseSettings):
     DJANGO_DATABASE_PASSWORD: SecretStr | None = None
     DJANGO_DATABASE_HOST: str | None = None
     DJANGO_DATABASE_PORT: str | None = None
+    DJANGO_BACKUP_DIR: Path | None = None
 
     # Webhooks
     WEBHOOK_BOT_CHANNEL_RAID: str
@@ -100,7 +102,9 @@ class EnvSettings(BaseSettings):
 
     # Webhooks Leaderboard
     WEBHOOK_BOT_CHANNEL_LEADERBOARD: str
-    CHANNEL_ID_LEADERBOARD: str
+    CHANNEL_ID_LEADERBOARD: str = Field(
+        ..., description="Channel ID for the leaderboard channel. Get it from Discord."
+    )
     WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS: str
     WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES: str
     WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS: str
