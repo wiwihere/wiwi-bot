@@ -1,5 +1,4 @@
 # %%
-import ast
 import logging  # noqa:F401
 import logging.config
 import os
@@ -16,36 +15,25 @@ base_settings = BaseEnvSettings.load()
 env_settings = EnvSettings.load(app_env=base_settings.APP_ENV)
 
 
-class MissingEnvironmentVariable(Exception):
-    pass
-
-
-def get_env(name):
-    """Get variable from .env, otherwise raise exception"""
-    try:
-        return os.environ[name]
-    except KeyError:
-        raise MissingEnvironmentVariable(rf"Add {name} variable to your .env file.")
-
-
-DISCORD_API_SECRET = get_env("DISCORD_API_TOKEN")
+# Use pydantic-loaded settings instead of direct env reads
+DISCORD_API_SECRET = base_settings.DISCORD_API_TOKEN
 
 WEBHOOKS = {
-    "raid": get_env("WEBHOOK_BOT_CHANNEL_RAID"),
-    "strike": get_env("WEBHOOK_BOT_CHANNEL_STRIKE"),
-    "fractal": get_env("WEBHOOK_BOT_CHANNEL_FRACTAL"),
-    "leaderboard": get_env("WEBHOOK_BOT_CHANNEL_LEADERBOARD"),
-    "cerus_cm": get_env("WEBHOOK_BOT_CHANNEL_CERUS_CM"),
+    "raid": env_settings.WEBHOOK_BOT_CHANNEL_RAID,
+    "strike": env_settings.WEBHOOK_BOT_CHANNEL_STRIKE,
+    "fractal": env_settings.WEBHOOK_BOT_CHANNEL_FRACTAL,
+    "leaderboard": env_settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD,
+    "cerus_cm": env_settings.WEBHOOK_BOT_CHANNEL_CERUS_CM,
 }
 
 WEBHOOKS_CURRENT_WEEK = {
-    "raid": get_env("WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK"),
-    "strike": get_env("WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK"),
+    "raid": env_settings.WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK,
+    "strike": env_settings.WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK,
     "fractal": None,  # Not used
 }
 
 # Required for navigation menu, retrieve manually from discord
-DISCORD_CHANNELS = {"leaderboard": get_env("CHANNEL_ID_LEADERBOARD")}
+DISCORD_CHANNELS = {"leaderboard": env_settings.CHANNEL_ID_LEADERBOARD}
 
 for key in WEBHOOKS_CURRENT_WEEK.keys():
     if WEBHOOKS_CURRENT_WEEK[key] == "optional":
@@ -53,27 +41,27 @@ for key in WEBHOOKS_CURRENT_WEEK.keys():
 
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
-    "raid": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS"),
-    "strike": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES"),
-    "fractal": get_env("WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS"),
+    "raid": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS,
+    "strike": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES,
+    "fractal": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS,
 }
 
 CORE_MINIMUM = {
-    "raid": int(get_env("CORE_MINIMUM_RAID")),
-    "strike": int(get_env("CORE_MINIMUM_STRIKE")),
-    "fractal": int(get_env("CORE_MINIMUM_FRACTAL")),
+    "raid": base_settings.CORE_MINIMUM_RAID,
+    "strike": base_settings.CORE_MINIMUM_STRIKE,
+    "fractal": base_settings.CORE_MINIMUM_FRACTAL,
 }
-INCLUDE_NON_CORE_LOGS = get_env("INCLUDE_NON_CORE_LOGS") == "True"  # Include non core logs on leaderboards
+INCLUDE_NON_CORE_LOGS = base_settings.INCLUDE_NON_CORE_LOGS  # Include non core logs on leaderboards
 
-DPS_REPORT_USERTOKEN = get_env("DPS_REPORT_USERTOKEN")
-MEAN_OR_MEDIAN = get_env("MEAN_OR_MEDIAN")
-MEDALS_TYPE = get_env("MEDALS_TYPE")  # Options=['original', 'percentile', 'newgame']
-RANK_BINS_PERCENTILE = ast.literal_eval(get_env("RANK_BINS_PERCENTILE"))  # Distribution of percentile bins.
+DPS_REPORT_USERTOKEN = base_settings.DPS_REPORT_USERTOKEN
+MEAN_OR_MEDIAN = base_settings.MEAN_OR_MEDIAN
+MEDALS_TYPE = base_settings.MEDALS_TYPE  # Options=['original', 'percentile', 'newgame']
+RANK_BINS_PERCENTILE = base_settings.RANK_BINS_PERCENTILE  # Distribution of percentile bins.
 # Defaults to [20, 40, 50, 60, 70, 80, 90, 100]. This means if a log is faster than
 # 90% to 100% of other logs, it will be assigned to the last bin.
 
-DEBUG = get_env("DEBUG") == "True"
-LOGLEVEL = get_env("LOGLEVEL") or "INFO"
+DEBUG = env_settings.DEBUG
+LOGLEVEL = env_settings.LOGLEVEL
 
 
 if DEBUG:
@@ -87,14 +75,9 @@ BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
 EI_PARSED_LOGS_DIR = PROJECT_DIR.joinpath("Data", "parsed_logs")
 
 
-DPS_LOGS_DIR = rf"{Path.home()}\Documents\Guild Wars 2\addons\arcdps\arcdps.cbtlogs"
-DPS_LOGS_DIR = Path(get_env("DPS_LOGS_DIR"))
+DPS_LOGS_DIR = base_settings.DPS_LOGS_DIR
 
-EXTRA_LOGS_DIR = get_env("EXTRA_LOGS_DIR")
-if EXTRA_LOGS_DIR in [None, ""]:
-    EXTRA_LOGS_DIR = None
-else:
-    EXTRA_LOGS_DIR = Path(EXTRA_LOGS_DIR)
+EXTRA_LOGS_DIR = base_settings.EXTRA_LOGS_DIR
 # Shared drive with other static members, they can post logs there to upload.
 
 
@@ -168,7 +151,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = base_settings.DJANGO_SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -219,16 +202,15 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 
 
 # Database
-DJANGO_DATABASE_ENGINE = os.environ["DJANGO_DATABASE_ENGINE"]
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATABASES = {
     "default": {
-        "NAME": os.environ["DJANGO_DATABASE_NAME"],  # e.g. C:/github/projectdir/data/db.sqlite3
-        "ENGINE": os.environ["DJANGO_DATABASE_ENGINE"],  # "django.db.backends.sqlite3" for sqlite
-        "USER": os.environ.get("DJANGO_DATABASE_USER"),
-        "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD"),
-        "HOST": os.environ.get("DJANGO_DATABASE_HOST"),  # empty string for localhost.
-        "PORT": os.environ.get("DJANGO_DATABASE_PORT"),  # empty string for default.
+        "NAME": env_settings.DJANGO_DATABASE_NAME,  # e.g. C:/github/projectdir/data/db.sqlite3
+        "ENGINE": env_settings.DJANGO_DATABASE_ENGINE,  # "django.db.backends.sqlite3" for sqlite
+        "USER": env_settings.DJANGO_DATABASE_USER,
+        "PASSWORD": env_settings.DJANGO_DATABASE_PASSWORD,
+        "HOST": env_settings.DJANGO_DATABASE_HOST,  # empty string for localhost.
+        "PORT": env_settings.DJANGO_DATABASE_PORT,  # empty string for default.
     },
 }
 logger.warning(f"Environment is set to: {base_settings.APP_ENV}")
@@ -237,7 +219,6 @@ logger.warning(f"DATABASE NAME: {DATABASES['default'].get('NAME')}")
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -256,23 +237,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "collected_static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

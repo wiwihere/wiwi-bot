@@ -1,6 +1,7 @@
 # %%
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
@@ -28,13 +29,19 @@ class BaseEnvSettings(BaseSettings):
     INCLUDE_NON_CORE_LOGS: bool
     MEAN_OR_MEDIAN: str
     MEDALS_TYPE: str
-    RANK_BINS_PERCENTILE: list
+    RANK_BINS_PERCENTILE: list[int]
     DPS_LOGS_DIR: Path
     EXTRA_LOGS_DIR: Path | None
 
     @classmethod
     def load(cls):
         return cls(_env_file=[PROJECT_DIR / ".env"])
+
+    @field_validator("EXTRA_LOGS_DIR", mode="before")
+    def _parse_extra_logs_dir(cls, v):
+        if v in ("", None):
+            return None
+        return Path(v)
 
 
 class EnvSettings(BaseSettings):
@@ -45,6 +52,7 @@ class EnvSettings(BaseSettings):
 
     # Django
     DEBUG: bool = False
+    LOGLEVEL: str = "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     # Database
     DJANGO_DATABASE_ENGINE: str
