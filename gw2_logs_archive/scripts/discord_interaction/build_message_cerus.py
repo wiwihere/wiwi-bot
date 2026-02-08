@@ -27,6 +27,7 @@ from scripts.discord_interaction.message_helpers import (
 )
 from scripts.discord_interaction.send_message import create_or_update_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
+from scripts.model_interactions.dpslog import DpsLogMessageBuilder
 from scripts.model_interactions.dpslog_service import DpsLogService
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,8 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     # -------------------------------
     # Build phasetime_str -> "` 52.05% | 8:24 |  --  |  -- `"
     # -------------------------------
-    health_str = DpsLogService().build_health_str(dpslog)
+    dli = DpsLogMessageBuilder(dpslog)
+    health_str = dli.build_health_str()
     if dpslog.phasetime_str != "":
         phasetime_str = f"` {health_str}% | {dpslog.phasetime_str} `{row['cups']}"
     else:

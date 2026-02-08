@@ -68,5 +68,5 @@ def run_progression_cerus(clear_group_base_name: str, y: int, m: int, d: int) ->
 # %%
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
-    y, m, d = 2024, 3, 16
+    y, m, d = 2024, 4, 20
     clear_group_base_name = "cerus_cm"

@@ -56,6 +56,7 @@ PLAYER_EMOTES = {
 BOSS_MAX_DURATION = {"Temple of Febe": 10 * 60}  # s
 BOSS_HEALTH_PERCENTAGES = {
     "Temple of Febe": [80, 50, 10],
+    "Decima": [75, 50, 25],
 }
 
 
