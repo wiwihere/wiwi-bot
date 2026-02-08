@@ -5,8 +5,7 @@ import os
 from pathlib import Path
 
 from bot_settings.env_settings import BaseEnvSettings, EnvSettings
-
-logger = logging.getLogger(__name__)
+from bot_settings.log_settings import get_create_log_config
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
 
@@ -14,9 +13,15 @@ PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
 base_settings = BaseEnvSettings.load()
 env_settings = EnvSettings.load(app_env=base_settings.APP_ENV)
 
+DEBUG = env_settings.DEBUG
+
+# Setup logger
+LOGLEVEL = env_settings.LOGLEVEL
+logging.config.dictConfig(get_create_log_config(debug=DEBUG, loglevel=LOGLEVEL))
+logger = logging.getLogger(__name__)
 
 # Use pydantic-loaded settings instead of direct env reads
-DISCORD_API_SECRET = base_settings.DISCORD_API_TOKEN
+DISCORD_API_SECRET = base_settings.DISCORD_API_TOKEN.get_secret_value()
 
 WEBHOOKS = {
     "raid": env_settings.WEBHOOK_BOT_CHANNEL_RAID,
@@ -53,22 +58,12 @@ CORE_MINIMUM = {
 }
 INCLUDE_NON_CORE_LOGS = base_settings.INCLUDE_NON_CORE_LOGS  # Include non core logs on leaderboards
 
-DPS_REPORT_USERTOKEN = base_settings.DPS_REPORT_USERTOKEN
+DPS_REPORT_USERTOKEN = base_settings.DPS_REPORT_USERTOKEN.get_secret_value()
 MEAN_OR_MEDIAN = base_settings.MEAN_OR_MEDIAN
 MEDALS_TYPE = base_settings.MEDALS_TYPE  # Options=['original', 'percentile', 'newgame']
 RANK_BINS_PERCENTILE = base_settings.RANK_BINS_PERCENTILE  # Distribution of percentile bins.
 # Defaults to [20, 40, 50, 60, 70, 80, 90, 100]. This means if a log is faster than
 # 90% to 100% of other logs, it will be assigned to the last bin.
-
-DEBUG = env_settings.DEBUG
-LOGLEVEL = env_settings.LOGLEVEL
-
-
-if DEBUG:
-    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(module)-30s:%(lineno)-4d| %(message)s"
-    # LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(name)s:%(lineno)-4d| %(message)s"  # name could get a bit long.
-else:
-    LOGFORMAT = "%(asctime)s|%(levelname)-8s| %(message)s"
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]  # gw2_logs_archive
@@ -80,51 +75,6 @@ DPS_LOGS_DIR = base_settings.DPS_LOGS_DIR
 EXTRA_LOGS_DIR = base_settings.EXTRA_LOGS_DIR
 # Shared drive with other static members, they can post logs there to upload.
 
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {
-            "format": LOGFORMAT,
-            "datefmt": "%H:%M:%S",
-        },
-    },
-    "handlers": {
-        "null": {
-            "class": "logging.NullHandler",
-        },
-        "console": {
-            "level": "NOTSET",
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-        "stderr": {
-            "level": "ERROR",
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",
-        },
-    },
-    "loggers": {
-        "": {  # root logger
-            "level": "WARNING",
-            "handlers": ["console", "stderr"],
-        },
-        "__main__": {
-            "level": "DEBUG",
-        },
-        "scripts": {
-            "level": LOGLEVEL,
-        },
-        "gw2_logs": {
-            "level": LOGLEVEL,
-        },
-    },
-}
-# Django will do this by default, but easier to follow if its explicit.
-logging.config.dictConfig(LOGGING)
 
 logger = logging.getLogger(__name__)
 
@@ -144,16 +94,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = base_settings.DJANGO_SECRET_KEY
-
-# SECURITY WARNING: don't run with debug turned on in production!
+SECRET_KEY = base_settings.DJANGO_SECRET_KEY.get_secret_value()
 
 ALLOWED_HOSTS = []
 
@@ -208,7 +152,9 @@ DATABASES = {
         "NAME": env_settings.DJANGO_DATABASE_NAME,  # e.g. C:/github/projectdir/data/db.sqlite3
         "ENGINE": env_settings.DJANGO_DATABASE_ENGINE,  # "django.db.backends.sqlite3" for sqlite
         "USER": env_settings.DJANGO_DATABASE_USER,
-        "PASSWORD": env_settings.DJANGO_DATABASE_PASSWORD,
+        "PASSWORD": env_settings.DJANGO_DATABASE_PASSWORD.get_secret_value()
+        if env_settings.DJANGO_DATABASE_PASSWORD
+        else None,
         "HOST": env_settings.DJANGO_DATABASE_HOST,  # empty string for localhost.
         "PORT": env_settings.DJANGO_DATABASE_PORT,  # empty string for default.
     },

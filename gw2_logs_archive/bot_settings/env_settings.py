@@ -1,7 +1,7 @@
 # %%
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
@@ -17,10 +17,10 @@ class BaseEnvSettings(BaseSettings):
     DJANGO_SETTINGS_MODULE: str
     APP_ENV: str
 
-    # Tokens
-    DISCORD_API_TOKEN: str
-    DPS_REPORT_USERTOKEN: str
-    DJANGO_SECRET_KEY: str
+    # Tokens (secrets)
+    DISCORD_API_TOKEN: SecretStr
+    DPS_REPORT_USERTOKEN: SecretStr
+    DJANGO_SECRET_KEY: SecretStr
 
     # Setup
     CORE_MINIMUM_RAID: int
@@ -58,7 +58,7 @@ class EnvSettings(BaseSettings):
     DJANGO_DATABASE_ENGINE: str
     DJANGO_DATABASE_NAME: str
     DJANGO_DATABASE_USER: str | None = None
-    DJANGO_DATABASE_PASSWORD: str | None = None
+    DJANGO_DATABASE_PASSWORD: SecretStr | None = None
     DJANGO_DATABASE_HOST: str | None = None
     DJANGO_DATABASE_PORT: str | None = None
 
