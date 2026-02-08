@@ -98,5 +98,11 @@ def run_log_processing(
 if __name__ == "__main__":
     y, m, d = 2026, 2, 5
     itype_groups = ["raid", "strike"]
+    processing_type = "local"
 
+    # Process logs
     # run_log_processing(y=y, m=m, d=d, itype_groups=itype_groups)
+
+    # Just update message:
+    # icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_groups[0])
+    # icgi.send_discord_message()
