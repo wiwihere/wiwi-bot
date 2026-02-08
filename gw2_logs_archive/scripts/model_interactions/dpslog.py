@@ -69,7 +69,7 @@ class DpsLogMessageBuilder:
 
 
 if __name__ == "__main__":
-    dpslog = DpsLog.objects.get(id=1469)
+    dpslog = DpsLog.objects.get(id=4933)
     self = DpsLogMessageBuilder(dpslog)
 
 # %%

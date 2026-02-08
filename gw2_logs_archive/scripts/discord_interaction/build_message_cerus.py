@@ -25,7 +25,7 @@ from scripts.discord_interaction.message_helpers import (
     add_line_to_descriptions,
     create_duration_header_with_player_emotes,
 )
-from scripts.discord_interaction.send_message import create_or_update_discord_message
+from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.model_interactions.dpslog import DpsLogMessageBuilder
 from scripts.model_interactions.dpslog_service import DpsLogService
@@ -53,7 +53,7 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     dli = DpsLogMessageBuilder(dpslog)
     health_str = dli.build_health_str()
     if dpslog.phasetime_str != "":
-        phasetime_str = f"` {health_str}% | {dpslog.phasetime_str} `{row['cups']}"
+        phasetime_str = f"` {health_str}% | {dli.build_phasetime_str()} `{row['cups']}"
     else:
         phasetime_str = ""
 
@@ -121,6 +121,10 @@ def send_cerus_progression_discord_message(progression_service: CerusProgression
         logger.debug("Ready to send discord message")
         create_or_update_discord_message(
             group=progression_service.iclear_group,
-            webhook_url=settings.WEBHOOKS["cerus_cm"],
+            webhook_url=settings.WEBHOOKS["progression"],
             embeds_messages_list=embeds_messages_list,
+            thread=Thread(getattr(settings.ENV_SETTINGS, "webhook_bot_thread_cerus_cm")),
         )
+
+
+# %%

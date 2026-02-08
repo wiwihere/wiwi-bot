@@ -110,8 +110,8 @@ class EnvSettings(BaseSettings):
     WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS: str
 
     # Webhooks Progression
+    SERVER_ID_PROGRESSION: str | None
     WEBHOOK_BOT_CHANNEL_PROGRESSION: str | None
-    WEBHOOK_BOT_CHANNEL_CERUS_CM: str | None
 
     @classmethod
     def load(cls, app_env: str) -> "EnvSettings":
