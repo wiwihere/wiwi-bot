@@ -71,14 +71,18 @@ to use any other python distribution to your liking.
     e. Run the code with `shift+enter` or by pressing ![alt text](img/vscode_runcell.png) above the code blocks.
 
 ## Initial setup
+
 A couple tokens and keys need to be set so the results can be posted to discord.
+
 1. Rename `.env-example` to `.env`.
     - .env\DPS_REPORT_USERTOKEN -> place userToken from https://dps.report/getUserToken after = sign.
     - .env\CORE_MINIMUM_RAID -> [0 to 10] Minimum core members in run for leaderboard
     - .env\CORE_MINIMUM_FRACTAL -> [0 to 5] Minimum core members in run for leaderboard
-    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img src="gw2_logs_archive/img/medal/first_invalid.png" width="20"/>)
+    - .env\INCLUDE_NON_CORE_LOGS -> [True or False] When True non core runs are still posted on leaderboard, but they get a red background emote (e.g. <img alt="first_invalid" src="gw2_logs_archive/img/medal/first_invalid.png" width="20"/>)
     - .env\MEAN_OR_MEDIAN -> [mean or median] Choose what unranked runs are compared with, the median or mean of all runs.
     - .env\MEDALS_TYPE -> Choose which medals are used. options are ['original', 'percentile', 'newgame']
+
+2. Rename `.env.prd-example` to `.env.prd`. This file is used for production environment and will be used when APP_ENV is set to PRD in the .env file. This file holds the database connection settings and webhook urls. For testing a similar .env.dev can be setup with a different database and webhooks.
 
 2. In discord we have 4 channels running. The `raid-logs-current` channel is optional ([more info](#adding-channel-with-only-the-current-week)).
 Create a webhook for each you want and copy the webhook URL into the env. Under the corresponding
@@ -89,9 +93,13 @@ Create a webhook for each you want and copy the webhook URL into the env. Under 
     ![discord_use_emoji](img/discord_use_emoji.png)
 
     discord Server Setttings -> integrations -> Webhooks -> Copy Webhook URL
+
 3. Within the leaderboards channel create threads for: `raids`, `strikes` and `fractals`.
+
 - Get the thread id by right click -> copy link or  -> paste only the last 18 digit number in the .env.
+
 4. Setup the database. Copy `data/db-empty.sqlite3` to `data/db.sqlite3`.
+
 5. Add core members to the database, see [Add a core member](#add-a-core-member).
 
 ## Usage

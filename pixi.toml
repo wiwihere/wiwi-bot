@@ -29,6 +29,8 @@ tzlocal = "*"
 tqdm = "*"
 plotly = "*"
 pytest = "*"
+pydantic = "*"
+pydantic-settings = "*"
 
 [pypi-dependencies]
 discord = "*"
