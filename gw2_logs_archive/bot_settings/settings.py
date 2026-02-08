@@ -38,7 +38,7 @@ WEBHOOKS_CURRENT_WEEK = {
 }
 
 # Required for navigation menu, retrieve manually from discord
-DISCORD_CHANNELS = {"leaderboard": env_settings.CHANNEL_ID_LEADERBOARD}
+DISCORD_CHANNELS = {"leaderboard": env_settings.SERVER_ID_LEADERBOARD}
 
 for key in WEBHOOKS_CURRENT_WEEK.keys():
     if WEBHOOKS_CURRENT_WEEK[key] == "optional":

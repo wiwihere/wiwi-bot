@@ -102,8 +102,8 @@ class EnvSettings(BaseSettings):
 
     # Webhooks Leaderboard
     WEBHOOK_BOT_CHANNEL_LEADERBOARD: str
-    CHANNEL_ID_LEADERBOARD: str = Field(
-        ..., description="Channel ID for the leaderboard channel. Get it from Discord."
+    SERVER_ID_LEADERBOARD: str = Field(
+        ..., description="Server ID for the leaderboard channel. Get it from Discord, its the first of three numbers"
     )
     WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS: str
     WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES: str
