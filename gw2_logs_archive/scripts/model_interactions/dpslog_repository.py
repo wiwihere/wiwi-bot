@@ -1,4 +1,5 @@
 # %%
+import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -19,7 +20,7 @@ class DpsLogRepository:
             return None
 
     @staticmethod
-    def find_by_start_time(start_time, encounter: Encounter) -> Optional[DpsLog]:
+    def find_by_start_time(start_time: datetime.datetime, encounter: Encounter) -> Optional[DpsLog]:
         dpslogs = DpsLog.objects.filter(
             start_time__range=(
                 start_time - __import__("datetime").timedelta(seconds=5),
@@ -34,7 +35,7 @@ class DpsLogRepository:
         return dpslogs.first()
 
     @staticmethod
-    def update_or_create(start_time, defaults: dict) -> Tuple[DpsLog, bool]:
+    def update_or_create(start_time: datetime.datetime, defaults: dict) -> Tuple[DpsLog, bool]:
         dpslog, created = DpsLog.objects.update_or_create(defaults=defaults, start_time=start_time)
         return dpslog, created
 

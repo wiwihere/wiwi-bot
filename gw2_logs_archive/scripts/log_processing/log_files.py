@@ -194,7 +194,6 @@ if __name__ == "__main__":
     self.refresh_logs()
     df = self._to_dataframe()
 
-    for log_row in df.where(~df["local_processed"]).itertuples():
-        log = log_row.log
-
+    for logfile in self.get_unprocessed_logs("local"):
+        pass
 # %%

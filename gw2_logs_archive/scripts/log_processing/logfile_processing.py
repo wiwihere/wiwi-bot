@@ -23,52 +23,57 @@ from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFile, LogFilesDate
 from scripts.log_processing.log_uploader import LogUploader
 from scripts.model_interactions.dpslog_service import DpsLogService
-from scripts.utilities.parsed_log import DetailedParsedLog
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_or_upload_log(
+def _process_log_local(
     log_path: Path,
-    processing_type: Literal["local", "upload"],
     ei_parser: EliteInsightsParser,
 ) -> Optional[DpsLog]:
-    """Parse (EliteInsights, local) or upload (dps.report, upload) a single log file depending on processing type.
+    """Parse log locally with the EliteInsightsParser and create or update DpsLog in database.
 
     Parameters
     ----------
     log_path : Path
         Path to the logfile
-    processing_type : Literal["local", "upload"]
-        local -> proces log locally with the EliteInsightsParser
-        upload -> upload the log to dps.report and retrieve the result
     ei_parser : EliteInsightsParser
-
-    Returns
-    -------
-    DpsLog | None
-        Parsed DpsLog on success, or None if parsing/upload failed
-        or the log is not eligible for the requested processing step.
+        Initialized EliteInsightsParser instance for parsing the log
     """
-    # Parse locally with EI
-    if processing_type == "local":
-        parsed_path = ei_parser.parse_log(log_path=log_path)
-        # Use centralized service for creating DpsLog from EI parsed JSON
-        dpslog = None
-        if parsed_path is not None:
-            detailed_parsed_log = DetailedParsedLog.from_ei_parsed_path(parsed_path=parsed_path)
-            dpslog = DpsLogService().get_update_create_from_ei_parsed_log(
-                detailed_parsed_log=detailed_parsed_log, log_path=log_path
-            )
 
+    parsed_path = ei_parser.parse_log(log_path=log_path)
+    if parsed_path is not None:
+        detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
+        dpslog = DpsLogService().get_update_create_from_ei_parsed_log(
+            detailed_parsed_log=detailed_parsed_log, log_path=log_path
+        )
+    else:
+        dpslog = None
+
+    return dpslog
+
+
+def _process_log_upload(
+    log_path: Path,
+    ei_parser: EliteInsightsParser,
+) -> Optional[DpsLog]:
+    """Upload log to dps.report and update the DpsLog in database.
+    Log must be parsed locally before uploading
+
+    Parameters
+    ----------
+    log_path : Path
+        Path to the logfile
+    ei_parser : EliteInsightsParser
+        Initialized EliteInsightsParser instance for parsing the log
+    """
     # Upload to dps.report
-    elif processing_type == "upload":
-        if log_path.local_processed:  # Log must be parsed locally before uploading
-            parsed_path = ei_parser.find_parsed_json(log_path=log_path)
-            log_upload = LogUploader(log_path=log_path, parsed_path=parsed_path, only_url=True)
-            dpslog = log_upload.run()
-        else:
-            dpslog = None
+    parsed_path = ei_parser.find_parsed_json(log_path=log_path)
+    if parsed_path:
+        log_upload = LogUploader(log_path=log_path, parsed_path=parsed_path, only_url=True)
+        dpslog = log_upload.run()
+    else:
+        dpslog = None
 
     return dpslog
 
@@ -106,29 +111,34 @@ def process_logs_once(
     logfiles: list[LogFile] = log_files_date_cls.get_unprocessed_logs(processing_type=processing_type)
 
     # Process each log
-    processed_logs = []
+    processed_logs: list[DpsLog] = []
     for logfile in logfiles:
         log_path = logfile.path
-        dpslog = _parse_or_upload_log(log_path=log_path, processing_type=processing_type, ei_parser=ei_parser)
 
-        # Mark processing status
-        if dpslog is None:
-            if processing_type == "local":
+        # Handle local processing
+        if processing_type == "local":
+            dpslog = _process_log_local(log_path=log_path, ei_parser=ei_parser)
+
+            if dpslog is None:
                 logger.warning(
                     f"Parsing didn't work, too short log maybe. {log_path}. Skipping all further processing."
                 )
                 logfile.mark_local_processed()
                 logfile.mark_upload_processed()
-
-        if dpslog is not None:
-            if processing_type == "local":
+            else:
                 logfile.mark_local_processed()
                 if dpslog.url != "":
                     logfile.mark_upload_processed()
 
-            elif processing_type == "upload":
+        # Handle upload processing
+        if processing_type == "upload":
+            dpslog = _process_log_upload(log_path=log_path, ei_parser=ei_parser)
+
+            if dpslog is not None:
                 logfile.mark_upload_processed()
 
+        # Add log to processed logs if it was processed in this step
+        if dpslog is not None:
             processed_logs += [dpslog]
     return processed_logs
 

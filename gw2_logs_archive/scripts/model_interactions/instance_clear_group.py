@@ -11,11 +11,12 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from gw2_logs.models import (
     DpsLog,
     Encounter,
     Instance,
+    InstanceClear,
     InstanceClearGroup,
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
@@ -44,7 +45,7 @@ class InstanceClearGroupInteraction:
             self.get_total_clear_duration()
 
     @classmethod
-    def create_from_date(cls, y, m, d, itype_group):
+    def create_from_date(cls, y: int, m: int, d: int, itype_group: str):
         """Create an instance clear group from a specific date."""
         # All logs in a day
         logs_day = DpsLog.objects.filter(
@@ -91,14 +92,14 @@ class InstanceClearGroupInteraction:
         return cls(iclear_group)
 
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name: str) -> "InstanceClearGroupInteraction":
         return cls(InstanceClearGroup.objects.get(name=name))
 
     @property
-    def icg_iclears_all(self):
+    def icg_iclears_all(self) -> QuerySet[InstanceClear]:
         return self.iclear_group.instance_clears.all().order_by("start_time")
 
-    def get_week_clears(self):
+    def get_week_clears(self) -> QuerySet[InstanceClearGroup]:
         week_start = self.iclear_group.start_time - datetime.timedelta(
             days=self.iclear_group.start_time.weekday()
         )  # days are correct, but not hours and mins.
@@ -109,7 +110,7 @@ class InstanceClearGroupInteraction:
         )
         return week_clears
 
-    def get_total_clear_duration(self):
+    def get_total_clear_duration(self) -> None:
         """Get the total duration for raids and fractals
         Duration is saved in the iclear_group.
         """
@@ -256,7 +257,7 @@ class InstanceClearGroupInteraction:
         )
         return rank_str
 
-    def sync_discord_message_id(self):
+    def sync_discord_message_id(self) -> None:
         """Update the iclear_group discord message id to be the same if raids and strikes
         are sent to the same channel.
         """
@@ -276,7 +277,7 @@ class InstanceClearGroupInteraction:
                 logger.debug(f"Updated discord_message_id for {self.iclear_group}")
                 self.iclear_group.save()
 
-    def send_discord_message(self):
+    def send_discord_message(self) -> None:
         """Build the message from embeds and send to discord.
         This will create embeds when there are multiple types linked to the same discord
         message. So raids and strikes will be combined in one message.
@@ -298,7 +299,7 @@ class InstanceClearGroupInteraction:
             embeds.update(icg_embeds)
         embeds_messages_list = list(embeds.values())
 
-        # Create/update the message
+        # Create/update the message in the archive channel
         create_or_update_discord_message(
             group=self.iclear_group,
             webhook_url=settings.WEBHOOKS[self.iclear_group.type],

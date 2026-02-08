@@ -3,29 +3,11 @@ import ast
 import logging  # noqa:F401
 import logging.config
 import os
-import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Add the project directory to sys.path so we can import local_settings.
-path = Path(__file__).resolve()
-for parent in path.parents:
-    if (parent / "manage.py").exists():
-        project_dir = str(parent)
-        root_dir = str(parent.parent)
-
-if root_dir not in sys.path:
-    sys.path.insert(0, root_dir)
-try:
-    import data.local_settings as local_settings
-except ImportError as e:
-    raise e
-
-    class local_settings(object):
-        pass
 
 
 class MissingEnvironmentVariable(Exception):
@@ -181,7 +163,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-=x2b*%fr15axa)c(=^#-6uk4wi%_)rta069m9ts!0mny%7s@%*"
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -232,33 +214,18 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 
 
 # Database
+DJANGO_DATABASE_ENGINE = os.environ["DJANGO_DATABASE_ENGINE"]
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-DB_SETTINGS = getattr(local_settings, "DATABASES", {})
-DB_SETTINGS_DEFAULT = DB_SETTINGS.get("default", {})
-
-
-if DB_SETTINGS_DEFAULT != {}:
-    DATABASES = {"default": DB_SETTINGS_DEFAULT}
-    # Example postgresql database settings. Place this in a new file;
-    # data/local_settings.py
-    #
-    # DATABASES = {
-    #     "default": {
-    #         "NAME": "gw2_logs_archive",
-    #         "ENGINE": "django.db.backends.postgresql",
-    #         "USER": "",
-    #         "PASSWORD": "",
-    #         "HOST": "",  # empty string for localhost.
-    #         "PORT": "",  # empty string for default.
-    #     },
-    # }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": PROJECT_DIR.joinpath("data", "db.sqlite3"),
-        },
-    }
+DATABASES = {
+    "default": {
+        "NAME": os.environ["DJANGO_DATABASE_NAME"],  # e.g. C:/github/projectdir/data/db.sqlite3
+        "ENGINE": os.environ["DJANGO_DATABASE_ENGINE"],  # "django.db.backends.sqlite3" for sqlite
+        "USER": os.environ.get("DJANGO_DATABASE_USER"),
+        "PASSWORD": os.environ.get("DJANGO_DATABASE_PASSWORD"),
+        "HOST": os.environ.get("DJANGO_DATABASE_HOST"),  # empty string for localhost.
+        "PORT": os.environ.get("DJANGO_DATABASE_PORT"),  # empty string for default.
+    },
+}
 logger.warning(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE')}")
 logger.warning(f"DATABASE NAME: {DATABASES['default'].get('NAME')}")
 

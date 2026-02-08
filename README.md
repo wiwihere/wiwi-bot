@@ -175,17 +175,16 @@ to the webhook url of the channel. When raids and strikes are combined. Fill bot
 
 
 #### Database connection to external server
+
 To add a connection to a database server on or outside of the local machine, you can use a connection string.
-Place this in `data/local_settings.py`. We are running a postgresql server. 
+We are running a postgresql server. Set these variables:
+For a local sqlite database, only the DJANGO_DATABASE_NAME (path to db.sqlite3) and DJANGO_DATABASE_ENGINE (`django.db.backends.sqlite3`) are needed. Keep the restempty.
+
 ```
-DATABASES = {
-    "default": {
-        "NAME": "",
-        "ENGINE": "django.db.backends.postgresql",
-        "USER": "",
-        "PASSWORD": "",
-        "HOST": "",  # empty string for localhost.
-        "PORT": "",  # empty string for default.
-    },
-}
+DJANGO_DATABASE_NAME=
+DJANGO_DATABASE_ENGINE=
+DJANGO_DATABASE_USER=
+DJANGO_DATABASE_PASSWORD=
+DJANGO_DATABASE_HOST=
+DJANGO_DATABASE_PORT=
 ```
