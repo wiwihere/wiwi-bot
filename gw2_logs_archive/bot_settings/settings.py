@@ -11,12 +11,12 @@ PROJECT_DIR = Path(__file__).resolve().parents[2]  # git repo
 
 # Load .env settings
 base_settings = BaseEnvSettings.load()
-env_settings = EnvSettings.load(app_env=base_settings.APP_ENV)
+ENV_SETTINGS = EnvSettings.load(app_env=base_settings.APP_ENV)
 
-DEBUG = env_settings.DEBUG
+DEBUG = ENV_SETTINGS.DEBUG
 
 # Setup logger
-LOGLEVEL = env_settings.LOGLEVEL
+LOGLEVEL = ENV_SETTINGS.LOGLEVEL
 logging.config.dictConfig(get_create_log_config(debug=DEBUG, loglevel=LOGLEVEL))
 logger = logging.getLogger(__name__)
 
@@ -24,21 +24,26 @@ logger = logging.getLogger(__name__)
 DISCORD_API_SECRET = base_settings.DISCORD_API_TOKEN.get_secret_value()
 
 WEBHOOKS = {
-    "raid": env_settings.WEBHOOK_BOT_CHANNEL_RAID,
-    "strike": env_settings.WEBHOOK_BOT_CHANNEL_STRIKE,
-    "fractal": env_settings.WEBHOOK_BOT_CHANNEL_FRACTAL,
-    "leaderboard": env_settings.WEBHOOK_BOT_CHANNEL_LEADERBOARD,
-    "cerus_cm": env_settings.WEBHOOK_BOT_CHANNEL_CERUS_CM,
+    "raid": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_RAID,
+    "strike": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_STRIKE,
+    "fractal": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_FRACTAL,
+    "leaderboard": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_LEADERBOARD,
+    "progression": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_PROGRESSION,
 }
 
+
 WEBHOOKS_CURRENT_WEEK = {
-    "raid": env_settings.WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK,
-    "strike": env_settings.WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK,
+    "raid": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_RAID_CURRENT_WEEK,
+    "strike": ENV_SETTINGS.WEBHOOK_BOT_CHANNEL_STRIKE_CURRENT_WEEK,
     "fractal": None,  # Not used
 }
 
 # Required for navigation menu, retrieve manually from discord
-DISCORD_CHANNELS = {"leaderboard": env_settings.CHANNEL_ID_LEADERBOARD}
+DISCORD_CHANNELS = {
+    "leaderboard": ENV_SETTINGS.SERVER_ID_LEADERBOARD,
+    "progression": ENV_SETTINGS.SERVER_ID_PROGRESSION,
+}
+
 
 for key in WEBHOOKS_CURRENT_WEEK.keys():
     if WEBHOOKS_CURRENT_WEEK[key] == "optional":
@@ -46,9 +51,9 @@ for key in WEBHOOKS_CURRENT_WEEK.keys():
 
 
 LEADERBOARD_THREADS = {  # thread channel ids in discord.
-    "raid": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS,
-    "strike": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES,
-    "fractal": env_settings.WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS,
+    "raid": ENV_SETTINGS.WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS,
+    "strike": ENV_SETTINGS.WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES,
+    "fractal": ENV_SETTINGS.WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS,
 }
 
 CORE_MINIMUM = {
@@ -148,14 +153,14 @@ WSGI_APPLICATION = "bot_settings.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATABASES = {
     "default": {
-        "NAME": env_settings.DJANGO_DATABASE_NAME,  # e.g. C:/github/projectdir/data/db.sqlite3
-        "ENGINE": env_settings.DJANGO_DATABASE_ENGINE,  # "django.db.backends.sqlite3" for sqlite
-        "USER": env_settings.DJANGO_DATABASE_USER,
-        "PASSWORD": env_settings.DJANGO_DATABASE_PASSWORD.get_secret_value()
-        if env_settings.DJANGO_DATABASE_PASSWORD
+        "NAME": ENV_SETTINGS.DJANGO_DATABASE_NAME,  # e.g. C:/github/projectdir/data/db.sqlite3
+        "ENGINE": ENV_SETTINGS.DJANGO_DATABASE_ENGINE,  # "django.db.backends.sqlite3" for sqlite
+        "USER": ENV_SETTINGS.DJANGO_DATABASE_USER,
+        "PASSWORD": ENV_SETTINGS.DJANGO_DATABASE_PASSWORD.get_secret_value()
+        if ENV_SETTINGS.DJANGO_DATABASE_PASSWORD
         else None,
-        "HOST": env_settings.DJANGO_DATABASE_HOST,  # empty string for localhost.
-        "PORT": env_settings.DJANGO_DATABASE_PORT,  # empty string for default.
+        "HOST": ENV_SETTINGS.DJANGO_DATABASE_HOST,  # empty string for localhost.
+        "PORT": ENV_SETTINGS.DJANGO_DATABASE_PORT,  # empty string for default.
     },
 }
 logger.warning(f"Environment is set to: {base_settings.APP_ENV}")

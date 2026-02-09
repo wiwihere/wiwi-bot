@@ -61,7 +61,7 @@ def _create_message_title(icgi: "InstanceClearGroupInteraction") -> str:
 
 
 def _create_log_delay_str(
-    log: DpsLog,
+    dpslog: DpsLog,
     all_logs: list[DpsLog],
     all_success_logs: list[DpsLog],
     first_boss_tracker: FirstBossTracker,
@@ -79,17 +79,17 @@ def _create_log_delay_str(
         # If there was a wipe on the first boss we calculate diff between start of
         # wipe run and start of kill run
         if len(encounter_wipes) > 0:
-            diff_time = log.start_time - all_logs[0].start_time
+            diff_time = dpslog.start_time - all_logs[0].start_time
             if not encounter_success:
-                diff_time = log.start_time + log.duration - all_logs[0].start_time
+                diff_time = dpslog.start_time + dpslog.duration - all_logs[0].start_time
 
             delay_str = get_duration_str(diff_time.seconds)
 
     else:
         # Calculate duration between start of kill run with previous kill run
-        if log.success:
-            all_success_logs_idx = all_success_logs.index(log)
-            diff_time = log.start_time - (
+        if dpslog.success:
+            all_success_logs_idx = all_success_logs.index(dpslog)
+            diff_time = dpslog.start_time - (
                 all_success_logs[all_success_logs_idx - 1].start_time
                 + all_success_logs[all_success_logs_idx - 1].duration
             )
@@ -98,11 +98,11 @@ def _create_log_delay_str(
         # If we dont have a success, we still need to calculate difference with previous log.
         elif len(encounter_wipes) > 0:
             diff_time = (
-                log.start_time
-                + log.duration
+                dpslog.start_time
+                + dpslog.duration
                 - (
-                    all_logs[all_logs.index(log) - len(encounter_wipes)].start_time
-                    + all_logs[all_logs.index(log) - len(encounter_wipes)].duration
+                    all_logs[all_logs.index(dpslog) - len(encounter_wipes)].start_time
+                    + all_logs[all_logs.index(dpslog) - len(encounter_wipes)].duration
                 )
             )
 
@@ -133,7 +133,7 @@ def _create_log_wipe_str(encounter_wipes: QuerySet[DpsLog]) -> str:
 
 
 def _create_log_message_line(
-    log: DpsLog,
+    dpslog: DpsLog,
     instance_logs: list[DpsLog],
     all_success_logs: list[DpsLog],
     all_logs: list[DpsLog],
@@ -149,26 +149,26 @@ def _create_log_message_line(
     """
 
     # Filter wipes and success
-    encounter_wipes = [l for l in instance_logs if not l.success and l.encounter.nr == log.encounter.nr]
-    encounter_success = [l for l in instance_logs if l.success and l.encounter.nr == log.encounter.nr]
+    encounter_wipes = [l for l in instance_logs if not l.success and l.encounter.nr == dpslog.encounter.nr]
+    encounter_success = [l for l in instance_logs if l.success and l.encounter.nr == dpslog.encounter.nr]
 
-    if not log.success:
+    if not dpslog.success:
         if encounter_success:
             # There is a success log, but its not this one.
             # Create the message_line when the success logs is passed to this function
             log_message_line = ""
             return log_message_line
 
-        if not (list(encounter_wipes).index(log) + 1 == len(encounter_wipes)):
+        if not (list(encounter_wipes).index(dpslog) + 1 == len(encounter_wipes)):
             # There are only wipes. But we only create a message_line when the last
             # failed log is passed to this function
             log_message_line = ""
             return log_message_line
 
-    rank_str = DpsLogService().get_rank_emote_for_log(log)
+    rank_str = DpsLogService().get_rank_emote_for_log(dpslog)
 
     delay_str = _create_log_delay_str(
-        log=log,
+        dpslog=dpslog,
         all_logs=all_logs,
         all_success_logs=all_success_logs,
         first_boss_tracker=first_boss_tracker,
@@ -176,16 +176,16 @@ def _create_log_message_line(
         encounter_success=encounter_success,
     )
     # Only after a successful log the first_boss is cleared.
-    if log.success:
-        first_boss_tracker.consume(success=log.success)
+    if dpslog.success:
+        first_boss_tracker.consume(success=dpslog.success)
 
     # Wipes also get an url, can be click the emote to go there.
     # Dont show wipes that are under 15 seconds.
     wipe_str = _create_log_wipe_str(encounter_wipes=encounter_wipes)
 
     # Add encounter to field
-    if log.success:
-        log_message_line = f"{log.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
+    if dpslog.success:
+        log_message_line = f"{dpslog.discord_tag.format(rank_str=rank_str)}_+{delay_str}_{wipe_str}\n"
     else:
         if not encounter_success:
             # If there are only wipes for an encounter, we still want to see it in the line.
@@ -193,9 +193,9 @@ def _create_log_message_line(
             #   - Cannot add text when there is a success as it will print multiple lines for
             #     the same encounter.
             #   - Also should only add multiple wipes on same boss once.
-            if list(encounter_wipes).index(log) + 1 == len(encounter_wipes):
+            if list(encounter_wipes).index(dpslog) + 1 == len(encounter_wipes):
                 # Build line without URL to dps.report.
-                log_message_line = f"{log.encounter.emoji.discord_tag(log.difficulty)}{rank_str}{log.encounter.name}{log.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
+                log_message_line = f"{dpslog.encounter.emoji.discord_tag(dpslog.difficulty)}{rank_str}{dpslog.encounter.name}{dpslog.cm_str} (wipe)_+{delay_str}_{wipe_str}\n"
     return log_message_line
 
 
@@ -236,7 +236,7 @@ def _create_instance_header(
     instance_logs = list(iclear.dps_logs.order_by("start_time"))
     for log in instance_logs:
         log_message_line = _create_log_message_line(
-            log=log,
+            dpslog=log,
             instance_logs=instance_logs,
             all_success_logs=all_success_logs,
             all_logs=all_logs,

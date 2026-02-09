@@ -1,9 +1,12 @@
 # %%
 import datetime
+import logging
 from pathlib import Path
 from typing import Optional, Tuple
 
 from gw2_logs.models import DpsLog, Encounter
+
+logger = logging.getLogger(__name__)
 
 
 class DpsLogRepository:
@@ -37,6 +40,10 @@ class DpsLogRepository:
     @staticmethod
     def update_or_create(start_time: datetime.datetime, defaults: dict) -> Tuple[DpsLog, bool]:
         dpslog, created = DpsLog.objects.update_or_create(defaults=defaults, start_time=start_time)
+        if created:
+            logger.debug(f"Created new DpsLog ({dpslog.id}) with start_time {start_time} and defaults {defaults}")
+        else:
+            logger.debug(f"Updated existing DpsLog ({dpslog.id}) with start_time {start_time} and defaults {defaults}")
         return dpslog, created
 
     @staticmethod

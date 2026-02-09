@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 def _process_log_local(
     log_path: Path,
     ei_parser: EliteInsightsParser,
+    force_update: bool = False,
 ) -> Optional[DpsLog]:
     """Parse log locally with the EliteInsightsParser and create or update DpsLog in database.
 
@@ -45,7 +46,7 @@ def _process_log_local(
     if parsed_path is not None:
         detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
         dpslog = DpsLogService().get_update_create_from_ei_parsed_log(
-            detailed_parsed_log=detailed_parsed_log, log_path=log_path
+            detailed_parsed_log=detailed_parsed_log, log_path=log_path, force_update=force_update
         )
     else:
         dpslog = None
@@ -83,6 +84,7 @@ def process_logs_once(
     processing_type: Literal["local", "upload"],
     log_files_date_cls: LogFilesDate,
     ei_parser: EliteInsightsParser,
+    force_update: bool = False,
 ) -> list[DpsLog]:
     """
     Process all unprocessed logs once for a given date and processing type.
@@ -101,6 +103,8 @@ def process_logs_once(
         LogPathsDate instance managing available logs and state.
     ei_parser : EliteInsightsParser
         Configured Elite Insights parser instance.
+    force_update : bool
+        If True, forces update of existing DpsLog even if it already exists.
 
     Returns
     -------
@@ -117,7 +121,7 @@ def process_logs_once(
 
         # Handle local processing
         if processing_type == "local":
-            dpslog = _process_log_local(log_path=log_path, ei_parser=ei_parser)
+            dpslog = _process_log_local(log_path=log_path, ei_parser=ei_parser, force_update=force_update)
 
             if dpslog is None:
                 logger.warning(

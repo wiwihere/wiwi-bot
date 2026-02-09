@@ -21,7 +21,11 @@ from typing import Optional
 from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import DpsLog, Player
-from scripts.log_helpers import get_emboldened_wing, get_log_path_view, get_rank_emote
+from scripts.log_helpers import (
+    get_emboldened_wing,
+    get_log_path_view,
+    get_rank_emote,
+)
 from scripts.model_interactions.dpslog_repository import DpsLogRepository
 from scripts.model_interactions.encounter import EncounterInteraction
 from scripts.utilities.failed_log_mover import move_failed_log
@@ -51,7 +55,7 @@ class DpsLogService:
         self.repo.delete(dpslog)
 
     def get_update_create_from_ei_parsed_log(
-        self, detailed_parsed_log: DetailedParsedLog, log_path: Path
+        self, detailed_parsed_log: DetailedParsedLog, log_path: Path, force_update: bool = False
     ) -> Optional[DpsLog]:
         """Create or return existing DpsLog from a detailed EI parsed log.
 
@@ -70,10 +74,10 @@ class DpsLogService:
 
         dpslog = self.repo.find_by_start_time(start_time=start_time, encounter=detailed_parsed_log.encounter)
 
-        if dpslog:
+        if dpslog and force_update is False:
             logger.info(f"Log already found in database, returning existing log {dpslog}")
         else:
-            logger.info(f"{get_log_path_view(log_path)}: Creating new log entry for {log_path}")
+            logger.info(f"{get_log_path_view(log_path)}: Creating or updating log entry for {log_path}")
             defaults = detailed_parsed_log.to_dpslog_defaults(log_path=log_path)
 
             # Resolve encounter and compute role-based player counts in service (ORM)
@@ -192,12 +196,3 @@ class DpsLogService:
             custom_emoji_name=False,
         )
         return rank_str
-
-    def build_health_str(self, dpslog: DpsLog) -> str:
-        """Build health string with leading zeros for discord message."""
-        health_str = ".".join(
-            [str(int(i)).zfill(2) for i in str(round(dpslog.final_health_percentage, 2)).split(".")]
-        )  # makes 02.20%
-        if health_str == "100.00":
-            health_str = "100.0"
-        return health_str

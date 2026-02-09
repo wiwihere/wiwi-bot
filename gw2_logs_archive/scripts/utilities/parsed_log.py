@@ -11,13 +11,9 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+from bot_settings import settings
 from gw2_logs.models import (
     Encounter,
-)
-from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
-    BOSS_MAX_DURATION,
-    get_duration_str,
 )
 from scripts.model_interactions.encounter import EncounterInteraction
 
@@ -25,8 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class _HealthData:
-    """Search the time in seconds when a certain health percentage was reached.
-    Return the remaining time on the clock.
+    """Search the time in seconds from start when a certain health percentage was reached.
 
     Parameters
     ----------
@@ -38,57 +33,39 @@ class _HealthData:
         [3918, 99.98],
         [4519, 99.97],
         ]
-    encounter_name : str
-        Options are; 'cerus'
     """
 
-    def __init__(self, health_data: list[list[float]], encounter_name: str):
+    def __init__(self, health_data: list[list[float]]):
         health_data_np = np.array(health_data)
         self.times = health_data_np[:, 0]  # ms
         self.health = health_data_np[:, 1]  # %
 
-        self.encounter_name = encounter_name
-
-    @property
-    def max_duration_seconds(self) -> int:
-        return BOSS_MAX_DURATION[self.encounter_name]
-
     @classmethod
-    def from_detailed_logs(cls, encounter_name: str, json_detailed: dict) -> Optional["_HealthData"]:
+    def from_detailed_logs(cls, json_detailed: dict) -> "_HealthData":
         """Create HealthData from detailed logs json."""
         health_data = json_detailed["targets"][0]["healthPercents"]
 
-        return cls(health_data=health_data, encounter_name=encounter_name)
+        return cls(health_data=health_data)
 
-    def _get_time_from_healthpercentage(
-        self,
-        target_hp: float,
-    ) -> float | None:
+    def get_time_at_healthpercentage(self, target_hp: float) -> Optional[float]:
+        """Get the time in seconds when the boss reached a certain health percentage.
+        If the target_hp is above the starting health or below the final health, return None.
+        """
         if target_hp > self.health[0] or target_hp < self.health[-1]:
             return None
 
         idx = np.searchsorted(-self.health, -target_hp)
 
-        return self.times[idx]
-
-    def get_time_at_healthpercentage(self, target_hp: float) -> str:
-        time_ms = self._get_time_from_healthpercentage(target_hp=target_hp)
-        if time_ms is None:
-            return " -- "
-        else:
-            time_s = time_ms / 1000
-            time_s_int = time_s.astype("timedelta64[s]").astype(np.int32)
-
-            if time_s_int <= 0:
-                return " -- "
-            return get_duration_str(self.max_duration_seconds - time_s_int)
+        time_ms = self.times[idx]
+        time_s = round(float(time_ms) / 1000, 2)
+        return time_s
 
 
 class DetailedParsedLog:
     """Class to hold information on a parsed log, either from EI parser or dps.report
 
     These functions return this object;
-        EliteInsightsParser().find_parsed_json
+        EliteInsightsParser().load_parsed_json
         DpsReportUploader().request_detailed_info
     """
 
@@ -116,37 +93,35 @@ class DetailedParsedLog:
             "gw2_build": self.data["gW2Build"],
             "players": players,
             "local_path": log_path,
-            "phasetime_str": self.get_phasetime_str(),
+            "health_timers": self.get_health_timers(),
         }
 
         return defaults
-
-    @cached_property
-    def name(self) -> str:
-        return self.data["name"].replace("CM", "").replace("LCM", "").strip()
 
     def get_final_health_percentage(self) -> float:
         """Get final health percentage from detailed logs."""
         return round(100 - self.data["targets"][0]["healthPercentBurned"], 2)
 
-    def get_phasetime_str(self) -> str:
-        """For progression logging when a milestone (from BOSS_HEALTH_PERCENTAGES) has been reached
-        is calculated from detailed logs. The remaining time until enrage is shown at the specified health percentages.
+    def get_health_timers(self) -> dict[int, Optional[float]]:
+        """For progression logging when a milestone (from log_helpers.BOSS_HEALTH_PERCENTAGES) has been reached
+        we send this in the discord message. The time at which the boss reached certain health percentages (5% intervals) is
+        calculated here.
 
-        For example, for Cerus the times at 80%, 50% and 10% health are calculated.
-        This results in a string like:
-        '8:12 | 5:34 | 1:07'
+        This results in a dict like:
+            {
+                100: np.float64(0.0),
+                95: np.float64(66.84),
+                90: np.float64(70.14),
+                ...
+                5: np.float64(266.44),
+            }
         """
-        if self.name not in BOSS_HEALTH_PERCENTAGES.keys():
-            return None
+        hd = _HealthData.from_detailed_logs(json_detailed=self.data)
 
-        logger.info(
-            f"Calculating phase times at health percentages {BOSS_HEALTH_PERCENTAGES[self.name]} for {self.name}"
-        )
-        hd = _HealthData.from_detailed_logs(encounter_name=self.name, json_detailed=self.data)
-
-        phasetime_lst = [hd.get_time_at_healthpercentage(target_hp=hp) for hp in BOSS_HEALTH_PERCENTAGES[self.name]]
-        return " | ".join(phasetime_lst)
+        health_time_dict = {}
+        for health_percentage in range(100, 0, -5):
+            health_time_dict[health_percentage] = hd.get_time_at_healthpercentage(target_hp=health_percentage)
+        return health_time_dict
 
     def get_players(self) -> list[str]:
         return [player["account"] for player in self.data["players"]]
@@ -176,3 +151,24 @@ class DetailedParsedLog:
         if final_health_percentage == 100.0 and self.encounter.name == "Eye of Fate":
             return False, "failed"
         return True, None
+
+
+# %%
+if __name__ == "__main__":
+    # Local testing
+    import gzip
+    import json
+
+    from django.conf import settings
+
+    parsed_path = settings.PROJECT_DIR.joinpath(r"data\parsed_logs\20260205\20260205-215553_xera_273s_kill.json.gz")
+    with gzip.open(parsed_path, "r") as fin:
+        json_bytes = fin.read()
+
+    json_str = json_bytes.decode("utf-8")
+    data = json.loads(json_str)
+
+    self = DetailedParsedLog(data=data)
+    self.get_health_timers()
+
+# %%

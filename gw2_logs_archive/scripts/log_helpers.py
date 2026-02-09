@@ -12,7 +12,7 @@ import re
 import time
 from itertools import chain
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -41,11 +41,12 @@ WIPE_EMOTES = {
     7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name(),
     8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name(),  # Full health
 }
-EMBED_COLOR = {
+EMBED_COLOUR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
     "cerus_cm": 7930903,
+    "decima_cm": 16744448,
 }
 PLAYER_EMOTES = {
     "core": Emoji.objects.get(name="core").discord_tag(),
@@ -53,9 +54,13 @@ PLAYER_EMOTES = {
     "pug": Emoji.objects.get(name="pug").discord_tag(),
 }
 
-BOSS_MAX_DURATION = {"Temple of Febe": 10 * 60}  # s
+BOSS_MAX_DURATION_SECOND = {
+    "Temple of Febe": 10 * 60,
+    "Decima, the Stormsinger": 10 * 60,
+}
 BOSS_HEALTH_PERCENTAGES = {
     "Temple of Febe": [80, 50, 10],
+    "Decima, the Stormsinger": [75, 50, 25],
 }
 
 
@@ -360,7 +365,7 @@ def get_rank_emote(
     return rank_str
 
 
-def create_folder_names(itype_groups: list):
+def create_folder_names(itype_groups: list = None) -> list:
     """Create list of possible folder names for the selected itype_group.
     This makes it possible to filter logs before uploading them.
     """

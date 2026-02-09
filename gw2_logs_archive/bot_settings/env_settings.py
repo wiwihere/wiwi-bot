@@ -102,16 +102,16 @@ class EnvSettings(BaseSettings):
 
     # Webhooks Leaderboard
     WEBHOOK_BOT_CHANNEL_LEADERBOARD: str
-    CHANNEL_ID_LEADERBOARD: str = Field(
-        ..., description="Channel ID for the leaderboard channel. Get it from Discord."
+    SERVER_ID_LEADERBOARD: str = Field(
+        ..., description="Server ID for the leaderboard channel. Get it from Discord, its the first of three numbers"
     )
     WEBHOOK_BOT_THREAD_LEADERBOARD_RAIDS: str
     WEBHOOK_BOT_THREAD_LEADERBOARD_STRIKES: str
     WEBHOOK_BOT_THREAD_LEADERBOARD_FRACTALS: str
 
     # Webhooks Progression
+    SERVER_ID_PROGRESSION: str | None
     WEBHOOK_BOT_CHANNEL_PROGRESSION: str | None
-    WEBHOOK_BOT_CHANNEL_CERUS_CM: str | None
 
     @classmethod
     def load(cls, app_env: str) -> "EnvSettings":
