@@ -41,7 +41,7 @@ WIPE_EMOTES = {
     7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name(),
     8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name(),  # Full health
 }
-EMBED_COLOR = {
+EMBED_COLOUR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,

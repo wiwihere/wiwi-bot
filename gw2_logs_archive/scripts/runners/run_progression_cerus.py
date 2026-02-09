@@ -9,7 +9,7 @@ import logging
 import time
 
 from django.conf import settings
-from scripts.discord_interaction.build_message_cerus import send_cerus_progression_discord_message
+from scripts.discord_interaction.build_message_cerus import send_progression_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
@@ -52,7 +52,7 @@ def run_progression_cerus(clear_group_base_name: str, y: int, m: int, d: int) ->
 
             if len(processed_logs) > 0:
                 progression_service.update_instance_clear()
-                send_cerus_progression_discord_message(progression_service)
+                send_progression_discord_message(progression_service)
 
             if processing_type == "local":
                 time.sleep(SLEEPTIME / 10)

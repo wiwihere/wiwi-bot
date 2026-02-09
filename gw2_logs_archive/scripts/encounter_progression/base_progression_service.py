@@ -32,10 +32,21 @@ logger = logging.getLogger(__name__)
 
 
 class ProgressionService:
-    def __init__(self, clear_group_base_name: str, clear_name: str, encounter: Encounter) -> None:
+    def __init__(
+        self,
+        clear_group_base_name: str,
+        clear_name: str,
+        encounter: Encounter,
+        embed_colour_group: str,
+        webhook_thread_id: str,
+        webhook_url: str,
+    ) -> None:
         self.clear_group_base_name = clear_group_base_name
         self.clear_name = clear_name
         self.encounter = encounter
+        self.colour_group = embed_colour_group
+        self.webhook_thread_id = webhook_thread_id
+        self.webhook_url = webhook_url
 
         logger.info(f"Starting progression run for {self.encounter.name}: {self.clear_name}")
 

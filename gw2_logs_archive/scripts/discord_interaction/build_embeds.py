@@ -9,7 +9,7 @@ import logging
 import discord
 import numpy as np
 from scripts.log_helpers import (
-    EMBED_COLOR,
+    EMBED_COLOUR,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def create_discord_embeds(titles: dict[dict, str], descriptions: dict[dict, str]
             embeds[f"{instance_type}_{embed_id}"] = discord.Embed(
                 title=title,
                 description=description,
-                colour=EMBED_COLOR[instance_type],
+                colour=EMBED_COLOUR[instance_type],
             )
 
             if use_fields:

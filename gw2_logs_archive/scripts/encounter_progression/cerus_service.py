@@ -7,6 +7,7 @@ if __name__ == "__main__":
 
 import logging
 
+from django.conf import settings
 from gw2_logs.models import (
     Encounter,
 )
@@ -30,11 +31,19 @@ class CerusProgressionService(ProgressionService):
         self.clear_group_base_name = clear_group_base_name
         self.clear_name = f"{self.clear_group_base_name}__{zfill_y_m_d(y, m, d)}"  # e.g. cerus_cm__20240406
         self.encounter = Encounter.objects.get(name="Temple of Febe")
+        self.embed_colour_group = "cerus_cm"  # needed for embed parsing, needs to be in EMBED_COLOUR
+        self.webhook_thread_id = getattr(
+            settings.ENV_SETTINGS, "webhook_bot_thread_cerus_cm"
+        )  # needs to be in .env.prd
+        self.webhook_url = settings.WEBHOOKS["progression"]
 
         super().__init__(
             clear_group_base_name=self.clear_group_base_name,
             clear_name=self.clear_name,
             encounter=self.encounter,
+            embed_colour_group=self.embed_colour_group,
+            webhook_thread_id=self.webhook_thread_id,
+            webhook_url=self.webhook_url,
         )
 
     def get_table_header(self) -> str:

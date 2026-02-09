@@ -16,7 +16,6 @@ if __name__ == "__main__":
 import logging
 
 import pandas as pd
-from django.conf import settings
 from gw2_logs.models import (
     DpsLog,
 )
@@ -26,20 +25,22 @@ from scripts.discord_interaction.message_helpers import (
     create_duration_header_with_player_emotes,
 )
 from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
-from scripts.encounter_progression.cerus_service import CerusProgressionService
+from scripts.encounter_progression.base_progression_service import ProgressionService
 from scripts.model_interactions.dpslog import DpsLogMessageBuilder
 
 logger = logging.getLogger(__name__)
 
 
-def _build_log_message_line_cerus(row: pd.Series) -> str:
-    """Row of health_df created by encounter_progression/base.py/ProgressionService.create_health_df"""
+def _build_log_message_line_progression(row: pd.Series) -> str:
+    """Row of logs_rank_health_df created by
+    encounter_progression/base_progression_service.py/ProgressionService.create_logs_rank_health_df.
+    """
     dpslog: DpsLog = row["log"]
 
     # -------------------------------
     # Find the medal for the achieved health percentage -> "<:4_masterwork:1218309092477767810>"
     # -------------------------------
-    rank_emote = CerusProgressionService.get_rank_emote_for_log(dpslog)
+    rank_emote = ProgressionService.get_rank_emote_for_log(dpslog)
 
     if dpslog.lcm:
         url_emote = "★"
@@ -70,7 +71,7 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     return log_message_line
 
 
-def _build_cerus_discord_message(progression_service: CerusProgressionService) -> tuple[dict, dict]:
+def _build_progression_discord_message(progression_service: ProgressionService) -> tuple[dict, dict]:
     progression_logs: list = progression_service.iclear_group.dps_logs_all
     logs_rank_health_df = progression_service.create_logs_rank_health_df(minimal_delay_seconds=120)
 
@@ -86,16 +87,18 @@ def _build_cerus_discord_message(progression_service: CerusProgressionService) -
     titles = {}
     descriptions = {}
 
-    colour_group = "cerus_cm"  # needed for embed parsing, needs to be in EMBED_COLOR
-    titles[colour_group] = {"main": progression_service.iclear_group.pretty_time}
-    descriptions[colour_group] = {"main": description_main}
+    embed_colour_group = (
+        progression_service.embed_colour_group
+    )  # needed for embed parsing, needs to be in EMBED_COLOUR
+    titles[embed_colour_group] = {"main": progression_service.iclear_group.pretty_time}
+    descriptions[embed_colour_group] = {"main": description_main}
 
     current_field = "field_0"
-    titles[colour_group][current_field] = ""
-    descriptions[colour_group][current_field] = ""
+    titles[embed_colour_group][current_field] = ""
+    descriptions[embed_colour_group][current_field] = ""
 
     for idx, row in logs_rank_health_df.iterrows():
-        log_message_line = _build_log_message_line_cerus(row=row)
+        log_message_line = _build_log_message_line_progression(row=row)
 
         # Add line to descriptions, breaking into new fields if character limit is hit
         titles, descriptions, current_field = add_line_to_descriptions(
@@ -103,15 +106,15 @@ def _build_cerus_discord_message(progression_service: CerusProgressionService) -
             descriptions=descriptions,
             current_field=current_field,
             log_message_line=log_message_line,
-            dummy_group=colour_group,
+            dummy_group=embed_colour_group,
             table_header=table_header,
         )
     return titles, descriptions
 
 
-def send_cerus_progression_discord_message(progression_service: CerusProgressionService) -> None:
+def send_progression_discord_message(progression_service: ProgressionService) -> None:
     """Build and send or update the cerus progression discord message for the given InstanceClearGroup."""
-    titles, descriptions = _build_cerus_discord_message(progression_service=progression_service)
+    titles, descriptions = _build_progression_discord_message(progression_service=progression_service)
 
     if titles is not None:
         embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
@@ -121,9 +124,9 @@ def send_cerus_progression_discord_message(progression_service: CerusProgression
         logger.debug("Ready to send discord message")
         create_or_update_discord_message(
             group=progression_service.iclear_group,
-            webhook_url=settings.WEBHOOKS["progression"],
+            webhook_url=progression_service.webhook_url,
             embeds_messages_list=embeds_messages_list,
-            thread=Thread(getattr(settings.ENV_SETTINGS, "webhook_bot_thread_cerus_cm")),
+            thread=Thread(progression_service.webhook_thread_id),
         )
 
 

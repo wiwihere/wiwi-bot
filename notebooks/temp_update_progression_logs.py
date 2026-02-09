@@ -9,7 +9,7 @@ if __name__ == "__main__":
 import logging
 
 from django.conf import settings
-from scripts.discord_interaction.build_message_cerus import send_cerus_progression_discord_message
+from scripts.discord_interaction.build_message_cerus import send_progression_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.log_helpers import (
     create_folder_names,
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     # %%
 
     progression_service.update_instance_clear()
-    send_cerus_progression_discord_message(progression_service)
+    send_progression_discord_message(progression_service)

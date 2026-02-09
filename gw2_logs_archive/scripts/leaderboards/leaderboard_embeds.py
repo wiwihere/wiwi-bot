@@ -23,7 +23,7 @@ from scripts.leaderboards.leaderboard_builders import (
     build_navigation_menu,
 )
 from scripts.log_helpers import (
-    EMBED_COLOR,
+    EMBED_COLOUR,
 )
 from scripts.model_interactions.encounter import EncounterInteraction
 from scripts.model_interactions.instance import InstanceInteraction
@@ -67,7 +67,7 @@ def create_instance_leaderboard_embed(
     return discord.Embed(
         title=title,
         description=description,
-        colour=EMBED_COLOR[instance_interaction.instance_type],
+        colour=EMBED_COLOUR[instance_interaction.instance_type],
     )
 
 
@@ -106,7 +106,7 @@ def create_fullclear_leaderboard_embed(instance_group_interaction: InstanceGroup
     embed = discord.Embed(
         title=f"Full {instance_group_interaction.instance_type.capitalize()} Clear",
         description=description,
-        colour=EMBED_COLOR[instance_group_interaction.instance_group.name],
+        colour=EMBED_COLOUR[instance_group_interaction.instance_group.name],
     )
     embed.set_footer(
         text=f"Minimum core count: {instance_group_interaction.instance_group.min_core_count}\nLeaderboard last updated"
@@ -144,7 +144,7 @@ def create_navigation_embed(instance_type: str, leaderboard_thread_url: str) -> 
     embed = discord.Embed(
         title=titles[instance_type],
         description=navigation_menu,
-        colour=EMBED_COLOR[instance_type],
+        colour=EMBED_COLOUR[instance_type],
     )
 
     return embed
