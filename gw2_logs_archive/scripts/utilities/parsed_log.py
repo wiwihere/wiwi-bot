@@ -38,8 +38,6 @@ class _HealthData:
     def __init__(self, health_data: list[list[float]]):
         health_data_np = np.array(health_data)
 
-        if health_data:
-            health_data_np
         self.times = health_data_np[:, 0]  # ms
         self.health = health_data_np[:, 1]  # %
 
