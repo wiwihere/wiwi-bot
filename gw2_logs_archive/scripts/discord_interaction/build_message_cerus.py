@@ -28,7 +28,6 @@ from scripts.discord_interaction.message_helpers import (
 from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.model_interactions.dpslog import DpsLogMessageBuilder
-from scripts.model_interactions.dpslog_service import DpsLogService
 
 logger = logging.getLogger(__name__)
 
@@ -43,29 +42,28 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     rank_emote = CerusProgressionService.get_rank_emote_for_log(dpslog)
 
     if dpslog.lcm:
-        log_url_emote = "★"
+        url_emote = "★"
     else:
-        log_url_emote = "☆"
+        url_emote = "☆"
+
+    if dpslog.url != "":
+        url_emote_str = f"[{url_emote}]({dpslog.url})"
+    else:
+        url_emote_str = url_emote
 
     # -------------------------------
     # Build phasetime_str -> "` 52.05% | 8:24 |  --  |  -- `"
     # -------------------------------
     dli = DpsLogMessageBuilder(dpslog)
     health_str = dli.build_health_str()
-    if dpslog.phasetime_str != "":
-        phasetime_str = f"` {health_str}% | {dli.build_phasetime_str()} `{row['cups']}"
-    else:
-        phasetime_str = ""
+    health_phasetime_str = f"` {health_str}% | {dli.build_phasetime_str()} `"
 
     # -------------------------------
     # Combine
     # -------------------------------
-    if dpslog.url != "":
-        log_message_line = (
-            f"{row['log_nr']}{rank_emote}[{log_url_emote}]({dpslog.url}) {phasetime_str}{row['delay_str']}\n"
-        )
-    else:
-        log_message_line = f"{row['log_nr']}{rank_emote}{log_url_emote} {phasetime_str}{row['delay_str']}\n"
+    log_message_line = (
+        f"{row['log_nr']}{rank_emote}{url_emote_str} {health_phasetime_str}{row['cups']}{row['delay_str']}\n"
+    )
 
     return log_message_line
 
