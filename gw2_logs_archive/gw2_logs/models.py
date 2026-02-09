@@ -1,5 +1,6 @@
 # %%
 from itertools import chain
+from typing import Literal
 
 from django.conf import settings
 from django.db import models
@@ -39,19 +40,19 @@ class Emoji(models.Model):
     def name_lower(self):
         return self.name.lower().replace(" ", "_")
 
-    def discord_tag(self, difficulty="normal"):
+    def discord_tag(self, difficulty: Literal["normal", "cm", "lcm"] = "normal"):
         discord_id = self.get_discord_id(difficulty)
         if not self.animated:
             return f"<:{self.name_lower}:{discord_id}>"
         return f"<a:{self.name_lower}:{discord_id}>"
 
-    def discord_tag_custom_name(self, difficulty="normal"):
+    def discord_tag_custom_name(self, difficulty: Literal["normal", "cm", "lcm"] = "normal"):
         discord_id = self.get_discord_id(difficulty)
         if not self.animated:
             return f"<:{{}}:{discord_id}>"
         return f"<a:{{}}:{discord_id}>"
 
-    def get_discord_id(self, difficulty):
+    def get_discord_id(self, difficulty: Literal["normal", "cm", "lcm"]):
         if difficulty == "normal":
             discord_id = self.discord_id
         elif difficulty == "cm":
@@ -225,7 +226,7 @@ class InstanceClearGroup(models.Model):
 
     @property
     def dps_logs_all(self):
-        """Sorted list of all dps logs in this instance clear group"""
+        """Sorted list by start_time of all dps logs in this instance clear group"""
         return sorted(
             chain.from_iterable(i.dps_logs.all() for i in self.instance_clears.all()),
             key=lambda log: log.start_time,

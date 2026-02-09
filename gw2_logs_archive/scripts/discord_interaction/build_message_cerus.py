@@ -54,6 +54,8 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
     # -------------------------------
     # Build phasetime_str -> "` 52.05% | 8:24 |  --  |  -- `"
     # -------------------------------
+    # Note the ` at the start and end of the str, this makes it appear as a code block in discord,
+    # which is a nice way to align the text and make it more readable.
     dli = DpsLogMessageBuilder(dpslog)
     health_str = dli.build_health_str()
     health_phasetime_str = f"` {health_str}% | {dli.build_phasetime_str()} `"
@@ -69,16 +71,16 @@ def _build_log_message_line_cerus(row: pd.Series) -> str:
 
 
 def _build_cerus_discord_message(progression_service: CerusProgressionService) -> tuple[dict, dict]:
-    cm_logs = progression_service.iclear_group.dps_logs_all
-    health_df = progression_service.create_health_df(minimal_delay_seconds=120)
+    progression_logs: list = progression_service.iclear_group.dps_logs_all
+    logs_rank_health_df = progression_service.create_logs_rank_health_df(minimal_delay_seconds=120)
 
     # Make title and description for discord message
-    difficulty = progression_service.get_difficulty(health_df)  # cm or lcm
+    difficulty = progression_service.get_difficulty(logs_rank_health_df)  # normal, cm or lcm
     boss_title = progression_service.get_boss_title(difficulty)
 
     table_header = progression_service.get_table_header()
     description_main = f"{progression_service.encounter.emoji.discord_tag(difficulty)} **{boss_title}**\n"
-    description_main += create_duration_header_with_player_emotes(all_logs=cm_logs)
+    description_main += create_duration_header_with_player_emotes(all_logs=progression_logs)
     description_main += table_header
 
     titles = {}
@@ -92,7 +94,7 @@ def _build_cerus_discord_message(progression_service: CerusProgressionService) -
     titles[colour_group][current_field] = ""
     descriptions[colour_group][current_field] = ""
 
-    for idx, row in health_df.iterrows():
+    for idx, row in logs_rank_health_df.iterrows():
         log_message_line = _build_log_message_line_cerus(row=row)
 
         # Add line to descriptions, breaking into new fields if character limit is hit
