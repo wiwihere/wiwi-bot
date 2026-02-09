@@ -13,7 +13,6 @@ from scripts.discord_interaction.build_message_progression import send_progressi
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.encounter_progression.decima_service import DecimaProgressionService
 from scripts.log_helpers import (
-    create_folder_names,
     today_y_m_d,
     zfill_y_m_d,
 )
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2025, 11, 27
-    # y, m, d = 2025, 12, 8
+    y, m, d = 2025, 12, 8
 
     clear_group_base_name = "decima_cm"
     processing_type = "local"

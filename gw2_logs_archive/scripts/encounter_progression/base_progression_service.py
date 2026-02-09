@@ -18,6 +18,7 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from scripts.log_helpers import (
+    BOSS_HEALTH_PERCENTAGES,
     RANK_EMOTES_CUPS_PROGRESSION,
     create_rank_emote_dict_percentiles,
     get_duration_str,
@@ -198,3 +199,8 @@ class ProgressionService:
         elif difficulty == "lcm":
             boss_title = f"{self.encounter.name} LegendaryCM"
         return boss_title
+
+    def get_table_header(self) -> str:
+        percentages = BOSS_HEALTH_PERCENTAGES[self.encounter.name]
+        percentages_str = "|  ".join([f"{hp}% " for hp in percentages])
+        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"

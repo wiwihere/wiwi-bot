@@ -11,7 +11,7 @@ from django.conf import settings
 from gw2_logs.models import (
     Encounter,
 )
-from scripts.encounter_progression.base_progression_service import RANK_EMOTES_PROGRESSION, ProgressionService
+from scripts.encounter_progression.base_progression_service import ProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
@@ -45,9 +45,6 @@ class DecimaProgressionService(ProgressionService):
             webhook_thread_id=self.webhook_thread_id,
             webhook_url=self.webhook_url,
         )
-
-    def get_table_header(self) -> str:
-        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  75% |  50% |  25% `+_delay_⠀⠀\n\n"
 
 
 # %%
