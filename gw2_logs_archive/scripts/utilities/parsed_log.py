@@ -37,6 +37,7 @@ class _HealthData:
 
     def __init__(self, health_data: list[list[float]]):
         health_data_np = np.array(health_data)
+
         self.times = health_data_np[:, 0]  # ms
         self.health = health_data_np[:, 1]  # %
 
@@ -116,12 +117,16 @@ class DetailedParsedLog:
                 5: np.float64(266.44),
             }
         """
-        hd = _HealthData.from_detailed_logs(json_detailed=self.data)
+        try:
+            hd = _HealthData.from_detailed_logs(json_detailed=self.data)
 
-        health_time_dict = {}
-        for health_percentage in range(100, 0, -5):
-            health_time_dict[health_percentage] = hd.get_time_at_healthpercentage(target_hp=health_percentage)
-        return health_time_dict
+            health_time_dict = {}
+            for health_percentage in range(100, 0, -5):
+                health_time_dict[health_percentage] = hd.get_time_at_healthpercentage(target_hp=health_percentage)
+            return health_time_dict
+        except:
+            logger.error(f"Failed to get health timers for log {self.log_path}")
+            return None
 
     def get_players(self) -> list[str]:
         return [player["account"] for player in self.data["players"]]

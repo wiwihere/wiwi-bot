@@ -19,6 +19,7 @@ import pandas as pd
 from gw2_logs.models import (
     DpsLog,
     Emoji,
+    InstanceClearGroup,
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.message_helpers import (
@@ -123,6 +124,7 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
         embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
         embeds_messages_list = list(embeds.values())
         embeds_messages_list[0] = embeds_messages_list[0].set_author(name=progression_service.get_message_author())
+        embeds_messages_list[-1] = embeds_messages_list[-1].set_footer(text=progression_service.get_message_footer())
 
         logger.debug("Ready to send discord message")
         create_or_update_discord_message(
