@@ -74,20 +74,18 @@ class ProgressionService:
 
         return iclear
 
-    def _calculate_progression_day(self) -> int:
+
+    def get_message_author(self) -> str:
+        """Create author name for discord message.
+        The author is displayed at the top of the message.
+        """
         # The progression_days_count is the total days up to this point for this progression
         progression_days_count = len(
             InstanceClearGroup.objects.filter(
                 Q(name__startswith=f"{self.clear_group_base_name}__") & Q(start_time__lte=self.iclear_group.start_time)
             )
         )
-        return progression_days_count
-
-    def get_message_author(self) -> str:
-        """Create author name for discord message.
-        The author is displayed at the top of the message.
-        """
-        return f"Day #{self._calculate_progression_day():02d}"
+        return f"Day #{progression_days_count:02d}"
 
     def update_instance_clear(self) -> Tuple[InstanceClear, InstanceClearGroup]:
         """Update the iclear_group and iclear"""

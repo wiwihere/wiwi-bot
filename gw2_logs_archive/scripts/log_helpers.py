@@ -12,7 +12,7 @@ import re
 import time
 from itertools import chain
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -46,6 +46,7 @@ EMBED_COLOUR = {
     "strike": 6603422,
     "fractal": 5512822,
     "cerus_cm": 7930903,
+    "decima_cm": 16744448,
 }
 PLAYER_EMOTES = {
     "core": Emoji.objects.get(name="core").discord_tag(),
@@ -361,7 +362,7 @@ def get_rank_emote(
     return rank_str
 
 
-def create_folder_names(itype_groups: list):
+def create_folder_names(itype_groups: list = None):
     """Create list of possible folder names for the selected itype_group.
     This makes it possible to filter logs before uploading them.
     """

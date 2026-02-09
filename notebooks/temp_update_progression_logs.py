@@ -11,6 +11,7 @@ import logging
 from django.conf import settings
 from scripts.discord_interaction.build_message_progression import send_progression_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
+from scripts.encounter_progression.decima_service import DecimaProgressionService
 from scripts.log_helpers import (
     create_folder_names,
     today_y_m_d,
@@ -22,10 +23,12 @@ from scripts.model_interactions.dpslog_service import DpsLogService
 
 logger = logging.getLogger(__name__)
 
+
+# %%
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
-    y, m, d = 2024, 4, 19
-    clear_group_base_name = "cerus_cm"
+    y, m, d = 2025, 11, 27
+    clear_group_base_name = "decima_cm"
     processing_type = "local"
     force_update = True
 
@@ -33,10 +36,11 @@ if __name__ == "__main__":
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    allowed_folder_names = create_folder_names(itype_groups=["raid", "strike"])
-    progression_service = CerusProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
+    progression_service = DecimaProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
 
-    log_files_date_cls = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=[progression_service.encounter.folder_names])
+    log_files_date_cls = LogFilesDate(
+        y=y, m=m, d=d, allowed_folder_names=[progression_service.encounter.folder_names.split(";")]
+    )
     logfiles = log_files_date_cls.get_unprocessed_logs(processing_type="local")
 
     for logfile in logfiles:
