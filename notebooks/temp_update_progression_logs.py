@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # %%
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
-    y, m, d = 2025, 11, 27
+    # y, m, d = 2025, 11, 27
     y, m, d = 2025, 12, 8
 
     clear_group_base_name = "decima_cm"
