@@ -47,7 +47,7 @@ class DecimaProgressionService(ProgressionService):
         )
 
     def get_table_header(self) -> str:
-        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  80% |  50% |  10% `+_delay_⠀⠀\n\n"
+        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  75% |  50% |  25% `+_delay_⠀⠀\n\n"
 
 
 # %%

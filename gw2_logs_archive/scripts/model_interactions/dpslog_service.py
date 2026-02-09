@@ -18,14 +18,10 @@ from itertools import chain
 from pathlib import Path
 from typing import Optional
 
-import numpy as np
 from django.conf import settings
 from django.db.models import Q
 from gw2_logs.models import DpsLog, Player
 from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
-    BOSS_MAX_DURATION,
-    get_duration_str,
     get_emboldened_wing,
     get_log_path_view,
     get_rank_emote,

@@ -18,6 +18,7 @@ import logging
 import pandas as pd
 from gw2_logs.models import (
     DpsLog,
+    Emoji,
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.message_helpers import (
@@ -44,8 +45,10 @@ def _build_log_message_line_progression(row: pd.Series) -> str:
 
     if dpslog.lcm:
         url_emote = "★"
-    else:
+    elif dpslog.cm:
         url_emote = "☆"
+    else:
+        url_emote = Emoji.objects.get(name="PepoHands").discord_tag_custom_name().format("normal_mode")
 
     if dpslog.url != "":
         url_emote_str = f"[{url_emote}]({dpslog.url})"

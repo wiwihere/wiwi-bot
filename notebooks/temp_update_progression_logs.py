@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2025, 11, 27
+    y, m, d = 2025, 12, 8
+
     clear_group_base_name = "decima_cm"
     processing_type = "local"
     force_update = True
@@ -39,10 +41,11 @@ if __name__ == "__main__":
     progression_service = DecimaProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
 
     log_files_date_cls = LogFilesDate(
-        y=y, m=m, d=d, allowed_folder_names=[progression_service.encounter.folder_names.split(";")]
+        y=y, m=m, d=d, allowed_folder_names=progression_service.encounter.folder_names.split(";")
     )
     logfiles = log_files_date_cls.get_unprocessed_logs(processing_type="local")
 
+    # %%
     for logfile in logfiles:
         log_path = logfile.path
 
@@ -50,10 +53,10 @@ if __name__ == "__main__":
         if parsed_path is not None:
             detailed_parsed_log = EliteInsightsParser.load_parsed_json(parsed_path=parsed_path)
             dpslog = DpsLogService().get_update_create_from_ei_parsed_log(
-                detailed_parsed_log=detailed_parsed_log, log_path=log_path, force_update=False
+                detailed_parsed_log=detailed_parsed_log, log_path=log_path, force_update=True
             )
 
-            if dpslog.instance_clear is None:
+            if dpslog.instance_clear != progression_service.iclear:
                 logger.info(f"Updating instance clear for log {dpslog} with log path {log_path}")
                 dpslog.instance_clear = progression_service.iclear
                 dpslog.save()

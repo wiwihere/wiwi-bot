@@ -15,11 +15,6 @@ from bot_settings import settings
 from gw2_logs.models import (
     Encounter,
 )
-from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
-    BOSS_MAX_DURATION,
-    get_duration_str,
-)
 from scripts.model_interactions.encounter import EncounterInteraction
 
 logger = logging.getLogger(__name__)

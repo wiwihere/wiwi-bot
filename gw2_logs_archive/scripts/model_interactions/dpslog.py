@@ -9,7 +9,7 @@ import logging
 from gw2_logs.models import DpsLog
 from scripts.log_helpers import (
     BOSS_HEALTH_PERCENTAGES,
-    BOSS_MAX_DURATION,
+    BOSS_MAX_DURATION_SECOND,
     get_duration_str,
 )
 
@@ -31,7 +31,7 @@ class DpsLogMessageBuilder:
 
     @property
     def max_duration_seconds(self) -> int:
-        return BOSS_MAX_DURATION[self.dpslog.encounter.name]
+        return BOSS_MAX_DURATION_SECOND[self.dpslog.encounter.name]
 
     @property
     def boss_health_percentages(self) -> list[int]:

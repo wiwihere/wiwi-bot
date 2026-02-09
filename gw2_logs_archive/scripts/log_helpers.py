@@ -54,10 +54,13 @@ PLAYER_EMOTES = {
     "pug": Emoji.objects.get(name="pug").discord_tag(),
 }
 
-BOSS_MAX_DURATION = {"Temple of Febe": 10 * 60}  # s
+BOSS_MAX_DURATION_SECOND = {
+    "Temple of Febe": 10 * 60,
+    "Decima, the Stormsinger": 10 * 60,
+}
 BOSS_HEALTH_PERCENTAGES = {
     "Temple of Febe": [80, 50, 10],
-    "Decima": [75, 50, 25],
+    "Decima, the Stormsinger": [75, 50, 25],
 }
 
 
@@ -362,7 +365,7 @@ def get_rank_emote(
     return rank_str
 
 
-def create_folder_names(itype_groups: list = None):
+def create_folder_names(itype_groups: list = None) -> list:
     """Create list of possible folder names for the selected itype_group.
     This makes it possible to filter logs before uploading them.
     """

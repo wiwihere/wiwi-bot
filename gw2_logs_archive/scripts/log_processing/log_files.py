@@ -179,10 +179,14 @@ class LogFilesDate:
             self.logs[logfile.id] = logfile
 
     def get_unprocessed_logs(self, processing_type: Literal["local", "upload"]) -> list[LogFile]:
-        """Get the unprocessed logs for a given processing type. Calls refresh_logs to get the latest logs before filtering."""
+        """Get the unprocessed logs sorted by start time (path name) for a given processing type.
+        Calls refresh_logs to get the latest logs before filtering.
+
+        """
         self.refresh_logs()
 
-        return [log for log in self.logs.values() if not getattr(log, f"{processing_type}_processed")]
+        unprocessed = [logf for logf in self.logs.values() if not getattr(logf, f"{processing_type}_processed")]
+        return sorted(unprocessed, key=lambda logf: logf.path.name)
 
 
 # %%
