@@ -74,7 +74,6 @@ class ProgressionService:
 
         return iclear
 
-
     def get_message_author(self) -> str:
         """Create author name for discord message.
         The author is displayed at the top of the message.

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2025, 11, 27
-    y, m, d = 2025, 12, 8
+    # y, m, d = 2025, 12, 8
 
     clear_group_base_name = "decima_cm"
     processing_type = "local"
@@ -57,9 +57,14 @@ if __name__ == "__main__":
             )
 
             if dpslog.instance_clear != progression_service.iclear:
-                logger.info(f"Updating instance clear for log {dpslog} with log path {log_path}")
-                dpslog.instance_clear = progression_service.iclear
-                dpslog.save()
+                if dpslog.cm:
+                    logger.info(f"Updating instance clear for log {dpslog} with log path {log_path}")
+                    dpslog.instance_clear = progression_service.iclear
+                    dpslog.save()
+                else:
+                    logger.info(
+                        f"Not updating instance clear for log {dpslog} with log path {log_path} because it is not cm"
+                    )
 
     # %%
 
