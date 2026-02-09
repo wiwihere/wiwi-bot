@@ -314,7 +314,6 @@ class DpsLog(models.Model):
     report_id = models.CharField(max_length=100, null=True, blank=True)
     local_path = models.CharField(max_length=200, null=True, blank=True)
     json_dump = models.JSONField(null=True, blank=True)
-    phasetime_str = models.CharField(max_length=100, null=True, blank=True)  # cerus cm
     health_timers = models.JSONField(null=True, blank=True)  # for progression
     use_in_leaderboard = models.BooleanField(default=True)
 
