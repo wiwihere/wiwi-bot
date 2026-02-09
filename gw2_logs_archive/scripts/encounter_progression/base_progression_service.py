@@ -87,6 +87,21 @@ class ProgressionService:
         )
         return f"Day #{progression_days_count:02d}"
 
+    def get_message_footer(self) -> str:
+        icg_all = InstanceClearGroup.objects.filter(
+            name__startswith=f"{self.clear_group_base_name}__",
+            type="strike",
+            start_time__lte=self.iclear_group.start_time,
+        )
+        logs_count = sum([len(icg.dps_logs_all) for icg in icg_all])
+
+        total_seconds = sum(
+            int(icg.instance_clears.first().duration.total_seconds()) for icg in icg_all if icg.instance_clears.first()
+        )
+        time_str = str(pd.to_timedelta(total_seconds, unit="s"))
+
+        return f"Total logs: {logs_count}\nTotal duration: {time_str}\n"
+
     def update_instance_clear(self) -> Tuple[InstanceClear, InstanceClearGroup]:
         """Update the iclear_group and iclear"""
         dps_logs_all = self.iclear_group.dps_logs_all
