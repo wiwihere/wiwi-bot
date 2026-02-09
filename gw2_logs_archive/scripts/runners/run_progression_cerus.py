@@ -9,7 +9,7 @@ import logging
 import time
 
 from django.conf import settings
-from scripts.discord_interaction.build_message_cerus import send_progression_discord_message
+from scripts.discord_interaction.build_message_progression import send_progression_discord_message
 from scripts.encounter_progression.cerus_service import CerusProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
