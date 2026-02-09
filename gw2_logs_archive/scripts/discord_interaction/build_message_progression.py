@@ -19,7 +19,6 @@ import pandas as pd
 from gw2_logs.models import (
     DpsLog,
     Emoji,
-    InstanceClearGroup,
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.message_helpers import (
@@ -33,7 +32,7 @@ from scripts.model_interactions.dpslog import DpsLogMessageBuilder
 logger = logging.getLogger(__name__)
 
 
-def _build_log_message_line_progression(row: pd.Series) -> str:
+def _build_log_message_line_progression(progression_service: ProgressionService, row: pd.Series) -> str:
     """Row of logs_rank_health_df created by
     encounter_progression/base_progression_service.py/ProgressionService.create_logs_rank_health_df.
     """
@@ -42,7 +41,7 @@ def _build_log_message_line_progression(row: pd.Series) -> str:
     # -------------------------------
     # Find the medal for the achieved health percentage -> "<:4_masterwork:1218309092477767810>"
     # -------------------------------
-    rank_emote = ProgressionService.get_rank_emote_for_log(dpslog)
+    rank_emote = progression_service.get_rank_emote_for_log(dpslog)
 
     if dpslog.lcm:
         url_emote = "★"
@@ -102,7 +101,7 @@ def _build_progression_discord_message(progression_service: ProgressionService) 
     descriptions[embed_colour_group][current_field] = ""
 
     for idx, row in logs_rank_health_df.iterrows():
-        log_message_line = _build_log_message_line_progression(row=row)
+        log_message_line = _build_log_message_line_progression(progression_service=progression_service, row=row)
 
         # Add line to descriptions, breaking into new fields if character limit is hit
         titles, descriptions, current_field = add_line_to_descriptions(
@@ -136,3 +135,12 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
 
 
 # %%
+if __name__ == "__main__":
+    from scripts.encounter_progression.decima_service import DecimaProgressionService
+    from scripts.log_helpers import today_y_m_d
+
+    y, m, d = today_y_m_d()
+    y, m, d = 2025, 12, 8
+    progression_service = DecimaProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
+
+    dpslog = progression_service.iclear_group.dps_logs_all[0]

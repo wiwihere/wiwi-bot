@@ -6,6 +6,7 @@ if __name__ == "__main__":
 
 
 import logging
+from itertools import chain
 from typing import Literal, Tuple
 
 import numpy as np
@@ -26,7 +27,7 @@ from scripts.log_helpers import (
 
 # For progression always use percentiles.
 RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(
-    custom_emoji_name=False, invalid=False
+    custom_emoji_name=True, invalid=False
 )
 
 logger = logging.getLogger(__name__)
@@ -87,13 +88,23 @@ class ProgressionService:
         )
         return f"Day #{progression_days_count:02d}"
 
+    def get_all_logs(self) -> list[DpsLog]:
+        """Get the total log count for this progression."""
+        icg_all = InstanceClearGroup.objects.filter(
+            name__startswith=f"{self.clear_group_base_name}__",
+            type="strike",
+            start_time__lte=self.iclear_group.start_time,
+        )
+        dps_logs = list(chain.from_iterable(icg.dps_logs_all for icg in icg_all))
+        return sorted(dps_logs, key=lambda d: d.final_health_percentage)
+
     def get_message_footer(self) -> str:
         icg_all = InstanceClearGroup.objects.filter(
             name__startswith=f"{self.clear_group_base_name}__",
             type="strike",
             start_time__lte=self.iclear_group.start_time,
         )
-        logs_count = sum([len(icg.dps_logs_all) for icg in icg_all])
+        logs_count = len(self.get_all_logs())
 
         total_seconds = sum(
             int(icg.instance_clears.first().duration.total_seconds()) for icg in icg_all if icg.instance_clears.first()
@@ -133,14 +144,18 @@ class ProgressionService:
                 self.iclear.duration = calculated_duration
                 self.iclear.save()
 
-    @staticmethod
-    def get_rank_emote_for_log(dpslog: DpsLog) -> int:
+    def get_rank_emote_for_log(self, dpslog: DpsLog) -> int:
         """Build rank_emote based on the final health left.
         e.g. -> '<:4_masterwork:1218309092477767810>'
         """
+
         percentile_rank = 100 - dpslog.final_health_percentage
         rank_binned = np.searchsorted(RANK_BINS_PERCENTILE_PROGRESSION, percentile_rank, side="left")
-        rank_emote = RANK_EMOTES_PROGRESSION[rank_binned].format(int(percentile_rank))
+
+        all_logs = self.get_all_logs()
+        rank = all_logs.index(dpslog) + 1
+
+        rank_emote = RANK_EMOTES_PROGRESSION[rank_binned].format(rank, len(all_logs))
         return rank_emote
 
     def create_logs_rank_health_df(self, minimal_delay_seconds: int) -> pd.DataFrame:
@@ -218,4 +233,4 @@ class ProgressionService:
     def get_table_header(self) -> str:
         percentages = BOSS_HEALTH_PERCENTAGES[self.encounter.name]
         percentages_str = "|  ".join([f"{hp}% " for hp in percentages])
-        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"
+        return f"`##`{RANK_EMOTES_PROGRESSION[7].format('lets_goo', 'killkillkill')}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"
