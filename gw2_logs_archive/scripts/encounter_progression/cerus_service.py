@@ -5,7 +5,9 @@ if __name__ == "__main__":
     django_setup.run()
 
 
+import json
 import logging
+from pathlib import Path
 
 from django.conf import settings
 from gw2_logs.models import (
@@ -19,6 +21,11 @@ from scripts.log_helpers import (
 
 logger = logging.getLogger(__name__)
 
+# Load config
+CONFIG_PATH = Path(__file__).parent / "encounter_progression_config.json"
+with open(CONFIG_PATH, "r") as f:
+    PROGRESSION_CONFIG = json.load(f)
+
 
 class CerusProgressionService(ProgressionService):
     def __init__(
@@ -28,12 +35,14 @@ class CerusProgressionService(ProgressionService):
         m: int,
         d: int,
     ):
+        config = PROGRESSION_CONFIG[clear_group_base_name]
+        
         self.clear_group_base_name = clear_group_base_name
         self.clear_name = f"{self.clear_group_base_name}__{zfill_y_m_d(y, m, d)}"  # e.g. cerus_cm__20240406
-        self.encounter = Encounter.objects.get(name="Temple of Febe")
-        self.embed_colour_group = "cerus_cm"  # needed for embed parsing, needs to be in EMBED_COLOUR
+        self.encounter = Encounter.objects.get(name=config["encounter_name"])
+        self.embed_colour_group = config["embed_colour_group"]  # needed for embed parsing, needs to be in EMBED_COLOUR
         self.webhook_thread_id = getattr(
-            settings.ENV_SETTINGS, "webhook_bot_thread_cerus_cm"
+            settings.ENV_SETTINGS, config["webhook_thread_id_attr"]
         )  # needs to be in .env.prd
         self.webhook_url = settings.WEBHOOKS["progression"]
 

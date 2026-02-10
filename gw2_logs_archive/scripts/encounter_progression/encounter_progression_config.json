@@ -1,0 +1,12 @@
+{
+  "cerus_cm": {
+    "encounter_name": "Temple of Febe",
+    "embed_colour_group": "cerus_cm",
+    "webhook_thread_id_attr": "webhook_bot_thread_cerus_cm"
+  },
+  "decima_cm": {
+    "encounter_name": "Decima, the Stormsinger",
+    "embed_colour_group": "cerus_cm",
+    "webhook_thread_id_attr": "webhook_bot_thread_decima_cm"
+  }
+}
