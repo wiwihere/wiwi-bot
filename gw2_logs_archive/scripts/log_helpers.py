@@ -60,7 +60,7 @@ BOSS_MAX_DURATION_SECOND = {
 }
 BOSS_HEALTH_PERCENTAGES = {
     "Temple of Febe": [80, 50, 10],
-    "Decima, the Stormsinger": [75, 50, 25],
+    "Decima, the Stormsinger": [70, 40, 10],
 }
 
 
