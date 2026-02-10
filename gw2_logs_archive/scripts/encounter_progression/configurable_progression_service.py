@@ -43,7 +43,9 @@ def _load_progression_config():
 
 
 class ConfigurableProgressionService(ProgressionService):
-    """Generic progression service that reads configuration from encounter_progression_config.json"""
+    """Generic progression service that reads configuration from encounter_progression_config.json
+    See the _load_progression_config function for expected config format.
+    """
 
     def __init__(
         self,
@@ -92,12 +94,13 @@ class ConfigurableProgressionService(ProgressionService):
 
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
-    y, m, d = 2024, 3, 16
 
     # Example for Cerus
-    cerus_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
+    y, m, d = 2024, 3, 16
+    progression_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
 
     # Example for Decima
-    # decima_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
+    y, m, d = 2025, 12, 8
+    # progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
 # %%

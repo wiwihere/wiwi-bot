@@ -51,7 +51,7 @@ def run_progression_cerus(clear_group_base_name: str, y: int, m: int, d: int) ->
                 current_sleeptime = MAXSLEEPTIME
 
             if len(processed_logs) > 0:
-                progression_service.update_instance_clear()
+                progression_service.update_instance_clear_startime_and_duration()
                 send_progression_discord_message(progression_service)
 
             if processing_type == "local":
