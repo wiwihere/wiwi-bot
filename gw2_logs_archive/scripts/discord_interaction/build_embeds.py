@@ -44,7 +44,11 @@ def validate_embed_size(embed: discord.Embed) -> bool:
     return True
 
 
-def create_discord_embeds(titles: dict[dict, str], descriptions: dict[dict, str]) -> dict[str, discord.Embed]:
+def create_discord_embeds(
+    titles: dict[dict, str],
+    descriptions: dict[dict, str],
+    embed_colour_dict: dict[str, int] = EMBED_COLOUR,
+) -> dict[str, discord.Embed]:
     """Create discord embed from titles and descriptions."""
     embeds: dict[str, discord.Embed] = {}
     has_title = False
@@ -95,7 +99,7 @@ def create_discord_embeds(titles: dict[dict, str], descriptions: dict[dict, str]
             embeds[f"{instance_type}_{embed_id}"] = discord.Embed(
                 title=title,
                 description=description,
-                colour=EMBED_COLOUR[instance_type],
+                colour=embed_colour_dict[instance_type],
             )
 
             if use_fields:

@@ -74,7 +74,9 @@ def _build_log_message_line_progression(progression_service: ProgressionService,
     return log_message_line
 
 
-def _build_progression_discord_message(progression_service: ProgressionService) -> tuple[dict, dict]:
+def _build_progression_discord_message(
+    progression_service: ProgressionService, colour_key="dummy"
+) -> tuple[dict, dict]:
     progression_logs: list = progression_service.iclear_group.dps_logs_all
     logs_rank_health_df = progression_service.create_logs_rank_health_df(minimal_delay_seconds=120)
 
@@ -90,15 +92,12 @@ def _build_progression_discord_message(progression_service: ProgressionService) 
     titles = {}
     descriptions = {}
 
-    embed_colour_group = (
-        progression_service.embed_colour_group
-    )  # needed for embed parsing, needs to be in EMBED_COLOUR
-    titles[embed_colour_group] = {"main": progression_service.iclear_group.pretty_time}
-    descriptions[embed_colour_group] = {"main": description_main}
+    titles[colour_key] = {"main": progression_service.iclear_group.pretty_time}
+    descriptions[colour_key] = {"main": description_main}
 
     current_field = "field_0"
-    titles[embed_colour_group][current_field] = ""
-    descriptions[embed_colour_group][current_field] = ""
+    titles[colour_key][current_field] = ""
+    descriptions[colour_key][current_field] = ""
 
     for idx, row in logs_rank_health_df.iterrows():
         log_message_line = _build_log_message_line_progression(progression_service=progression_service, row=row)
@@ -109,7 +108,7 @@ def _build_progression_discord_message(progression_service: ProgressionService) 
             descriptions=descriptions,
             current_field=current_field,
             log_message_line=log_message_line,
-            dummy_group=embed_colour_group,
+            dummy_group=colour_key,
             table_header=table_header,
         )
     return titles, descriptions
@@ -117,10 +116,15 @@ def _build_progression_discord_message(progression_service: ProgressionService) 
 
 def send_progression_discord_message(progression_service: ProgressionService) -> None:
     """Build and send or update the cerus progression discord message for the given InstanceClearGroup."""
-    titles, descriptions = _build_progression_discord_message(progression_service=progression_service)
+    colour_key = "dummy"  # needed for embed colour parsing.
+    titles, descriptions = _build_progression_discord_message(
+        progression_service=progression_service, colour_key=colour_key
+    )
 
     if titles is not None:
-        embeds = create_discord_embeds(titles=titles, descriptions=descriptions)
+        embeds = create_discord_embeds(
+            titles=titles, descriptions=descriptions, embed_colour_dict={colour_key: progression_service.embed_colour}
+        )
         embeds_messages_list = list(embeds.values())
         embeds_messages_list[0] = embeds_messages_list[0].set_author(name=progression_service.get_message_author())
         embeds_messages_list[-1] = embeds_messages_list[-1].set_footer(text=progression_service.get_message_footer())

@@ -33,7 +33,7 @@ def _load_progression_config():
                     "description": "Early 2024 run", <-- optional
                     "encounter_name": "Temple of Febe", <-- encounter name as in the database
                     "embed_colour": "cerus_cm", <-- needs to be a colour code.
-                    "webhook_thread_id_env_var": "webhook_bot_thread_cerus_cm" <-- needs to be in .env.prd
+                    "webhook_thread_id_from_dotenv": "webhook_bot_thread_cerus_cm" <-- needs to be in .env.prd
                     },
                 }
             """
@@ -63,7 +63,7 @@ class ConfigurableProgressionService(ProgressionService):
 
         self.encounter = Encounter.objects.get(name=config["encounter_name"])
         self.embed_colour = config["embed_colour"]
-        self.webhook_thread_id = getattr(settings.ENV_SETTINGS, config["webhook_thread_id_attr"])
+        self.webhook_thread_id = getattr(settings.ENV_SETTINGS, config["webhook_thread_id_from_dotenv"])
         self.webhook_url = settings.WEBHOOKS["progression"]
 
         super().__init__(
