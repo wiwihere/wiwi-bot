@@ -222,6 +222,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         "lcm",
         "emboldened",
         "success",
+        "is_progression_log",
         "use_in_leaderboard",
         "final_health_percentage",
         "duration",
@@ -233,7 +234,7 @@ class DpsLogAdmin(admin.ModelAdmin):
         # "instance__type",
         # "group_clear_id",
     )
-    list_filter = ["encounter", "success", "cm"]
+    list_filter = ["encounter", "success", "cm", "is_progression_log"]
     search_fields = ["encounter__name", "id"]
 
     def instance_group(self, obj):

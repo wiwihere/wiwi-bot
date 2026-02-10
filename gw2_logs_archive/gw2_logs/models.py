@@ -298,6 +298,7 @@ class DpsLog(models.Model):
     lcm = models.BooleanField(default=False)
     emboldened = models.BooleanField(default=False)  # detailed info
     success = models.BooleanField(default=False)
+    is_progression_log = models.BooleanField(default=False)
 
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)
