@@ -7,11 +7,11 @@ if __name__ == "__main__":
 
 import json
 import logging
-from pathlib import Path
 
 from django.conf import settings
 from gw2_logs.models import (
     Encounter,
+    InstanceClearGroup,
 )
 from scripts.encounter_progression.base_progression_service import ProgressionService
 from scripts.log_helpers import (
@@ -21,10 +21,25 @@ from scripts.log_helpers import (
 
 logger = logging.getLogger(__name__)
 
-# Load config
-CONFIG_PATH = Path(__file__).parent / "encounter_progression_config.json"
-with open(CONFIG_PATH, "r") as f:
-    PROGRESSION_CONFIG = json.load(f)
+
+def _load_progression_config():
+    config_path = settings.PROJECT_DIR.joinpath("data", "encounter_progression_config.json")
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"Config file not found at {config_path}.\nPlease create it with the necessary progression configurations."
+            """\n Example configuration:
+                {
+                "cerus_cm": { <-- this is the clear_group_base_name, used to start a progression run.
+                    "description": "Early 2024 run", <-- optional
+                    "encounter_name": "Temple of Febe", <-- encounter name as in the database
+                    "embed_colour": "cerus_cm", <-- needs to be a colour code.
+                    "webhook_thread_id_env_var": "webhook_bot_thread_cerus_cm" <-- needs to be in .env.prd
+                    },
+                }
+            """
+        )
+    with open(config_path, "r") as f:
+        return json.load(f)
 
 
 class ConfigurableProgressionService(ProgressionService):
@@ -37,18 +52,17 @@ class ConfigurableProgressionService(ProgressionService):
         m: int,
         d: int,
     ):
-        if clear_group_base_name not in PROGRESSION_CONFIG:
-            available_encounters = ", ".join(PROGRESSION_CONFIG.keys())
-            raise ValueError(
-                f"Unknown encounter '{clear_group_base_name}'. Available encounters: {available_encounters}"
-            )
-
-        config = PROGRESSION_CONFIG[clear_group_base_name]
-
+        config_dict = _load_progression_config()
         self.clear_group_base_name = clear_group_base_name
-        self.clear_name = f"{self.clear_group_base_name}__{zfill_y_m_d(y, m, d)}"
+        self.clear_name = f"{self.clear_group_base_name}_progression__{zfill_y_m_d(y, m, d)}"
+
+        if clear_group_base_name not in config_dict:
+            self.raise_with_available_progressions()
+
+        config = config_dict[clear_group_base_name]
+
         self.encounter = Encounter.objects.get(name=config["encounter_name"])
-        self.embed_colour_group = config["embed_colour_group"]
+        self.embed_colour = config["embed_colour"]
         self.webhook_thread_id = getattr(settings.ENV_SETTINGS, config["webhook_thread_id_attr"])
         self.webhook_url = settings.WEBHOOKS["progression"]
 
@@ -56,9 +70,21 @@ class ConfigurableProgressionService(ProgressionService):
             clear_group_base_name=self.clear_group_base_name,
             clear_name=self.clear_name,
             encounter=self.encounter,
-            embed_colour_group=self.embed_colour_group,
+            embed_colour=self.embed_colour,
             webhook_thread_id=self.webhook_thread_id,
             webhook_url=self.webhook_url,
+        )
+
+    def raise_with_available_progressions(self, config_dict: dict):
+        available_progressions = ", ".join(config_dict.keys())
+        progressions_in_db = {
+            name.split("_progression__")[0]
+            for name in InstanceClearGroup.objects.filter(name__contains="_progression__").values_list(
+                "name", flat=True
+            )
+        }
+        raise ValueError(
+            f"Unknown progression '{self.clear_group_base_name}'.\nAvailable progressions: {available_progressions}\nIn database: {', '.join(progressions_in_db)}"
         )
 
 

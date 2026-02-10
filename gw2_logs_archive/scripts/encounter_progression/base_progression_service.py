@@ -39,14 +39,14 @@ class ProgressionService:
         clear_group_base_name: str,
         clear_name: str,
         encounter: Encounter,
-        embed_colour_group: str,
+        embed_colour: str,
         webhook_thread_id: str,
         webhook_url: str,
     ) -> None:
         self.clear_group_base_name = clear_group_base_name
         self.clear_name = clear_name
         self.encounter = encounter
-        self.colour_group = embed_colour_group
+        self.embed_colour = embed_colour
         self.webhook_thread_id = webhook_thread_id
         self.webhook_url = webhook_url
 
