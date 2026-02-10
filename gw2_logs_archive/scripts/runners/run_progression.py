@@ -7,6 +7,7 @@ if __name__ == "__main__":
 
 import logging
 import time
+from typing import Optional
 
 from django.conf import settings
 from scripts.discord_interaction.build_message_progression import send_progression_discord_message
@@ -22,7 +23,12 @@ from scripts.log_processing.logfile_processing import process_logs_once
 logger = logging.getLogger(__name__)
 
 
-def run_progression_cerus(clear_group_base_name: str, y: int, m: int, d: int) -> None:
+def run_progression_service(
+    clear_group_base_name: str,
+    y: Optional[int] = None,
+    m: Optional[int] = None,
+    d: Optional[int] = None,
+) -> None:
     run_count = 0
     SLEEPTIME = 30
     MAXSLEEPTIME = 60 * SLEEPTIME  # Number of seconds without a log until we stop looking.

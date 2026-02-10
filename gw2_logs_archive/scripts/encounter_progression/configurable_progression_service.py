@@ -96,11 +96,11 @@ if __name__ == "__main__":
     y, m, d = today_y_m_d()
 
     # Example for Cerus
-    y, m, d = 2024, 3, 16
-    progression_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
+    # y, m, d = 2024, 3, 16
+    # progression_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
 
     # Example for Decima
     y, m, d = 2025, 12, 8
-    # progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
+    progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
 # %%
