@@ -1,4 +1,4 @@
-# %% gw2_logs_archive\scripts\encounter_progression\cerus_service.py
+# %% gw2_logs_archive\scripts\encounter_progression\configurable_progression_service.py
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
@@ -27,7 +27,9 @@ with open(CONFIG_PATH, "r") as f:
     PROGRESSION_CONFIG = json.load(f)
 
 
-class CerusProgressionService(ProgressionService):
+class ConfigurableProgressionService(ProgressionService):
+    """Generic progression service that reads configuration from encounter_progression_config.json"""
+
     def __init__(
         self,
         clear_group_base_name: str,
@@ -35,15 +37,19 @@ class CerusProgressionService(ProgressionService):
         m: int,
         d: int,
     ):
+        if clear_group_base_name not in PROGRESSION_CONFIG:
+            available_encounters = ", ".join(PROGRESSION_CONFIG.keys())
+            raise ValueError(
+                f"Unknown encounter '{clear_group_base_name}'. Available encounters: {available_encounters}"
+            )
+
         config = PROGRESSION_CONFIG[clear_group_base_name]
-        
+
         self.clear_group_base_name = clear_group_base_name
-        self.clear_name = f"{self.clear_group_base_name}__{zfill_y_m_d(y, m, d)}"  # e.g. cerus_cm__20240406
+        self.clear_name = f"{self.clear_group_base_name}__{zfill_y_m_d(y, m, d)}"
         self.encounter = Encounter.objects.get(name=config["encounter_name"])
-        self.embed_colour_group = config["embed_colour_group"]  # needed for embed parsing, needs to be in EMBED_COLOUR
-        self.webhook_thread_id = getattr(
-            settings.ENV_SETTINGS, config["webhook_thread_id_attr"]
-        )  # needs to be in .env.prd
+        self.embed_colour_group = config["embed_colour_group"]
+        self.webhook_thread_id = getattr(settings.ENV_SETTINGS, config["webhook_thread_id_attr"])
         self.webhook_url = settings.WEBHOOKS["progression"]
 
         super().__init__(
@@ -61,6 +67,11 @@ class CerusProgressionService(ProgressionService):
 if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2024, 3, 16
-    cps = CerusProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
+
+    # Example for Cerus
+    cerus_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
+
+    # Example for Decima
+    # decima_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
 # %%

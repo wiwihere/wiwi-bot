@@ -10,8 +10,7 @@ import logging
 
 from django.conf import settings
 from scripts.discord_interaction.build_message_progression import send_progression_discord_message
-from scripts.encounter_progression.cerus_service import CerusProgressionService
-from scripts.encounter_progression.decima_service import DecimaProgressionService
+from scripts.encounter_progression.configurable_progression_service import ConfigurableProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
@@ -37,7 +36,7 @@ if __name__ == "__main__":
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    progression_service = DecimaProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
+    progression_service = ConfigurableProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
 
     log_files_date_cls = LogFilesDate(
         y=y, m=m, d=d, allowed_folder_names=progression_service.encounter.folder_names.split(";")

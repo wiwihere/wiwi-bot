@@ -136,11 +136,11 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
 
 # %%
 if __name__ == "__main__":
-    from scripts.encounter_progression.decima_service import DecimaProgressionService
+    from scripts.encounter_progression.configurable_progression_service import ConfigurableProgressionService
     from scripts.log_helpers import today_y_m_d
 
     y, m, d = today_y_m_d()
     y, m, d = 2025, 12, 8
-    progression_service = DecimaProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
+    progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
     dpslog = progression_service.iclear_group.dps_logs_all[0]
