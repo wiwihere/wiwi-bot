@@ -10,7 +10,6 @@ import logging
 
 from django.conf import settings
 from scripts.discord_interaction.build_message_progression import send_progression_discord_message
-from scripts.encounter_progression.configurable_progression_service import ConfigurableProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
@@ -18,6 +17,7 @@ from scripts.log_helpers import (
 from scripts.log_processing.ei_parser import EliteInsightsParser
 from scripts.log_processing.log_files import LogFilesDate
 from scripts.model_interactions.dpslog_service import DpsLogService
+from scripts.progression.configurable_progression_service import ConfigurableProgressionService
 
 logger = logging.getLogger(__name__)
 

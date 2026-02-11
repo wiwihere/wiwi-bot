@@ -15,11 +15,11 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from pydantic import BaseModel
-from scripts.encounter_progression.base_progression_service import ProgressionService
 from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
 )
+from scripts.progression.base_progression_service import ProgressionService
 
 logger = logging.getLogger(__name__)
 

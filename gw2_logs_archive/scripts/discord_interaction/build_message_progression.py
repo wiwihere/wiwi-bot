@@ -26,8 +26,8 @@ from scripts.discord_interaction.message_helpers import (
     create_duration_header_with_player_emotes,
 )
 from scripts.discord_interaction.send_message import Thread, create_or_update_discord_message
-from scripts.encounter_progression.base_progression_service import ProgressionService
 from scripts.model_interactions.dpslog import DpsLogMessageBuilder
+from scripts.progression.base_progression_service import ProgressionService
 
 logger = logging.getLogger(__name__)
 
@@ -142,8 +142,8 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
 
 # %%
 if __name__ == "__main__":
-    from scripts.encounter_progression.configurable_progression_service import ConfigurableProgressionService
     from scripts.log_helpers import today_y_m_d
+    from scripts.progression.configurable_progression_service import ConfigurableProgressionService
 
     y, m, d = today_y_m_d()
     y, m, d = 2025, 12, 8
