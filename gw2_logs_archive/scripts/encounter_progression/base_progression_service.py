@@ -25,6 +25,7 @@ from scripts.log_helpers import (
     create_rank_emote_dict_percentiles,
     get_duration_str,
 )
+from scripts.model_interactions.dpslog_service import DpsLogService
 
 # For progression always use percentiles.
 RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(
@@ -86,6 +87,13 @@ class ProgressionService:
         )
         dps_logs = list(chain.from_iterable(icg.dps_logs_all for icg in icg_all))
         return sorted(dps_logs, key=lambda d: d.final_health_percentage)
+
+    def update_dpslogs(self, processed_logs: list[DpsLog]):
+        """Update the dps logs with the progression log flag and save them."""
+        log_service = DpsLogService()
+        for dpslog in processed_logs:
+            log_service.mark_as_progression_log(dpslog)
+            log_service.mark_instance_clear(dpslog, self.iclear)
 
     def update_instance_clear_start_time_and_duration(self) -> Tuple[InstanceClear, InstanceClearGroup]:
         """Update the iclear_group and iclear start_time and duration."""

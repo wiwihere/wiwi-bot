@@ -40,7 +40,9 @@ def run_progression_service(
 
     progression_service = ConfigurableProgressionService(clear_group_base_name=clear_group_base_name, y=y, m=m, d=d)
 
-    log_files_date_cls = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=[progression_service.encounter.folder_names])
+    log_files_date_cls = LogFilesDate(
+        y=y, m=m, d=d, allowed_folder_names=progression_service.encounter.folder_names.split(";")
+    )
 
     # Flow start
     PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
@@ -57,7 +59,8 @@ def run_progression_service(
                 current_sleeptime = MAXSLEEPTIME
 
             if len(processed_logs) > 0:
-                progression_service.update_instance_clear_startime_and_duration()
+                progression_service.update_dpslogs(processed_logs=processed_logs)
+                progression_service.update_instance_clear_start_time_and_duration()
                 send_progression_discord_message(progression_service)
 
             if processing_type == "local":
@@ -76,3 +79,6 @@ if __name__ == "__main__":
     y, m, d = today_y_m_d()
     y, m, d = 2024, 4, 20
     clear_group_base_name = "cerus_cm"
+
+    y, m, d = 2025, 12, 8
+    clear_group_base_name = "decima_cm"

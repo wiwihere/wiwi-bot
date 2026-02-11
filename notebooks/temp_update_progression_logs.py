@@ -66,5 +66,5 @@ if __name__ == "__main__":
 
     # %%
 
-    progression_service.update_instance_clear_startime_and_duration()
+    progression_service.update_instance_clear_start_time_and_duration()
     send_progression_discord_message(progression_service)
