@@ -76,18 +76,14 @@ class ConfigurableProgressionService(ProgressionService):
 
         config = config_dict[clear_group_base_name]
 
-        self.encounter = Encounter.objects.get(name=config.encounter_name)
-        self.embed_colour = config.embed_colour
-        self.webhook_thread_id = getattr(settings.ENV_SETTINGS, config.webhook_thread_id_from_dotenv)
-        self.webhook_url = settings.WEBHOOKS["progression"]
-
         super().__init__(
             clear_group_base_name=self.clear_group_base_name,
             clear_name=self.clear_name,
-            encounter=self.encounter,
-            embed_colour=self.embed_colour,
-            webhook_thread_id=self.webhook_thread_id,
-            webhook_url=self.webhook_url,
+            encounter=Encounter.objects.get(name=config.encounter_name),
+            display_health_percentages=config.display_health_percentages,
+            embed_colour=config.embed_colour,
+            webhook_thread_id=getattr(settings.ENV_SETTINGS, config.webhook_thread_id_from_dotenv),
+            webhook_url=settings.WEBHOOKS["progression"],
         )
 
     def raise_with_available_progressions(self, config_dict: dict):

@@ -47,6 +47,7 @@ def run_progression_service(
     # Flow start
     PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
     processing_type = "local"  # Easier for testing.
+    logger.info("Starting progression run")
     while True:
         for processing_type in PROCESSING_SEQUENCE:
             processed_logs = process_logs_once(

@@ -41,26 +41,16 @@ WIPE_EMOTES = {
     7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name(),
     8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name(),  # Full health
 }
+
 EMBED_COLOUR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
-    "cerus_cm": 7930903,
-    "decima_cm": 16744448,
 }
 PLAYER_EMOTES = {
     "core": Emoji.objects.get(name="core").discord_tag(),
     "friend": Emoji.objects.get(name="friend").discord_tag(),
     "pug": Emoji.objects.get(name="pug").discord_tag(),
-}
-
-BOSS_MAX_DURATION_SECOND = {
-    "Temple of Febe": 10 * 60,
-    "Decima, the Stormsinger": 10 * 60,
-}
-BOSS_HEALTH_PERCENTAGES = {
-    "Temple of Febe": [80, 50, 10],
-    "Decima, the Stormsinger": [70, 40, 10],
 }
 
 

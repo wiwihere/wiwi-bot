@@ -8,8 +8,6 @@ import logging
 
 from gw2_logs.models import DpsLog
 from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
-    BOSS_MAX_DURATION_SECOND,
     get_duration_str,
 )
 
@@ -29,41 +27,33 @@ class DpsLogMessageBuilder:
             health_str = "100.0"
         return health_str
 
-    @property
-    def max_duration_seconds(self) -> int:
-        return BOSS_MAX_DURATION_SECOND[self.dpslog.encounter.name]
-
-    @property
-    def boss_health_percentages(self) -> list[int]:
-        return BOSS_HEALTH_PERCENTAGES[self.dpslog.encounter.name]
-
-    def health_percentage_to_remaining_time_str(self, hp: int) -> str:
+    def _health_percentage_to_remaining_time_str(self, hp: int) -> str:
         """Get the time in seconds when the boss reached a certain health percentage.
         This is shown in the progression message as the remaining time until enrage at certain health milestones.
         """
+        max_duration_seconds = self.dpslog.encounter.enrage_time_seconds
+        if max_duration_seconds is None:
+            raise ValueError(
+                f"Encounter {self.dpslog.encounter.name} does not have enrage_time_seconds defined in database."
+            )
+
         time_s = self.dpslog.health_timers.get(str(hp))
         if time_s is None:
             return " -- "
         else:
             if time_s <= 0:
                 return " -- "
-            return get_duration_str(int(self.max_duration_seconds - time_s))
+            return get_duration_str(int(max_duration_seconds - time_s))
 
-    def build_phasetime_str(self) -> str:
-        """For progression logging when a milestone (from BOSS_HEALTH_PERCENTAGES) has been reached
+    def build_phasetime_str(self, display_health_percentages: list[int]) -> str:
+        """For progression logging when a milestone (from display_health_percentages) has been reached
         is calculated from detailed logs. The remaining time until enrage is shown at the specified health percentages.
 
         For example, for Cerus the times at 80%, 50% and 10% health are calculated.
         This results in a string like:
         '8:12 | 5:34 | 1:07'
         """
-
-        if self.dpslog.encounter.name not in BOSS_HEALTH_PERCENTAGES.keys():
-            return None
-
-        # Build phasetime list like ["8:12", "5:34", "1:07"] based on the health timers in the dpslog and the
-        # boss health percentages defined in log_helpers.BOSS_HEALTH_PERCENTAGES
-        phasetime_lst = [self.health_percentage_to_remaining_time_str(hp) for hp in self.boss_health_percentages]
+        phasetime_lst = [self._health_percentage_to_remaining_time_str(hp) for hp in display_health_percentages]
 
         return " | ".join(phasetime_lst)
 

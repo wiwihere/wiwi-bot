@@ -20,12 +20,12 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
     RANK_EMOTES_CUPS_PROGRESSION,
     create_rank_emote_dict_percentiles,
     get_duration_str,
 )
 from scripts.model_interactions.dpslog_service import DpsLogService
+from traitlets import This
 
 # For progression always use percentiles.
 RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(
@@ -41,6 +41,7 @@ class ProgressionService:
         clear_group_base_name: str,
         clear_name: str,
         encounter: Encounter,
+        display_health_percentages: list[int],
         embed_colour: str,
         webhook_thread_id: str,
         webhook_url: str,
@@ -49,6 +50,7 @@ class ProgressionService:
         self.clear_name = clear_name
         self.encounter = encounter
         self.embed_colour = embed_colour
+        self.display_health_percentages = display_health_percentages
         self.webhook_thread_id = webhook_thread_id
         self.webhook_url = webhook_url
 
@@ -212,8 +214,7 @@ class ProgressionService:
         return f"Day #{progression_days_count:02d}"
 
     def get_table_header(self) -> str:
-        percentages = BOSS_HEALTH_PERCENTAGES[self.encounter.name]
-        percentages_str = "|  ".join([f"{hp}% " for hp in percentages])
+        percentages_str = "|  ".join([f"{hp}% " for hp in self.display_health_percentages])
         return f"`##`{RANK_EMOTES_PROGRESSION[7].format('lets_goo', 'killkillkill')}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"
 
     def get_rank_emote_for_log(self, dpslog: DpsLog) -> int:

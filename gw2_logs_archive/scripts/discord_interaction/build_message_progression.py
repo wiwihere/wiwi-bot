@@ -62,7 +62,9 @@ def _build_log_message_line_progression(progression_service: ProgressionService,
     # which is a nice way to align the text and make it more readable.
     dli = DpsLogMessageBuilder(dpslog)
     health_str = dli.build_health_str()
-    health_phasetime_str = f"` {health_str}% | {dli.build_phasetime_str()} `"
+    health_phasetime_str = (
+        f"` {health_str}% | {dli.build_phasetime_str(progression_service.display_health_percentages)} `"
+    )
 
     # -------------------------------
     # Combine
