@@ -46,13 +46,14 @@ def run_progression_service(
 
     # Flow start
     PROCESSING_SEQUENCE = ["local", "upload"] + ["local"] * 9
-
+    processing_type = "local"  # Easier for testing.
     while True:
         for processing_type in PROCESSING_SEQUENCE:
             processed_logs = process_logs_once(
                 processing_type=processing_type,
                 log_files_date_cls=log_files_date_cls,
                 ei_parser=ei_parser,
+                must_be_cm=True,
             )
 
             if processed_logs:
@@ -80,5 +81,8 @@ if __name__ == "__main__":
     y, m, d = 2024, 4, 20
     clear_group_base_name = "cerus_cm"
 
+    y, m, d = 2025, 11, 27
     y, m, d = 2025, 12, 8
     clear_group_base_name = "decima_cm"
+
+# %%

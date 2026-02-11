@@ -85,6 +85,7 @@ def process_logs_once(
     log_files_date_cls: LogFilesDate,
     ei_parser: EliteInsightsParser,
     force_update: bool = False,
+    must_be_cm: bool = False,
 ) -> list[DpsLog]:
     """
     Process all unprocessed logs once for a given date and processing type.
@@ -105,6 +106,9 @@ def process_logs_once(
         Configured Elite Insights parser instance.
     force_update : bool
         If True, forces update of existing DpsLog even if it already exists.
+    must_be_cm : bool, default is False
+        If True, only processes logs that are Challenge Mode (CM) are returned.
+        This is used in progression logs.
 
     Returns
     -------
@@ -129,6 +133,11 @@ def process_logs_once(
                 )
                 logfile.mark_local_processed()
                 logfile.mark_upload_processed()
+            elif must_be_cm and not dpslog.cm:
+                logger.info(f"{log_path}: Skipped because it is not a CM log.")
+                logfile.mark_local_processed()
+                logfile.mark_upload_processed()
+                continue
             else:
                 logfile.mark_local_processed()
                 if dpslog.url != "":
@@ -142,7 +151,7 @@ def process_logs_once(
                 logfile.mark_upload_processed()
 
         # Add log to processed logs if it was processed in this step
-        if dpslog is not None:
+        if dpslog is not None or (must_be_cm and not dpslog.cm):
             processed_logs += [dpslog]
     return processed_logs
 

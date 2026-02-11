@@ -103,7 +103,7 @@ class ProgressionService:
             # Set iclear_group start time
             if self.iclear_group.start_time != start_time:
                 logger.info(
-                    f"Updating start time for {self.iclear_group.name} from {self.iclear_group.start_time} to {start_time}"
+                    f"Updating start time for iclear_group {self.iclear_group.name} from {self.iclear_group.start_time} to {start_time}"
                 )
                 self.iclear_group.start_time = start_time
                 self.iclear_group.save()
@@ -111,7 +111,7 @@ class ProgressionService:
             # Set iclear start time
             if self.iclear.start_time != start_time:
                 logger.info(
-                    f"Updating start time for {self.iclear.name} from {self.iclear.start_time} to {start_time}"
+                    f"Updating start time for iclear {self.iclear.name} from {self.iclear.start_time} to {start_time}"
                 )
                 self.iclear.start_time = start_time
                 self.iclear.save()
