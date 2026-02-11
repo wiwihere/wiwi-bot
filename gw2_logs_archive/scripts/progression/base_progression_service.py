@@ -25,7 +25,6 @@ from scripts.log_helpers import (
     get_duration_str,
 )
 from scripts.model_interactions.dpslog_service import DpsLogService
-from traitlets import This
 
 # For progression always use percentiles.
 RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(

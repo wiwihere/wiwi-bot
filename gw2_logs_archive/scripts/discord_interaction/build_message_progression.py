@@ -19,7 +19,6 @@ import pandas as pd
 from gw2_logs.models import (
     DpsLog,
     Emoji,
-    InstanceClearGroup,
 )
 from scripts.discord_interaction.build_embeds import create_discord_embeds
 from scripts.discord_interaction.message_helpers import (
