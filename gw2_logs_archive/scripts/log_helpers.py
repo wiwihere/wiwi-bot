@@ -41,26 +41,16 @@ WIPE_EMOTES = {
     7: Emoji.objects.get(name="wipe 88").discord_tag_custom_name(),
     8: Emoji.objects.get(name="wipe 100").discord_tag_custom_name(),  # Full health
 }
+
 EMBED_COLOUR = {
     "raid": 7930903,
     "strike": 6603422,
     "fractal": 5512822,
-    "cerus_cm": 7930903,
-    "decima_cm": 16744448,
 }
 PLAYER_EMOTES = {
     "core": Emoji.objects.get(name="core").discord_tag(),
     "friend": Emoji.objects.get(name="friend").discord_tag(),
     "pug": Emoji.objects.get(name="pug").discord_tag(),
-}
-
-BOSS_MAX_DURATION_SECOND = {
-    "Temple of Febe": 10 * 60,
-    "Decima, the Stormsinger": 10 * 60,
-}
-BOSS_HEALTH_PERCENTAGES = {
-    "Temple of Febe": [80, 50, 10],
-    "Decima, the Stormsinger": [75, 50, 25],
 }
 
 
@@ -103,14 +93,14 @@ def create_rank_emote_dict_percentiles(custom_emoji_name: bool, invalid: bool) -
     rank_bins_percentile = [20, 40, 50, 60, 70, 80, 90, 100]
 
     rank_emotes = {
-        0: f"{getattr(Emoji.objects.get(name='1_junk'), tag)()}".format("bin20_percrank{}"),
-        1: f"{getattr(Emoji.objects.get(name='2_basic'), tag)()}".format("bin40_percrank{}"),
-        2: f"{getattr(Emoji.objects.get(name='3_fine'), tag)()}".format("bin50_percrank{}"),
-        3: f"{getattr(Emoji.objects.get(name='4_masterwork'), tag)()}".format("bin60_percrank{}"),
-        4: f"{getattr(Emoji.objects.get(name='5_rare'), tag)()}".format("bin70_percrank{}"),
-        5: f"{getattr(Emoji.objects.get(name='6_exotic'), tag)()}".format("bin80_percrank{}"),
-        6: f"{getattr(Emoji.objects.get(name='7_ascended'), tag)()}".format("bin90_percrank{}"),
-        7: f"{getattr(Emoji.objects.get(name='8_legendary'), tag)()}".format("bin100_percrank{}"),
+        0: f"{getattr(Emoji.objects.get(name='1_junk'), tag)()}".format("bin20_r{}_of{}"),
+        1: f"{getattr(Emoji.objects.get(name='2_basic'), tag)()}".format("bin40_r{}_of{}"),
+        2: f"{getattr(Emoji.objects.get(name='3_fine'), tag)()}".format("bin50_r{}_of{}"),
+        3: f"{getattr(Emoji.objects.get(name='4_masterwork'), tag)()}".format("bin60_r{}_of{}"),
+        4: f"{getattr(Emoji.objects.get(name='5_rare'), tag)()}".format("bin70_r{}_of{}"),
+        5: f"{getattr(Emoji.objects.get(name='6_exotic'), tag)()}".format("bin80_r{}_of{}"),
+        6: f"{getattr(Emoji.objects.get(name='7_ascended'), tag)()}".format("bin90_r{}_of{}"),
+        7: f"{getattr(Emoji.objects.get(name='8_legendary'), tag)()}".format("bin100_r{}_of{}"),
         "above_average": f"{Emoji.objects.get(name=f'above average{invalid_str}').discord_tag_custom_name()}".format(
             settings.MEAN_OR_MEDIAN
         ),

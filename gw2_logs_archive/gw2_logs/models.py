@@ -145,11 +145,12 @@ class Instance(models.Model):
 class Encounter(models.Model):
     """Single boss encounter in gw2"""
 
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, unique=True)
     shortname = models.CharField(max_length=30, null=True, blank=True)
     dpsreport_boss_id = models.IntegerField(null=True, blank=True)
     ei_encounter_id = models.IntegerField(null=True, blank=True)  # eiEncounterID
     folder_names = models.CharField(max_length=100, null=True, blank=True)
+    enrage_time_seconds = models.IntegerField(null=True, blank=True)  # in seconds, optional, used for progression
     emoji = models.ForeignKey(
         Emoji,
         related_name="encounter",
@@ -298,6 +299,7 @@ class DpsLog(models.Model):
     lcm = models.BooleanField(default=False)
     emboldened = models.BooleanField(default=False)  # detailed info
     success = models.BooleanField(default=False)
+    is_progression_log = models.BooleanField(default=False)
 
     final_health_percentage = models.FloatField(null=True, blank=True)  # detailed info
     gw2_build = models.IntegerField(null=True, blank=True)

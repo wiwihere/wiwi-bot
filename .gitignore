@@ -179,3 +179,4 @@ cython_debug/
 *.egg-info
 
 .minimal_git
+encounter_progression_config.json

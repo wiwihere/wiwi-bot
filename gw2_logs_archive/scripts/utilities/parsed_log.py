@@ -104,7 +104,7 @@ class DetailedParsedLog:
         return round(100 - self.data["targets"][0]["healthPercentBurned"], 2)
 
     def get_health_timers(self) -> dict[int, Optional[float]]:
-        """For progression logging when a milestone (from log_helpers.BOSS_HEALTH_PERCENTAGES) has been reached
+        """For progression logging when a milestone (from config.display_health_percentages) has been reached
         we send this in the discord message. The time at which the boss reached certain health percentages (5% intervals) is
         calculated here.
 

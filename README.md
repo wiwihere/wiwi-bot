@@ -28,7 +28,7 @@ Clicking the skull icon will also open the log of that run. Does sadly not work 
 _*Only selected encounters count, see the [setup guide](#selecting-encounters-for-total-clear-time)._\
 <img src="gw2_logs_archive/img/emboldened.png" width="20"/> Emboldened runs will not count towards leaderboards.\
 <img src="img/medal_popup_rank.png" width=""/> When hovering medals it will show the rank and total encounters 
-that were used in calculating the medal.
+that were used in calculating the medal. Also it shows how much slower it was than the best run. 13_7s here means 13.7 seconds.
 
 
 ### Leaderboards
@@ -38,22 +38,22 @@ that were used in calculating the medal.
 
 
 
-### Cerus Legendary CM
-Track Cerus LCM progression. Same could be set up for HT.
+### Progression runs
 
-The link to dps.report is found by clicking the ★ (LCM) or ☆ (normal cm).
-Time left on the clock when breakbar phase starts is logged, to give indication if the run would have even be possible.
+When working on a CM or LCM the progression can be tracked in a separete thread on discord. Below a message example for Cerus LCM. The message will be updated with each new log, so you can see logs during the run.
 
-When more than 120s delay between two logs, the delay will be shown. To indicate where breaks were taken.
+The link to dps.report is found by clicking the ★ (LCM) or ☆ (CM). Time left on the clock when breakbar phase starts is logged, to give indication if the run would have even be possible.
 
-The top 3 logs are indicated with trophies. The title number (#11) indicates the day of progression. 
+To indicate where breaks were taken, the delay is shown when more than 120s delay between two logs.
+
+The top 3 logs are indicated with trophies. The title number (Day #11) indicates the day of progression.
 
 ![](img/cerus_cm.png)
 
 
 # Installation
-The log manager is built on a django framework with a local sqlite database, only tested on Windows. All we need is a local python environment to run the scripts. Below installation is done with miniforge, but feel free
-to use any other python distribution to your liking.
+
+The log manager is built on the django framework with a local sqlite or (remote) postgresql database, only tested on Windows. All that is required is a local python environment to run the scripts. Below installation is done with pixi, feel free to use any other python distribution to your liking, however the installation steps will be different.
 
 ## Software
 <!-- 1. <s>Download the latest [release](https://github.com/wiwihere/wiwi-bot/releases)<\s> and place it anywhere. Unpack the zip. -->
@@ -116,7 +116,7 @@ To upload from a list on urls. Paste the urls in `bin\urls.txt` and run the cmd 
 <img src="img/run_upload_url.png" width="70%"/>
 
 ## Customization
-Everything can be customized. Easiest way to make edits to the database is by firing up Django.
+A lot can be customized. Easiest way to make edits to the database is by firing up Django.
 
 - Run `bin/django_runserver.cmd.`
 - Open http://127.0.0.1:8000/admin/
@@ -196,3 +196,20 @@ DJANGO_DATABASE_PASSWORD=
 DJANGO_DATABASE_HOST=
 DJANGO_DATABASE_PORT=
 ```
+
+#### Setting up a progression run for a CM or LCM
+
+When working on a CM or LCM the progression can be tracked in a separete thread on discord. To setup create the file `data\encounter_progression_config.json` and add the encounter with the following format:
+
+```
+"encounter_key": { <-- e.g. "decima_cm">
+    "description": "Description of the run",
+    "encounter_name": "Name of the encounter as in the database",
+    "display_health_percentages": [70, 40, 10],
+    "embed_colour": "16776960",
+    "webhook_thread_id_from_dotenv": "webhook_bot_thread_decima_cm" <-- the variable name in the .env.prd file that holds the webhook thread id for this encounter>
+}
+```
+
+Then run
+`bin\run_progression_today.cmd` and select the encounter you want to track (e.g. decima_cm). The script will check for new logs and update the message in the thread accordingly.

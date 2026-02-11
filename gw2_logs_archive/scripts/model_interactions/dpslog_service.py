@@ -20,7 +20,7 @@ from typing import Optional
 
 from django.conf import settings
 from django.db.models import Q
-from gw2_logs.models import DpsLog, Player
+from gw2_logs.models import DpsLog, InstanceClear, Player
 from scripts.log_helpers import (
     get_emboldened_wing,
     get_log_path_view,
@@ -196,3 +196,23 @@ class DpsLogService:
             custom_emoji_name=False,
         )
         return rank_str
+
+    def mark_as_progression_log(self, dpslog: DpsLog) -> DpsLog:
+        """Mark a log as progression log (for use in progression channel)."""
+        if dpslog.is_progression_log is False:
+            logger.debug(f"Setting is_progression_log=True for log {dpslog.id}")
+            dpslog.is_progression_log = True
+            self.repo.save(dpslog)
+            return dpslog
+
+    def mark_instance_clear(self, dpslog: DpsLog, instance_clear: InstanceClear) -> DpsLog:
+        """Mark a log as instance clear log (for use in progression channel)."""
+        if dpslog.instance_clear != instance_clear:
+            if dpslog.instance_clear is not None:
+                logger.warning(
+                    f"Overwriting instance_clear for log {dpslog.id} from {dpslog.instance_clear} to {instance_clear}"
+                )
+            logger.debug(f"Setting instance_clear={instance_clear} for log {dpslog.id}")
+            dpslog.instance_clear = instance_clear
+            self.repo.save(dpslog)
+            return dpslog

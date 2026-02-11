@@ -53,6 +53,7 @@ class InstanceClearGroupInteraction:
             start_time__month=m,
             start_time__day=d,
             encounter__instance__instance_group__name=itype_group,
+            is_progression_log=False,
         ).exclude(encounter__instance__instance_group__name="golem")
 
         if len(logs_day) == 0:

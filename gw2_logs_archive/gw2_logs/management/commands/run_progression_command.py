@@ -1,17 +1,19 @@
+# %%
 if __name__ == "__main__":
     from scripts.utilities import django_setup
 
     django_setup.run()
 
 from django.core.management.base import BaseCommand
-from scripts.encounter_progression.cerus_service import run_cerus_cm
 from scripts.log_helpers import today_y_m_d
+from scripts.runners.run_progression import run_progression_service
 
 
 class Command(BaseCommand):
     help = "Import Cerus LCM logs and track progression."
 
     def add_arguments(self, parser):
+        parser.add_argument("--clear_group_base_name", type=str, nargs="?")
         parser.add_argument("--y", type=int, nargs="?", default=None)
         parser.add_argument("--m", type=int, nargs="?", default=None)
         parser.add_argument("--d", type=int, nargs="?", default=None)
@@ -23,4 +25,15 @@ class Command(BaseCommand):
         if y is None:
             y, m, d = today_y_m_d()
 
-        run_cerus_cm(y, m, d)
+        run_progression_service(clear_group_base_name=options["clear_group_base_name"], y=y, m=m, d=d)
+
+
+if __name__ == "__main__":
+    options = {
+        "y": None,
+        "m": None,
+        "d": None,
+        "clear_group_base_name": "decima_cm",
+    }
+
+# %%

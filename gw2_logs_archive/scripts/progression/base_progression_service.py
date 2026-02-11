@@ -6,6 +6,8 @@ if __name__ == "__main__":
 
 
 import logging
+from functools import cached_property
+from itertools import chain
 from typing import Literal, Tuple
 
 import numpy as np
@@ -18,15 +20,15 @@ from gw2_logs.models import (
     InstanceClearGroup,
 )
 from scripts.log_helpers import (
-    BOSS_HEALTH_PERCENTAGES,
     RANK_EMOTES_CUPS_PROGRESSION,
     create_rank_emote_dict_percentiles,
     get_duration_str,
 )
+from scripts.model_interactions.dpslog_service import DpsLogService
 
 # For progression always use percentiles.
 RANK_EMOTES_PROGRESSION, RANK_BINS_PERCENTILE_PROGRESSION = create_rank_emote_dict_percentiles(
-    custom_emoji_name=False, invalid=False
+    custom_emoji_name=True, invalid=False
 )
 
 logger = logging.getLogger(__name__)
@@ -38,30 +40,33 @@ class ProgressionService:
         clear_group_base_name: str,
         clear_name: str,
         encounter: Encounter,
-        embed_colour_group: str,
+        display_health_percentages: list[int],
+        embed_colour: str,
         webhook_thread_id: str,
         webhook_url: str,
     ) -> None:
         self.clear_group_base_name = clear_group_base_name
         self.clear_name = clear_name
         self.encounter = encounter
-        self.colour_group = embed_colour_group
+        self.embed_colour = embed_colour
+        self.display_health_percentages = display_health_percentages
         self.webhook_thread_id = webhook_thread_id
         self.webhook_url = webhook_url
 
         logger.info(f"Starting progression run for {self.encounter.name}: {self.clear_name}")
 
-        self.iclear_group = self.get_iclear_group()
-        self.iclear = self.get_iclear()
-
-    def get_iclear_group(self) -> InstanceClearGroup:
+    @cached_property
+    def iclear_group(self) -> InstanceClearGroup:
         """Load or create the InstanceClearGroup for this progression day."""
-        iclear_group, created = InstanceClearGroup.objects.get_or_create(name=self.clear_name, type="strike")
+        iclear_group, created = InstanceClearGroup.objects.get_or_create(
+            name=self.clear_name, type=self.encounter.instance.instance_group.name
+        )
         if created:
             logger.info(f"Created InstanceClearGroup {iclear_group.name}")
         return iclear_group
 
-    def get_iclear(self) -> InstanceClear:
+    @cached_property
+    def iclear(self) -> InstanceClear:
         """Load or create the InstanceClear for this progression day."""
         iclear, created = InstanceClear.objects.get_or_create(
             defaults={
@@ -75,42 +80,31 @@ class ProgressionService:
 
         return iclear
 
-    def get_message_author(self) -> str:
-        """Create author name for discord message.
-        The author is displayed at the top of the message.
-        """
-        # The progression_days_count is the total days up to this point for this progression
-        progression_days_count = len(
-            InstanceClearGroup.objects.filter(
-                Q(name__startswith=f"{self.clear_group_base_name}__") & Q(start_time__lte=self.iclear_group.start_time)
-            )
-        )
-        return f"Day #{progression_days_count:02d}"
-
-    def get_message_footer(self) -> str:
+    def get_all_logs(self) -> list[DpsLog]:
+        """Get all dps logs in the progression, sorted by final health percentage."""
         icg_all = InstanceClearGroup.objects.filter(
-            name__startswith=f"{self.clear_group_base_name}__",
-            type="strike",
+            name__startswith=f"{self.clear_group_base_name}_progression__",
             start_time__lte=self.iclear_group.start_time,
         )
-        logs_count = sum([len(icg.dps_logs_all) for icg in icg_all])
+        dps_logs = list(chain.from_iterable(icg.dps_logs_all for icg in icg_all))
+        return sorted(dps_logs, key=lambda d: d.final_health_percentage)
 
-        total_seconds = sum(
-            int(icg.instance_clears.first().duration.total_seconds()) for icg in icg_all if icg.instance_clears.first()
-        )
-        time_str = str(pd.to_timedelta(total_seconds, unit="s"))
+    def update_dpslogs(self, processed_logs: list[DpsLog]):
+        """Update the dps logs with the progression log flag and save them."""
+        log_service = DpsLogService()
+        for dpslog in processed_logs:
+            log_service.mark_as_progression_log(dpslog)
+            log_service.mark_instance_clear(dpslog, self.iclear)
 
-        return f"Total logs: {logs_count}\nTotal duration: {time_str}\n"
-
-    def update_instance_clear(self) -> Tuple[InstanceClear, InstanceClearGroup]:
-        """Update the iclear_group and iclear"""
+    def update_instance_clear_start_time_and_duration(self) -> Tuple[InstanceClear, InstanceClearGroup]:
+        """Update the iclear_group and iclear start_time and duration."""
         dps_logs_all = self.iclear_group.dps_logs_all
         if dps_logs_all:
             start_time = min([i.start_time for i in dps_logs_all])
             # Set iclear_group start time
             if self.iclear_group.start_time != start_time:
                 logger.info(
-                    f"Updating start time for {self.iclear_group.name} from {self.iclear_group.start_time} to {start_time}"
+                    f"Updating start time for iclear_group {self.iclear_group.name} from {self.iclear_group.start_time} to {start_time}"
                 )
                 self.iclear_group.start_time = start_time
                 self.iclear_group.save()
@@ -118,7 +112,7 @@ class ProgressionService:
             # Set iclear start time
             if self.iclear.start_time != start_time:
                 logger.info(
-                    f"Updating start time for {self.iclear.name} from {self.iclear.start_time} to {start_time}"
+                    f"Updating start time for iclear {self.iclear.name} from {self.iclear.start_time} to {start_time}"
                 )
                 self.iclear.start_time = start_time
                 self.iclear.save()
@@ -132,16 +126,6 @@ class ProgressionService:
                 )
                 self.iclear.duration = calculated_duration
                 self.iclear.save()
-
-    @staticmethod
-    def get_rank_emote_for_log(dpslog: DpsLog) -> int:
-        """Build rank_emote based on the final health left.
-        e.g. -> '<:4_masterwork:1218309092477767810>'
-        """
-        percentile_rank = 100 - dpslog.final_health_percentage
-        rank_binned = np.searchsorted(RANK_BINS_PERCENTILE_PROGRESSION, percentile_rank, side="left")
-        rank_emote = RANK_EMOTES_PROGRESSION[rank_binned].format(int(percentile_rank))
-        return rank_emote
 
     def create_logs_rank_health_df(self, minimal_delay_seconds: int) -> pd.DataFrame:
         """Create dataframe with health and rank information for progression logs.
@@ -215,7 +199,46 @@ class ProgressionService:
             boss_title = f"{self.encounter.name} LegendaryCM"
         return boss_title
 
+    def get_message_author(self) -> str:
+        """Create author name for discord message.
+        The author is displayed at the top of the message.
+        """
+        # The progression_days_count is the total days up to this point for this progression
+        progression_days_count = len(
+            InstanceClearGroup.objects.filter(
+                Q(name__startswith=f"{self.clear_group_base_name}_progression__")
+                & Q(start_time__lte=self.iclear_group.start_time)
+            )
+        )
+        return f"Day #{progression_days_count:02d}"
+
     def get_table_header(self) -> str:
-        percentages = BOSS_HEALTH_PERCENTAGES[self.encounter.name]
-        percentages_str = "|  ".join([f"{hp}% " for hp in percentages])
-        return f"`##`{RANK_EMOTES_PROGRESSION[7]}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"
+        percentages_str = "|  ".join([f"{hp}% " for hp in self.display_health_percentages])
+        return f"`##`{RANK_EMOTES_PROGRESSION[7].format('lets_goo', 'killkillkill')}**★** ` health |  {percentages_str}`+_delay_⠀⠀\n\n"
+
+    def get_rank_emote_for_log(self, dpslog: DpsLog) -> int:
+        """Build rank_emote based on the final health left.
+        e.g. -> '<:4_masterwork:1218309092477767810>'
+        """
+        percentile_rank = 100 - dpslog.final_health_percentage
+        rank_binned = np.searchsorted(RANK_BINS_PERCENTILE_PROGRESSION, percentile_rank, side="left")
+
+        all_logs = self.get_all_logs()
+        rank = all_logs.index(dpslog) + 1
+
+        rank_emote = RANK_EMOTES_PROGRESSION[rank_binned].format(rank, len(all_logs))
+        return rank_emote
+
+    def get_message_footer(self) -> str:
+        icg_all = InstanceClearGroup.objects.filter(
+            name__startswith=f"{self.clear_group_base_name}_progression__",
+            start_time__lte=self.iclear_group.start_time,
+        )
+        logs_count = len(self.get_all_logs())
+
+        total_seconds = sum(
+            int(icg.instance_clears.first().duration.total_seconds()) for icg in icg_all if icg.instance_clears.first()
+        )
+        time_str = str(pd.to_timedelta(total_seconds, unit="s"))
+
+        return f"Total logs: {logs_count}\nTotal duration: {time_str}\n"
