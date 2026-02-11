@@ -7,9 +7,8 @@ if __name__ == "__main__":
 import datetime
 import logging
 from dataclasses import dataclass
-from email import message
 from functools import cached_property
-from typing import Literal, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import discord
 from discord import SyncWebhook
@@ -112,14 +111,18 @@ class Webhook:
 
     def delete_message(self, discord_message: DiscordMessage) -> None:
         """Delete message from discord. Set .message_id and .weekdate to None"""
+        message = f"Removing message on discord {discord_message.message_id}"
         if discord_message.weekdate:
-            message = f"Removing discord message {discord_message.message_id} from date {discord_message.weekdate}"
-        else:
-            message = f"Removing discord message {discord_message.message_id}"
+            message += f" from date {discord_message.weekdate}"
         logger.info(message)
 
         # Delete message
-        self.webhook.delete_message(discord_message.message_id)
+        try:
+            self.webhook.delete_message(discord_message.message_id)
+        except discord.NotFound:
+            logger.warning(
+                f"Message {discord_message.message_id} not found on discord. It might have been already deleted."
+            )
 
         # Update django database
         discord_message.message_id = None
