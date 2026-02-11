@@ -14,7 +14,7 @@ from gw2_logs.models import (
     Encounter,
     InstanceClearGroup,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from scripts.log_helpers import (
     today_y_m_d,
     zfill_y_m_d,
@@ -30,6 +30,11 @@ class ProgressionConfig(BaseModel):
     embed_colour: int
     webhook_thread_id_from_dotenv: str
     display_health_percentages: list[int]
+
+    @field_validator("webhook_thread_id_from_dotenv")
+    @classmethod
+    def force_lowercase_webhook_thread_id(cls, v: str) -> str:
+        return v.lower()
 
 
 def _load_progression_config() -> dict[str, ProgressionConfig]:
