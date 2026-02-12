@@ -151,7 +151,9 @@ def process_logs_once(
                 logfile.mark_upload_processed()
 
         # Add log to processed logs if it was processed in this step
-        if dpslog is not None or (must_be_cm and not dpslog.cm):
+        if dpslog is not None:
+            if must_be_cm and not dpslog.cm:
+                continue
             processed_logs += [dpslog]
     return processed_logs
 
