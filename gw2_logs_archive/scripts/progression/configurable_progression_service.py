@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # progression_service = ConfigurableProgressionService(clear_group_base_name="cerus_cm", y=y, m=m, d=d)
 
     # Example for Decima
-    y, m, d = 2025, 12, 8
+    y, m, d = 2026, 2, 16
     progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
 # %%

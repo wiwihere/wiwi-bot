@@ -25,6 +25,8 @@ class DpsLogMessageBuilder:
         )  # makes 02.20%
         if health_str == "100.00":
             health_str = "100.0"
+        if health_str == "00.00":
+            health_str = "DEATH"
         return health_str
 
     def _health_percentage_to_remaining_time_str(self, hp: int) -> str:
