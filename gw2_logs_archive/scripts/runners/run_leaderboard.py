@@ -50,6 +50,8 @@ def run_leaderboard_navigation():
     publish_navigation_menu()
 
 
+# %%
+
 if __name__ == "__main__":
     # For direct script execution / testing
     import sys

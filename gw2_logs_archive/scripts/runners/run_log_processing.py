@@ -96,7 +96,7 @@ def run_log_processing(
 
 
 if __name__ == "__main__":
-    y, m, d = 2026, 2, 9
+    y, m, d = 2026, 2, 19
     itype_groups = ["raid", "strike"]
     processing_type = "local"
 
