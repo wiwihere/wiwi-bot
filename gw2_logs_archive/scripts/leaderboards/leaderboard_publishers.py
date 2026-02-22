@@ -86,14 +86,13 @@ def publish_navigation_menu() -> None:
     """
     logger.info("Publishing navigation menu for leaderboard")
 
-    leaderboard_thread_url = f"https://discord.com/channels/{settings.DISCORD_CHANNELS['leaderboard']}/{settings.LEADERBOARD_THREADS[instance_type]}/"
-
     embeds_messages_list = []
     for instance_type in ["raid", "strike", "fractal"]:
+        leaderboard_thread_url = f"https://discord.com/channels/{settings.DISCORD_CHANNELS['leaderboard']}/{settings.LEADERBOARD_THREADS[instance_type]}/"
         embeds_messages_list.append(create_navigation_embed(instance_type, leaderboard_thread_url))
 
     discord_message_name = "leaderboard_navigation"
-    discord_message = DiscordMessage.objects.get_or_create(name=discord_message_name)
+    discord_message, created = DiscordMessage.objects.get_or_create(name=discord_message_name)
 
     _ = send_discord_message(
         discord_message=discord_message,
