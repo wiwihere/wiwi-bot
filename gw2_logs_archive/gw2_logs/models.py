@@ -203,6 +203,11 @@ class InstanceClearGroup(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+    )  # TODO old relation, replaced by discord_messages
+    discord_messages = models.ManyToManyField(
+        DiscordMessage,
+        related_name="instance_clear_groups",
+        blank=True,
     )
     core_player_count = models.IntegerField(null=True, blank=True)
     friend_player_count = models.IntegerField(null=True, blank=True)

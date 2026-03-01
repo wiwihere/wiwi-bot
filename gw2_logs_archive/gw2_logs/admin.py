@@ -209,6 +209,8 @@ class InstanceClearGroupAdmin(admin.ModelAdmin):
     search_fields = ["id", "name"]
     list_filter = ["success", "type", "duration_encounters"]
 
+    filter_horizontal = ("discord_messages",)
+
     def log_count(self, obj):
         return sum([ic.dps_logs.all().count() for ic in obj.instance_clears.all()])
 
@@ -252,14 +254,17 @@ class PlayerAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.DiscordMessage)
-class DiscordMessage(admin.ModelAdmin):
+class DiscordMessageAdmin(admin.ModelAdmin):
     list_display = ("id", "message_id", "name", "weekdate", "linked_count", "created_at", "updated_at", "update_count")
     inlines = [InstanceClearGroupInline, InstanceInline, InstanceGroupInline]
 
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "view_instance_clear_groups")
     ordering = ("-updated_at",)
 
     search_fields = ["message_id", "name"]
 
     def linked_count(self, obj):
-        return obj.instance_clear_group.all().count() + obj.instance.all().count() + obj.instance_group.all().count()
+        return obj.instance_clear_groups.all().count() + obj.instance.all().count() + obj.instance_group.all().count()
+
+    def view_instance_clear_groups(self, obj):
+        return ", ".join([icg.name for icg in obj.instance_clear_groups.all()])

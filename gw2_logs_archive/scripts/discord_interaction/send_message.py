@@ -11,6 +11,7 @@ from functools import cached_property
 from typing import Optional, Tuple, Union
 
 import discord
+import numpy as np
 from discord import SyncWebhook
 from discord.utils import MISSING
 from gw2_logs.models import (
@@ -19,6 +20,7 @@ from gw2_logs.models import (
     InstanceClearGroup,
     InstanceGroup,
 )
+from scripts.discord_interaction.message_helpers import calculate_embed_size
 
 logger = logging.getLogger(__name__)
 
@@ -151,8 +153,6 @@ def create_or_update_discord_message(
         Thread to send message in (from settings.LEADERBOARD_THREADS[itype])
     """
 
-    discord_message = group.discord_message
-
     if isinstance(group, Instance):
         discord_message_name = f"leaderboard_{group.instance_group.name}{group.nr}"
     elif isinstance(group, InstanceGroup):
@@ -160,17 +160,37 @@ def create_or_update_discord_message(
     elif isinstance(group, InstanceClearGroup):
         discord_message_name = group.name
 
-    discord_message, created = send_discord_message(
-        discord_message=discord_message,
-        discord_message_name=discord_message_name,
-        webhook_url=webhook_url,
-        embeds_messages_list=embeds_messages_list,
-        thread=thread,
-    )
+    # Spread the embeds over multiple messages if required. 
+    # message_ids may become e.g. [0, 0, 1], meaning the first two embeds go to the first
+    # discord message and the 3rd goes to the second discord message.
+    message_size = [calculate_embed_size(embed) for embed in embeds_messages_list]
+    message_ids = np.floor((np.cumsum(message_size) - 1) / 6000).astype(int)
 
-    if created:
-        group.discord_message = discord_message
-        group.save()
+    for message_nr in np.unique(message_ids):
+        embeds_for_message = [
+            embed for embed, msg_id in zip(embeds_messages_list, message_ids) if msg_id == message_nr
+        ]
+
+        if message_nr == 0:
+            discord_message_name_nr = discord_message_name
+        else:
+            discord_message_name_nr = f"{discord_message_name}_extra{message_nr}"
+        try:
+            discord_message = group.discord_messages.get(name=discord_message_name_nr)
+        except DiscordMessage.DoesNotExist:
+            discord_message = None
+
+        discord_message, created = send_discord_message(
+            discord_message=discord_message,
+            discord_message_name=discord_message_name_nr,
+            webhook_url=webhook_url,
+            embeds_messages_list=embeds_for_message,
+            thread=thread,
+        )
+
+        if created:
+            group.discord_messages.add(discord_message)
+            group.save()
 
 
 def send_discord_message(

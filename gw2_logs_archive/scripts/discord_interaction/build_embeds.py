@@ -117,3 +117,57 @@ def create_discord_embeds(
             raise ValueError(f"Embed {embed_key} is invalid due to size limits.")
 
     return embeds
+
+
+def create_discord_embeds_new(
+    titles: dict,
+    descriptions: dict,
+    embed_header: str,
+    author: str,
+    footer: str,
+    embed_colour_dict: dict,
+) -> dict[str, discord.Embed]:
+    """Create discord embed from titles and descriptions, ensuring that the embed size does not
+    exceed 4096 characters by splitting into multiple embeds if necessary.
+    """
+    embeds: dict[str, discord.Embed] = {}
+
+    for instance_type in titles:
+        base_title = "".join(titles[instance_type]["main"])
+        base_description = "".join(descriptions[instance_type]["main"])
+
+        lines = descriptions[instance_type]["lines"]
+
+        embed_index = 0
+        title = {}
+        title[embed_index] = base_title
+        description = {}
+        description[embed_index] = base_description
+        for line in lines:
+            # Caluclate the size of the embed if we add this line. If it exceeds 4096, start a new embed.
+            embed_size = len(description[embed_index]) + len(line) + len(footer) + len(title[embed_index])
+            if embed_index == 0:
+                embed_size += len(author)
+
+            if embed_size > 4096:
+                # Finalize current embed and start a new one
+                embeds[f"description_{embed_index}"] = discord.Embed(
+                    title=title[embed_index],
+                    description=description[embed_index],
+                    colour=embed_colour_dict[instance_type],
+                )
+                embed_index += 1
+                title[embed_index] = ""
+                description[embed_index] = embed_header
+
+            description[embed_index] += line
+
+        embeds[f"description_{embed_index}"] = discord.Embed(
+            title=title[embed_index],
+            description=description[embed_index],
+            colour=embed_colour_dict[instance_type],
+        )
+        embeds["description_0"].set_author(name=author)
+        embeds[f"description_{embed_index}"].set_footer(text=footer)
+
+    return embeds
