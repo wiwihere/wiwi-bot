@@ -20,7 +20,7 @@ from gw2_logs.models import (
     DpsLog,
     Emoji,
 )
-from scripts.discord_interaction.build_embeds import create_discord_embeds
+from scripts.discord_interaction.build_embeds import create_discord_embeds, create_discord_embeds_v3
 from scripts.discord_interaction.message_helpers import (
     add_line_to_descriptions,
     create_duration_header_with_player_emotes,
@@ -87,32 +87,35 @@ def _build_progression_discord_message(
     boss_title = progression_service.get_boss_title(difficulty)
 
     table_header = progression_service.get_table_header()
-    description_main = f"{progression_service.encounter.emoji.discord_tag(difficulty)} **{boss_title}**\n"
-    description_main += create_duration_header_with_player_emotes(all_logs=progression_logs)
-    description_main += table_header
+    description_main = [f"{progression_service.encounter.emoji.discord_tag(difficulty)} **{boss_title}**\n"]
+    description_main += [create_duration_header_with_player_emotes(all_logs=progression_logs)]
+    description_main += [table_header]
 
     titles = {}
     descriptions = {}
 
-    titles[colour_key] = {"main": progression_service.iclear_group.pretty_time}
+    titles[colour_key] = {"main": [progression_service.iclear_group.pretty_time]}
     descriptions[colour_key] = {"main": description_main}
 
-    current_field = "field_0"
-    titles[colour_key][current_field] = ""
-    descriptions[colour_key][current_field] = ""
+    # current_field = "field_0"
+    # titles[colour_key][current_field] = ""
+    # descriptions[colour_key][current_field] = ""
+    titles[colour_key]["lines"] = [""]
+    descriptions[colour_key]["lines"] = []
 
     for idx, row in logs_rank_health_df.iterrows():
         log_message_line = _build_log_message_line_progression(progression_service=progression_service, row=row)
+        descriptions[colour_key]["lines"].append(log_message_line)
 
         # Add line to descriptions, breaking into new fields if character limit is hit
-        titles, descriptions, current_field = add_line_to_descriptions(
-            titles=titles,
-            descriptions=descriptions,
-            current_field=current_field,
-            log_message_line=log_message_line,
-            dummy_group=colour_key,
-            table_header=table_header,
-        )
+        # titles, descriptions, current_field = add_line_to_descriptions(
+        #     titles=titles,
+        #     descriptions=descriptions,
+        #     current_field=current_field,
+        #     log_message_line=log_message_line,
+        #     dummy_group=colour_key,
+        #     table_header=table_header,
+        # )
     return titles, descriptions
 
 
@@ -124,12 +127,16 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
     )
 
     if titles is not None:
-        embeds = create_discord_embeds(
-            titles=titles, descriptions=descriptions, embed_colour_dict={colour_key: progression_service.embed_colour}
+        embeds = create_discord_embeds_v3(
+            titles=titles,
+            descriptions=descriptions,
+            author=progression_service.get_message_author(),
+            footer=progression_service.get_message_footer(),
+            embed_colour_dict={colour_key: progression_service.embed_colour},
         )
         embeds_messages_list = list(embeds.values())
-        embeds_messages_list[0] = embeds_messages_list[0].set_author(name=progression_service.get_message_author())
-        embeds_messages_list[-1] = embeds_messages_list[-1].set_footer(text=progression_service.get_message_footer())
+        # embeds_messages_list[0] = embeds_messages_list[0].set_author(name=progression_service.get_message_author())
+        # embeds_messages_list[-1] = embeds_messages_list[-1].set_footer(text=progression_service.get_message_footer())
 
         logger.debug("Ready to send discord message")
         create_or_update_discord_message(
@@ -150,3 +157,5 @@ if __name__ == "__main__":
     progression_service = ConfigurableProgressionService(clear_group_base_name="decima_cm", y=y, m=m, d=d)
 
     dpslog = progression_service.iclear_group.dps_logs_all[0]
+
+    # %%

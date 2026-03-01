@@ -54,7 +54,7 @@ def run_progression_service(
                 processing_type=processing_type,
                 log_files_date_cls=log_files_date_cls,
                 ei_parser=ei_parser,
-                must_be_cm=True,
+                must_be_cm=False,
             )
 
             if processed_logs:
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     clear_group_base_name = "cerus_cm"
 
     y, m, d = 2025, 11, 27
-    y, m, d = 2025, 12, 8
-    clear_group_base_name = "decima_cm"
+    y, m, d = 2026, 2, 26
+    clear_group_base_name = "kela_cm"
 
 # %%

@@ -117,3 +117,52 @@ def create_discord_embeds(
             raise ValueError(f"Embed {embed_key} is invalid due to size limits.")
 
     return embeds
+
+
+def create_discord_embeds_v3(
+    titles: dict,
+    descriptions: dict,
+    author: str,
+    footer: str,
+    embed_colour_dict: dict,
+) -> dict[str, discord.Embed]:
+    embeds: dict[str, discord.Embed] = {}
+
+    for instance_type in titles:
+        base_title = "".join(titles[instance_type]["main"])
+        base_description = "".join(descriptions[instance_type]["main"])
+
+        lines = descriptions[instance_type]["lines"]
+
+        embed_index = 0
+        description = {}
+        description[embed_index] = base_description
+        for line in lines:
+            embed_size = len(description[embed_index]) + len(line) + len(footer)
+            if embed_index == 0:
+                embed_size += len(author)
+                title = base_title
+            else:
+                title = ""
+
+            if embed_size > 4096:
+                # Finalize current embed and start a new one
+                embeds[f"description_{embed_index}"] = discord.Embed(
+                    title=title,
+                    description=description[embed_index],
+                    colour=embed_colour_dict[instance_type],
+                )
+                embed_index += 1
+                description[embed_index] = ""
+
+            description[embed_index] += line
+
+        embeds[f"description_{embed_index}"] = discord.Embed(
+            title="",
+            description=description[embed_index],
+            colour=embed_colour_dict[instance_type],
+        )
+        embeds["description_0"].set_author(name=author)
+        embeds[f"description_{embed_index}"].set_footer(text=footer)
+
+    return embeds

@@ -7,6 +7,7 @@ if __name__ == "__main__":
 import logging
 from typing import Tuple
 
+import discord
 import numpy as np
 from gw2_logs.models import (
     DpsLog,
@@ -78,3 +79,11 @@ def add_line_to_descriptions(
     descriptions[dummy_group][current_field] += log_message_line
 
     return titles, descriptions, current_field
+
+
+def calculate_embed_size(embed: discord.Embed) -> int:
+    """Calculate the size of the embed in characters."""
+    total_length = len(embed.author) + len(embed.title) + len(embed.description) + len(embed.footer)
+    for field in embed.fields:
+        total_length += len(field.name) + len(field.value)
+    return total_length
