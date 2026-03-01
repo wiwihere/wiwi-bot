@@ -20,7 +20,7 @@ from gw2_logs.models import (
     DpsLog,
     Emoji,
 )
-from scripts.discord_interaction.build_embeds import create_discord_embeds, create_discord_embeds_v3
+from scripts.discord_interaction.build_embeds import create_discord_embeds, create_discord_embeds_new
 from scripts.discord_interaction.message_helpers import (
     add_line_to_descriptions,
     create_duration_header_with_player_emotes,
@@ -121,7 +121,7 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
     )
 
     if titles is not None:
-        embeds = create_discord_embeds_v3(
+        embeds = create_discord_embeds_new(
             titles=titles,
             descriptions=descriptions,
             embed_header=embed_header,
