@@ -78,7 +78,7 @@ def _build_log_message_line_progression(progression_service: ProgressionService,
 
 def _build_progression_discord_message(
     progression_service: ProgressionService, colour_key="dummy"
-) -> tuple[dict, dict]:
+) -> tuple[dict, dict, str]:
     progression_logs: list = progression_service.iclear_group.dps_logs_all
     logs_rank_health_df = progression_service.create_logs_rank_health_df(minimal_delay_seconds=120)
 
@@ -86,10 +86,10 @@ def _build_progression_discord_message(
     difficulty = progression_service.get_difficulty(logs_rank_health_df)  # normal, cm or lcm
     boss_title = progression_service.get_boss_title(difficulty)
 
-    table_header = progression_service.get_table_header()
+    embed_header = progression_service.get_table_header()
     description_main = [f"{progression_service.encounter.emoji.discord_tag(difficulty)} **{boss_title}**\n"]
     description_main += [create_duration_header_with_player_emotes(all_logs=progression_logs)]
-    description_main += [table_header]
+    description_main += [embed_header]
 
     titles = {}
     descriptions = {}
@@ -116,13 +116,13 @@ def _build_progression_discord_message(
         #     dummy_group=colour_key,
         #     table_header=table_header,
         # )
-    return titles, descriptions
+    return titles, descriptions, embed_header
 
 
 def send_progression_discord_message(progression_service: ProgressionService) -> None:
     """Build and send or update the cerus progression discord message for the given InstanceClearGroup."""
     colour_key = "dummy"  # needed for embed colour parsing.
-    titles, descriptions = _build_progression_discord_message(
+    titles, descriptions, embed_header = _build_progression_discord_message(
         progression_service=progression_service, colour_key=colour_key
     )
 
@@ -130,6 +130,7 @@ def send_progression_discord_message(progression_service: ProgressionService) ->
         embeds = create_discord_embeds_v3(
             titles=titles,
             descriptions=descriptions,
+            embed_header=embed_header,
             author=progression_service.get_message_author(),
             footer=progression_service.get_message_footer(),
             embed_colour_dict={colour_key: progression_service.embed_colour},

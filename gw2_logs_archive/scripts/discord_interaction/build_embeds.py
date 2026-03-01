@@ -122,6 +122,7 @@ def create_discord_embeds(
 def create_discord_embeds_v3(
     titles: dict,
     descriptions: dict,
+    embed_header: str,
     author: str,
     footer: str,
     embed_colour_dict: dict,
@@ -153,7 +154,7 @@ def create_discord_embeds_v3(
                     colour=embed_colour_dict[instance_type],
                 )
                 embed_index += 1
-                description[embed_index] = ""
+                description[embed_index] = embed_header
 
             description[embed_index] += line
 
