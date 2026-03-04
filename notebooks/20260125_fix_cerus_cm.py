@@ -7,16 +7,16 @@ if __name__ == "__main__":
 
 
 import logging
+
 from gw2_logs.models import (
     DpsLog,
     Encounter,
     InstanceClear,
     InstanceClearGroup,
 )
-from scripts.log_helpers import zfill_y_m_d,
+from scripts.log_helpers import zfill_y_m_d
 
 logger = logging.getLogger(__name__)
-
 
 
 CLEAR_GROUP_BASE_NAME = "cerus_cm__"  # followed by y_m_d; e.g. cerus_cm__20240406

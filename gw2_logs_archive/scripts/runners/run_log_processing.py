@@ -30,23 +30,21 @@ def run_log_processing(
     y: Optional[int] = None,
     m: Optional[int] = None,
     d: Optional[int] = None,
-    itype_groups: Optional[list[Literal["raid", "strike", "fractal"]]] = None,
+    itype_group: Optional[Literal["raid", "fractal"]] = "raid",
 ) -> None:
     """Run complete log processing flow for a given date and instance type groups."""
     if y is None:
         y, m, d = today_y_m_d()
-    if itype_groups is None:
-        itype_groups = ["raid", "strike", "fractal"]
 
     logger.info(f"Starting log import for {zfill_y_m_d(y, m, d)}")
-    logger.info(f"Selected instance types: {itype_groups}")
+    logger.info(f"Selected instance type: {itype_group}")
 
     # Initialize local parser
     ei_parser = EliteInsightsParser()
     ei_parser.create_settings(out_dir=settings.EI_PARSED_LOGS_DIR.joinpath(zfill_y_m_d(y, m, d)), create_html=False)
 
-    # possible folder names for selected itype_groups
-    allowed_folder_names = create_folder_names(itype_groups=itype_groups)
+    # possible folder names for selected itype_group
+    allowed_folder_names = create_folder_names(itype_groups=itype_group)
     log_files_date_cls = LogFilesDate(y=y, m=m, d=d, allowed_folder_names=allowed_folder_names)
 
     # Flow start
@@ -62,14 +60,7 @@ def run_log_processing(
                 ei_parser=ei_parser,
             )
 
-            for log in processed_logs:
-                icgi = InstanceClearGroupInteraction.create_from_date(
-                    y=y, m=m, d=d, itype_group=log.encounter.instance.instance_group.name
-                )
-
-                # Build and send Discord message
-                if icgi is not None:
-                    icgi.sync_discord_message_id()
+            icgi = InstanceClearGroupInteraction.update_or_create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
             if len(processed_logs) > 0:
                 # Update discord, only do it on the last log, so we dont spam the discord api too often.
@@ -97,14 +88,14 @@ def run_log_processing(
 
 if __name__ == "__main__":
     y, m, d = 2026, 2, 23
-    itype_groups = ["raid", "strike"]
+    itype_group = "raid"
     processing_type = "local"
 
     # Process logs
-    # run_log_processing(y=y, m=m, d=d, itype_groups=itype_groups)
+    # run_log_processing(y=y, m=m, d=d, itype_group=itype_group)
 
     # Just update message:
-    # icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_groups[0])
+    # icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     # icgi.send_discord_message()
 
 # %%

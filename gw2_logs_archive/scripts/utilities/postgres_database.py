@@ -85,7 +85,7 @@ class PostgresDatabase:
         """Create a backup of the database using pg_dump."""
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = backup_dir / f"pgsql_{self.database['NAME']}_{timestamp}.sql"
+        backup_file = backup_dir / f"pgsql_{prd_env_settings.DJANGO_DATABASE_NAME}_{timestamp}.sql"
 
         logger.info(f"Creating backup at: {backup_file}")
         # Run pg_dump

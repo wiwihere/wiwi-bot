@@ -7,6 +7,7 @@ if __name__ == "__main__":
 import datetime
 import logging
 from dataclasses import dataclass
+from typing import Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -45,14 +46,22 @@ class InstanceClearGroupInteraction:
             self.get_total_clear_duration()
 
     @classmethod
-    def create_from_date(cls, y: int, m: int, d: int, itype_group: str):
+    def update_or_create_from_date(
+        cls, y: int, m: int, d: int, itype_group: Literal["raid", "fractal"]
+    ) -> Optional["InstanceClearGroupInteraction"]:
         """Create an instance clear group from a specific date."""
+        # Raid encounters are still strikes in database.
+        if itype_group == "raid":
+            itype_groups = ["raid", "strike"]
+        elif itype_group == "fractal":
+            itype_groups = ["fractal"]
+
         # All logs in a day
         logs_day = DpsLog.objects.filter(
             start_time__year=y,
             start_time__month=m,
             start_time__day=d,
-            encounter__instance__instance_group__name=itype_group,
+            encounter__instance__instance_group__name__in=itype_groups,
             is_progression_log=False,
         ).exclude(encounter__instance__instance_group__name="golem")
 
@@ -70,7 +79,9 @@ class InstanceClearGroupInteraction:
                 use_for_icg_duration=True,
                 instance__instance_group__name=iclear_group.type,
             )
-            duration_encounters = "__".join([f"{a.instance.nr}_{a.nr}" for a in encounters])
+            duration_encounters = "__".join(
+                [f"{a.instance.instance_group.name}{a.instance.nr}_{a.nr}" for a in encounters]
+            )
             iclear_group.duration_encounters = duration_encounters
             iclear_group.save()
             logger.info(f"Created InstanceClearGroup: {iclear_group}")
@@ -79,8 +90,9 @@ class InstanceClearGroupInteraction:
         instances_day = np.unique([log.encounter.instance.name for log in logs_day])
         for instance_name in instances_day:
             logs_instance = logs_day.filter(encounter__instance__name=instance_name)
-            ici = InstanceClearInteraction.update_or_create_from_logs(
-                dpslog_list=logs_instance, instance_group=iclear_group
+            _ = InstanceClearInteraction.update_or_create_from_logs(
+                instance_clear_group=iclear_group,
+                dpslog_list=logs_instance,
             )
 
         # Set start time of clear
@@ -117,7 +129,7 @@ class InstanceClearGroupInteraction:
         """
 
         # For raids and strikes we need to check multiple clears since they may not be done in one session.
-        if self.iclear_group.type in ["raid", "strike"]:
+        if self.iclear_group.type == "raid":
             week_clears = self.get_week_clears()
 
             week_logs = DpsLog.objects.filter(
@@ -129,6 +141,7 @@ class InstanceClearGroupInteraction:
             df_logs_duration = pd.DataFrame(
                 week_logs.values_list(
                     "encounter",
+                    "encounter__instance__instance_group__name",
                     "encounter__nr",
                     "encounter__instance__nr",
                     "success",
@@ -136,16 +149,25 @@ class InstanceClearGroupInteraction:
                     "start_time",
                     "start_time__day",
                 ),
-                columns=["encounter", "encounter_nr", "instance_nr", "success", "duration", "start_time", "start_day"],
+                columns=[
+                    "encounter",
+                    "instance_group_name",
+                    "encounter_nr",
+                    "instance_nr",
+                    "success",
+                    "duration",
+                    "start_time",
+                    "start_day",
+                ],
             )
 
             df_logs_duration["enc_ins_str"] = df_logs_duration.apply(
-                lambda x: f"{x.instance_nr}_{x.encounter_nr}", axis=1
+                lambda x: f"{x.instance_group_name}{x.instance_nr}_{x.encounter_nr}", axis=1
             )
 
             # Drop duplicate successes. Shouldnt happen too much anyway...
-            dupe_bool = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
-            df_logs_duration.drop(dupe_bool[dupe_bool].index, inplace=True)
+            duplicate_encounters = df_logs_duration[df_logs_duration["success"]].duplicated("encounter")
+            df_logs_duration.drop(duplicate_encounters[duplicate_encounters].index, inplace=True)
 
             # Count encounters that are used for leaderboard total with success
             leaderboard_success_count = sum(
@@ -246,7 +268,7 @@ class InstanceClearGroupInteraction:
                 type=icg_type,
             )
             .filter(start_time__lte=icg.start_time)
-            .exclude(name__icontains="cm__")
+            .exclude(name__icontains="progression")
             .order_by("duration")
         )
 
@@ -258,25 +280,25 @@ class InstanceClearGroupInteraction:
         )
         return rank_str
 
-    def sync_discord_message_id(self) -> None:
-        """Update the iclear_group discord message id to be the same if raids and strikes
-        are sent to the same channel.
-        """
-        # FIXME errors when strikes are done first on a raid-day.
-        if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (self.iclear_group.type in ["raid", "strike"]):
-            if self.iclear_group.discord_message is None:
-                group_names = [
-                    "__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]
-                ]
+    # def sync_discord_message_id(self) -> None:
+    #     """Update the iclear_group discord message id to be the same if raids and strikes
+    #     are sent to the same channel.
+    #     """
+    #     # FIXME errors when strikes are done first on a raid-day.
+    #     if (ITYPE_GROUPS["raid"] == ITYPE_GROUPS["strike"]) and (self.iclear_group.type in ["raid", "strike"]):
+    #         if self.iclear_group.discord_message is None:
+    #             group_names = [
+    #                 "__".join([f"{j}s", self.iclear_group.name.split("__")[1]]) for j in ITYPE_GROUPS["raid"]
+    #             ]
 
-                self.iclear_group.discord_message_id = (
-                    InstanceClearGroup.objects.filter(name__in=group_names)
-                    .exclude(discord_message=None)
-                    .values_list("discord_message", flat=True)
-                    .first()
-                )
-                logger.debug(f"Updated discord_message_id for {self.iclear_group}")
-                self.iclear_group.save()
+    #             self.iclear_group.discord_message_id = (
+    #                 InstanceClearGroup.objects.filter(name__in=group_names)
+    #                 .exclude(discord_message=None)
+    #                 .values_list("discord_message", flat=True)
+    #                 .first()
+    #             )
+    #             logger.debug(f"Updated discord_message_id for {self.iclear_group}")
+    #             self.iclear_group.save()
 
     def send_discord_message(self) -> None:
         """Build the message from embeds and send to discord.
@@ -321,7 +343,7 @@ if __name__ == "__main__":
     y, m, d = 2025, 9, 8
     itype_group = "raid"
 
-    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+    self = icgi = InstanceClearGroupInteraction.update_or_create_from_date(y=y, m=m, d=d, itype_group=itype_group)
 
     group = self.iclear_group
     webhook_url = settings.WEBHOOKS_CURRENT_WEEK[self.iclear_group.type]

@@ -15,7 +15,7 @@ from scripts.model_interactions.instance_clear_group import InstanceClearGroupIn
 
 def update_discord_message_single(y, m, d, itype_group="raid"):
     """Update single discord message. Doesnt upload any logs"""
-    self = icgi = InstanceClearGroupInteraction.create_from_date(y=y, m=m, d=d, itype_group=itype_group)
+    self = icgi = InstanceClearGroupInteraction.update_or_create_from_date(y=y, m=m, d=d, itype_group=itype_group)
     # self = icgi = InstanceClearGroupInteraction.from_name("dummy")
     icgi.send_discord_message()
 

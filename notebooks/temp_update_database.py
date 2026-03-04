@@ -25,7 +25,7 @@ for icg in icgs:
         icg.save()
 
         # Create strike counterpart
-        icgi = InstanceClearGroupInteraction.create_from_date(
+        icgi = InstanceClearGroupInteraction.update_or_create_from_date(
             y=icg.start_time.year, m=icg.start_time.month, d=icg.start_time.day, itype_group="strike"
         )
         icgi.clear_group

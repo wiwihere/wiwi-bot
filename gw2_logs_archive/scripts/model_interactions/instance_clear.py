@@ -30,57 +30,62 @@ class InstanceClearInteraction:
     @classmethod
     def update_or_create_from_logs(
         cls,
+        instance_clear_group: InstanceClearGroup,
         dpslog_list: list[DpsLog],
-        instance_group: InstanceClearGroup = None,
     ) -> "InstanceClearInteraction":
         """Log should be filtered on instance"""
         iname = f"{dpslog_list[0].encounter.instance.name_lower}__{dpslog_list[0].start_time.strftime('%Y%m%d')}"
 
         # Check if all logs are from the same wing.
-        same_wing = all(log.encounter.instance == dpslog_list[0].encounter.instance for log in dpslog_list)
-        if not same_wing:
+        if len({log.encounter.instance for log in dpslog_list}) != 1:
             raise ValueError("Not all logs of same wing.")
 
         # Create or update instance
-        iclear, created = InstanceClear.objects.update_or_create(
+        instance_clear, created = InstanceClear.objects.update_or_create(
             defaults={
                 "instance": dpslog_list[0].encounter.instance,
-                "instance_clear_group": instance_group,
+                "instance_clear_group": instance_clear_group,
             },
             name=iname,
         )
         if created:
-            logger.info(f"Created {iclear}")
+            logger.info(f"Created {instance_clear}")
 
-        # All logs that are not yet part of the instance clear will be added.
-        for dpslog in set(dpslog_list).difference(set(iclear.dps_logs.all())):
-            dpslog.instance_clear = iclear
-            dpslog.save()
+        # All logs that are not yet part of the instance clear will be linked.
+        for dpslog in dpslog_list:
+            if dpslog.instance_clear != instance_clear:
+                logger.info(f"Linked {instance_clear} to {dpslog}")
+                dpslog.instance_clear = instance_clear
+                dpslog.save()
 
         # Update start_time
-        iclear.start_time = iclear.dps_logs.all().order_by("start_time").first().start_time
+        instance_clear.start_time = instance_clear.dps_logs.all().order_by("start_time").first().start_time
 
         # Calculate duration
-        last_log = iclear.dps_logs.all().order_by("start_time").last()
-        iclear.duration = last_log.start_time + last_log.duration - iclear.start_time
+        last_log = instance_clear.dps_logs.all().order_by("start_time").last()
+        instance_clear.duration = last_log.start_time + last_log.duration - instance_clear.start_time
 
-        if len(iclear.dps_logs.all()) > 0:
-            iclear.core_player_count = int(np.median([log.core_player_count for log in iclear.dps_logs.all()]))
-            iclear.friend_player_count = int(np.median([log.friend_player_count for log in iclear.dps_logs.all()]))
+        if len(instance_clear.dps_logs.all()) > 0:
+            instance_clear.core_player_count = int(
+                np.median([log.core_player_count for log in instance_clear.dps_logs.all()])
+            )
+            instance_clear.friend_player_count = int(
+                np.median([log.friend_player_count for log in instance_clear.dps_logs.all()])
+            )
 
         # Check if all encounters have been finished.
-        encounter_count = max([i.nr for i in iclear.instance.encounters.all()])
+        encounter_count = max([i.nr for i in instance_clear.instance.encounters.all()])
 
-        iclear.success = False
-        if len(iclear.dps_logs.filter(success=True)) == encounter_count:
-            iclear.success = True
+        instance_clear.success = False
+        if len(instance_clear.dps_logs.filter(success=True)) == encounter_count:
+            instance_clear.success = True
 
-        iclear.emboldened = False
-        if len(iclear.dps_logs.filter(success=True, emboldened=True)) > 0:
-            iclear.emboldened = True
+        instance_clear.emboldened = False
+        if len(instance_clear.dps_logs.filter(success=True, emboldened=True)) > 0:
+            instance_clear.emboldened = True
 
-        iclear.save()
-        return cls(iclear)
+        instance_clear.save()
+        return cls(instance_clear)
 
     @classmethod
     def from_name(cls, name: str) -> "InstanceClearGroup":

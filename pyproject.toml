@@ -5,7 +5,7 @@ extend-exclude = ["*.bat", "gw2_logs_archive/gw2_logs/migrations/*"]
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "NPY", "PD", "C4", "I"]
-ignore = ["D1", "D202", "D205", "D400", "D404", "E501", "PD002", "PD901"]
+ignore = ["D1", "D202", "D205", "D400", "D404", "E501", "PD002"]
 # Apply isort rules, but not others like removing unused imports.
 fixable = ["I"]
 

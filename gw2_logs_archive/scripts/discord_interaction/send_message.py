@@ -160,7 +160,7 @@ def create_or_update_discord_message(
     elif isinstance(group, InstanceClearGroup):
         discord_message_name = group.name
 
-    # Spread the embeds over multiple messages if required. 
+    # Spread the embeds over multiple messages if required.
     # message_ids may become e.g. [0, 0, 1], meaning the first two embeds go to the first
     # discord message and the 3rd goes to the second discord message.
     message_size = [calculate_embed_size(embed) for embed in embeds_messages_list]
