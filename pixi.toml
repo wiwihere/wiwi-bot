@@ -1,4 +1,4 @@
-[project]
+[workspace]
 channels = ["conda-forge"]
 name = "gw2-logs-archive"
 platforms = ["win-64"]
@@ -17,11 +17,14 @@ code_insiders = "code-insiders"
 
 [dependencies]
 python = "3.12.*"
+
+
+[pypi-dependencies]
+discord = "*"
 django = "==5.1.6"
 ipywidgets = "*"
-jupyterlab = "*"
 pandas = "*"
-pip = "24.*"
+pip = "==24.*"
 psycopg2 = "*"
 python-dotenv = "*"
 ruff = "*"
@@ -31,6 +34,5 @@ plotly = "*"
 pytest = "*"
 pydantic = "*"
 pydantic-settings = "*"
-
-[pypi-dependencies]
-discord = "*"
+pytz = "*"
+requests = "*"
